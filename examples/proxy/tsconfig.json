@@ -1,0 +1,17 @@
+{
+  "extends": "../../packages/widget/tsconfig.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@chaty-widget/vanilla": ["../../packages/widget/src"],
+      "@chaty-widget/vanilla/server": ["../../packages/widget/server"]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

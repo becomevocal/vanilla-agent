@@ -1,0 +1,14 @@
+{
+  "extends": "../../packages/widget/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@chaty-widget/vanilla": ["../../packages/widget/src"],
+      "@chaty-widget/vanilla/server": ["../../packages/widget/server"]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

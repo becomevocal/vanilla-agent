@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streaming Chat Widget – Directive Demo</title>
+  </head>
+  <body>
+    <main class="demo-container">
+      <section>
+        <h1>Directive Demo</h1>
+        <p>
+          This page demonstrates the JSON / directive postprocessor. When your
+          backend streams a special directive (for example <code>&lt;Form type="init"/&gt;</code>)
+          the widget swaps it for an interactive form that submits to the proxy and
+          feeds the result back into the conversation.
+        </p>
+      </section>
+
+      <section>
+        <h2>Inline Directive Embed</h2>
+        <div class="embedded-target" id="json-inline"></div>
+      </section>
+    </main>
+
+    <div id="json-launcher"></div>
+    <script type="module" src="/src/json-demo.ts"></script>
+  </body>
+</html>

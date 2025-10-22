@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streaming Chat Widget Demo</title>
+  </head>
+  <body>
+    <main class="demo-container">
+      <section>
+        <h1>Streaming Chat Widget Demo</h1>
+        <p>
+          This page renders the widget two ways: once through the vanilla
+          initializer and once as a floating launcher wired up to user actions.
+        </p>
+        <p>
+          The frontend proxy below lives at <code>/api/chat/dispatch</code>
+          and is powered by the Hono server example in <code>examples/proxy</code>.
+        </p>
+        <p>
+          Looking for the directive / interactive form example? Open
+          <a href="/json.html">json.html</a>.
+        </p>
+        <div class="cta-row">
+          <button id="open-chat" type="button">Open Launcher</button>
+          <button id="toggle-chat" type="button">Toggle Launcher</button>
+        </div>
+      </section>
+      <section>
+        <h2>Inline Embed</h2>
+        <div class="embedded-target" id="inline-widget"></div>
+      </section>
+    </main>
+    <div id="launcher-root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

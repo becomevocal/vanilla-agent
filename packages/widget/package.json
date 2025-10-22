@@ -1,0 +1,66 @@
+{
+  "name": "@chaty-widget/vanilla",
+  "version": "0.1.0",
+  "description": "Configurable streaming chat widget with optional proxy server",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./widget.css": {
+      "import": "./widget.css",
+      "default": "./dist/widget.css"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs",
+      "types": "./dist/server/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "widget.css",
+    "src"
+  ],
+  "scripts": {
+    "build": "rimraf dist && npm run build:styles && npm run build:client && npm run build:server",
+    "build:styles": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/styles/widget.css','dist/widget.css');\"",
+    "build:client": "tsup src/index.ts --format esm,cjs,iife --global-name StreamChatWidget --minify --sourcemap --splitting false --dts --loader \".css=text\"",
+    "build:server": "tsup server/index.ts --format esm,cjs --dts --sourcemap",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.4.9",
+    "marked": "^12.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "postcss": "^8.4.38",
+    "rimraf": "^5.0.5",
+    "tailwindcss": "^3.4.10",
+    "tsup": "^8.0.1",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "chat",
+    "widget",
+    "streaming",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/becomevocal/chaty.git"
+  }
+}
