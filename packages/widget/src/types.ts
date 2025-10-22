@@ -26,7 +26,6 @@ export type ChatWidgetLauncherConfig = {
 
 export type ChatWidgetConfig = {
   apiUrl?: string;
-  metadata?: Record<string, unknown>;
   flowId?: string;
   headers?: Record<string, string>;
   copy?: {
@@ -42,6 +41,7 @@ export type ChatWidgetConfig = {
   suggestionChips?: string[];
   debug?: boolean;
   formEndpoint?: string;
+  launcherWidth?: string;
   postprocessMessage?: (context: {
     text: string;
     message: ChatWidgetMessage;

@@ -84,7 +84,19 @@ document.getElementById('toggle-chat')?.addEventListener('click', () => chat.tog
 
 ### Travrse adapter
 
-This package ships with a Travrse adapter by default. To use it, simply point `apiUrl` at a proxy that forwards to the Travrse Dispatch API and provide `TRAVRSE_API_KEY` on the proxy. The rest of the widget remains backend-neutral, so you can swap in alternative providers by adjusting the proxy and payload mapping.
+This package ships with a Travrse adapter by default. The proxy handles all flow configuration, keeping the client lightweight and flexible.
+
+**Flow configuration happens server-side** - you have three options:
+
+1. **Use default flow** - The proxy includes a basic streaming chat flow out of the box
+2. **Reference a Travrse flow ID** - Configure flows in your Travrse dashboard and reference them by ID
+3. **Define custom flows** - Build flow configurations directly in the proxy
+
+The client simply sends messages to the proxy, which constructs the full Travrse payload. This architecture allows you to:
+- Change models/prompts without redeploying the widget
+- A/B test different flows server-side
+- Enforce security and cost controls centrally
+- Support multiple flows for different use cases
 
 ### Directive postprocessor
 
@@ -118,8 +130,7 @@ The script build exposes a `window.ChatWidget` global.
 | Option | Type | Description |
 | --- | --- | --- |
 | `apiUrl` | `string` | Proxy endpoint for your chat backend (defaults to Travrse's cloud API). |
-| `metadata` | `Record<string, unknown>` | Additional context forwarded with each dispatch. |
-| `flowId` | `string` | Optional identifier for routing inside your backend. |
+| `flowId` | `string` | Optional Travrse flow ID. If provided, the client sends it to the proxy which can use it to select a specific flow. |
 | `headers` | `Record<string, string>` | Extra headers forwarded to your proxy. |
 | `copy` | `{ welcomeTitle?, welcomeSubtitle?, inputPlaceholder?, sendButtonLabel? }` | Customize user-facing text. |
 | `theme` | `{ primary?, secondary?, surface?, muted?, accent? }` | Override CSS variables for the widget. |
@@ -136,6 +147,10 @@ All options are safe to mutate via `initChatWidget(...).update(newConfig)`.
 
 ### Optional proxy server
 
+The proxy server handles flow configuration and forwards requests to Travrse. You can configure it in three ways:
+
+**Option 1: Use default flow (recommended for getting started)**
+
 ```ts
 // api/chat.ts
 import { createChatProxyApp } from '@chaty-assistant/vanilla/server';
@@ -146,17 +161,63 @@ export default createChatProxyApp({
 });
 ```
 
-Host on Vercel by exporting a handler:
+**Option 2: Reference a Travrse flow ID**
+
+```ts
+import { createChatProxyApp } from '@chaty-assistant/vanilla/server';
+
+export default createChatProxyApp({
+  path: '/api/chat/dispatch',
+  allowedOrigins: ['https://www.example.com'],
+  flowId: 'flow_abc123' // Flow created in Travrse dashboard
+});
+```
+
+**Option 3: Define a custom flow**
+
+```ts
+import { createChatProxyApp } from '@chaty-assistant/vanilla/server';
+
+export default createChatProxyApp({
+  path: '/api/chat/dispatch',
+  allowedOrigins: ['https://www.example.com'],
+  flowConfig: {
+    name: "Custom Chat Flow",
+    description: "Specialized assistant flow",
+    steps: [
+      {
+        id: "custom_prompt",
+        name: "Custom Prompt",
+        type: "prompt",
+        enabled: true,
+        config: {
+          text: "{{_record.metadata.message}}",
+          model: "anthropic/claude-3.5-sonnet",
+          responseFormat: "markdown",
+          outputVariable: "prompt_result",
+          userPrompt: "{{_record.metadata.message}}",
+          systemPrompt: "You are a specialized assistant. Previous messages:\n{{_record.metadata.previous_messages}}"
+        }
+      }
+    ]
+  }
+});
+```
+
+**Hosting on Vercel:**
 
 ```ts
 import { createVercelHandler } from '@chaty-assistant/vanilla/server';
 
 export default createVercelHandler({
-  allowedOrigins: ['https://www.example.com']
+  allowedOrigins: ['https://www.example.com'],
+  flowId: 'flow_abc123' // Optional
 });
 ```
 
-When using Travrse, add `TRAVRSE_API_KEY` to your environment. The server forwards POST bodies straight to `https://api.travrse.ai/v1/dispatch` and streams the response back to the client.
+**Environment setup:**
+
+Add `TRAVRSE_API_KEY` to your environment. The proxy constructs the Travrse payload (including flow configuration) and streams the response back to the client.
 
 ### Development notes
 

@@ -12,10 +12,7 @@ import {
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
   import.meta.env.VITE_PROXY_URL ??
-  `http://localhost:${proxyPort}/api/chat/dispatch`;
-
-const formDirectivePrompt =
-  "When the user provides scheduling details, respond with the directive <Form type=\"init\"/> so the widget can render an interactive form.";
+  `http://localhost:${proxyPort}/api/chat/dispatch-directive`;
 
 const inlineMount = document.getElementById("json-inline");
 if (!inlineMount) {
@@ -48,9 +45,6 @@ createChatExperience(inlineMount, {
       return markdownPostprocessor(text);
     }
     return directivePostprocessor(text);
-  },
-  metadata: {
-    directive_hint: formDirectivePrompt
   }
 });
 
@@ -82,9 +76,6 @@ initChatWidget({
         return markdownPostprocessor(text);
       }
       return directivePostprocessor(text);
-    },
-    metadata: {
-      directive_hint: formDirectivePrompt
     }
   }
 });

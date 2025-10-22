@@ -5,10 +5,46 @@ import { createChatProxyApp } from "@chaty-assistant/vanilla/server";
 
 const preferredPort = Number(process.env.PORT ?? 43111);
 
+// Default chat proxy - basic conversational assistant
 const app = createChatProxyApp({
   path: "/api/chat/dispatch",
   allowedOrigins: ["http://localhost:5173"]
 });
+
+// Directive-enabled proxy for interactive form demo
+// This flow includes instructions to output form directives
+const directiveApp = createChatProxyApp({
+  path: "/api/chat/dispatch-directive",
+  allowedOrigins: ["http://localhost:5173"],
+  flowConfig: {
+    name: "Directive-Aware Chat Flow",
+    description: "Chat flow with form directive support",
+    steps: [
+      {
+        id: "directive_prompt",
+        name: "Directive Prompt",
+        type: "prompt",
+        enabled: true,
+        config: {
+          text: "{{_record.metadata.message}}",
+          model: "meta/llama3.1-8b-instruct-free",
+          responseFormat: "markdown",
+          outputVariable: "prompt_result",
+          userPrompt: "{{_record.metadata.message}}",
+          systemPrompt: `you are a helpful assistant, chatting with a user.
+
+IMPORTANT: When the user asks about scheduling, demos, or providing their details, respond with the directive <Form type="init"/> to render an interactive form.
+
+previous messages:
+{{_record.metadata.previous_messages}}`
+        }
+      }
+    ]
+  }
+});
+
+// Mount both apps
+app.route("/", directiveApp);
 
 app.post("/form", async (c) => {
   let body: Record<string, unknown>;
