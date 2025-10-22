@@ -1,7 +1,7 @@
-import { TravrseChatSession, TravrseSessionStatus } from "./session";
-import { TravrseChatConfig, TravrseMessage } from "./types";
+import { ChatWidgetSession, ChatWidgetSessionStatus } from "./session";
+import { ChatWidgetConfig, ChatWidgetMessage } from "./types";
 
-const statusCopy: Record<TravrseSessionStatus, string> = {
+const statusCopy: Record<ChatWidgetSessionStatus, string> = {
   idle: "Online",
   connecting: "Connecting…",
   connected: "Streaming…",
@@ -9,7 +9,7 @@ const statusCopy: Record<TravrseSessionStatus, string> = {
 };
 
 const positionMap: Record<
-  NonNullable<TravrseChatConfig["launcher"]>["position"],
+  NonNullable<ChatWidgetConfig["launcher"]>["position"],
   string
 > = {
   "bottom-right": "tvw-bottom-6 tvw-right-6",
@@ -19,7 +19,7 @@ const positionMap: Record<
 };
 
 type Controller = {
-  update: (config: TravrseChatConfig) => void;
+  update: (config: ChatWidgetConfig) => void;
   destroy: () => void;
   open: () => void;
   close: () => void;
@@ -28,7 +28,7 @@ type Controller = {
 
 type MessageTransform = (context: {
   text: string;
-  message: TravrseMessage;
+  message: ChatWidgetMessage;
   streaming: boolean;
 }) => string;
 
@@ -45,7 +45,7 @@ const createElement = <K extends keyof HTMLElementTagNameMap>(
 
 const applyThemeVariables = (
   element: HTMLElement,
-  config?: TravrseChatConfig
+  config?: ChatWidgetConfig
 ) => {
   const theme = config?.theme ?? {};
   Object.entries(theme).forEach(([key, value]) => {
@@ -55,9 +55,9 @@ const applyThemeVariables = (
 
 const renderMessages = (
   container: HTMLElement,
-  messages: TravrseMessage[],
+  messages: ChatWidgetMessage[],
   transform: MessageTransform,
-  enhance?: (bubble: HTMLElement, message: TravrseMessage) => void
+  enhance?: (bubble: HTMLElement, message: ChatWidgetMessage) => void
 ) => {
   container.innerHTML = "";
   const fragment = document.createDocumentFragment();
@@ -96,13 +96,13 @@ const renderMessages = (
 
 const updateLauncherButton = (
   button: HTMLButtonElement | null,
-  config: TravrseChatConfig | undefined
+  config: ChatWidgetConfig | undefined
 ) => {
   if (!button || !config) return;
   const launcher = config.launcher ?? {};
 
   button.querySelector("[data-role='launcher-title']")!.textContent =
-    launcher.title ?? "Travrse Assistant";
+    launcher.title ?? "Chat Assistant";
   button.querySelector("[data-role='launcher-subtitle']")!.textContent =
     launcher.subtitle ?? "Get answers fast";
 
@@ -132,7 +132,7 @@ const updateLauncherButton = (
   button.className = `${base} ${positionClass}`;
 };
 
-const buildPostprocessor = (cfg?: TravrseChatConfig): MessageTransform => {
+const buildPostprocessor = (cfg?: ChatWidgetConfig): MessageTransform => {
   if (cfg?.postprocessMessage) {
     return (context) =>
       cfg.postprocessMessage!({
@@ -145,7 +145,7 @@ const buildPostprocessor = (cfg?: TravrseChatConfig): MessageTransform => {
 };
 
 const buildLauncherButton = (
-  config: TravrseChatConfig | undefined,
+  config: ChatWidgetConfig | undefined,
   toggle: () => void
 ) => {
   const button = createElement("button") as HTMLButtonElement;
@@ -164,7 +164,7 @@ const buildLauncherButton = (
   return button;
 };
 
-const createWrapper = (config?: TravrseChatConfig) => {
+const createWrapper = (config?: ChatWidgetConfig) => {
   const launcherEnabled = config?.launcher?.enabled ?? true;
 
   if (!launcherEnabled) {
@@ -204,7 +204,7 @@ const createWrapper = (config?: TravrseChatConfig) => {
   return { wrapper, panel };
 };
 
-const buildPanel = (config?: TravrseChatConfig, showClose = true) => {
+const buildPanel = (config?: ChatWidgetConfig, showClose = true) => {
   const container = createElement(
     "div",
     "tvw-flex tvw-h-full tvw-w-full tvw-flex-col tvw-bg-travrse-surface tvw-text-travrse-primary tvw-rounded-2xl tvw-overflow-hidden tvw-shadow-2xl tvw-border tvw-border-gray-100"
@@ -235,7 +235,7 @@ const buildPanel = (config?: TravrseChatConfig, showClose = true) => {
     "tvw-text-base tvw-font-semibold"
   );
   title.textContent =
-    config?.launcher?.title ?? "Travrse Chat Agent";
+    config?.launcher?.title ?? "Chat Assistant";
   const subtitle = createElement(
     "span",
     "tvw-text-sm tvw-text-travrse-muted"
@@ -275,7 +275,7 @@ const buildPanel = (config?: TravrseChatConfig, showClose = true) => {
   );
   introSubtitle.textContent =
     config?.copy?.welcomeSubtitle ??
-    "I’m the Travrse assistant. Ask me anything about your account or products.";
+    "Ask anything about your account or products.";
   introCard.append(introTitle, introSubtitle);
 
   const messagesWrapper = createElement(
@@ -337,7 +337,7 @@ const buildPanel = (config?: TravrseChatConfig, showClose = true) => {
 
 export const createChatExperience = (
   mount: HTMLElement,
-  initialConfig?: TravrseChatConfig
+  initialConfig?: ChatWidgetConfig
 ): Controller => {
   let config = { ...initialConfig };
   applyThemeVariables(mount, config);
@@ -368,7 +368,7 @@ export const createChatExperience = (
   const destroyCallbacks: Array<() => void> = [];
   let suggestionButtons: HTMLButtonElement[] = [];
   let closeHandler: (() => void) | null = null;
-  let session: TravrseChatSession;
+  let session: ChatWidgetSession;
   let isStreaming = false;
   let shouldAutoScroll = true;
   let lastScrollTop = 0;
@@ -446,14 +446,14 @@ export const createChatExperience = (
       title: "Additional Information",
       description: "Provide any extra details to tailor the next steps.",
       fields: [
-        { name: "company", label: "Company", placeholder: "Travrse" },
+        { name: "company", label: "Company", placeholder: "Acme Inc." },
         { name: "context", label: "Context", type: "textarea", placeholder: "Share more about your use case" }
       ],
       submitLabel: "Send"
     }
   };
 
-  const enhanceBubble = (bubble: HTMLElement, message: TravrseMessage) => {
+  const enhanceBubble = (bubble: HTMLElement, message: ChatWidgetMessage) => {
     const placeholders = bubble.querySelectorAll<HTMLElement>("[data-tv-form]");
     if (!placeholders.length) return;
 
@@ -633,12 +633,12 @@ export const createChatExperience = (
     introTitle.textContent = config.copy?.welcomeTitle ?? "Hello 👋";
     introSubtitle.textContent =
       config.copy?.welcomeSubtitle ??
-      "I’m the Travrse assistant. Ask me anything about your account or products.";
+      "Ask anything about your account or products.";
     textarea.placeholder = config.copy?.inputPlaceholder ?? "Type your message…";
     sendButton.textContent = config.copy?.sendButtonLabel ?? "Send";
   };
 
-  session = new TravrseChatSession(config, {
+  session = new ChatWidgetSession(config, {
     onMessagesChanged(messages) {
       renderMessages(messagesWrapper, messages, postprocess, enhanceBubble);
       scheduleAutoScroll(!isStreaming);
@@ -777,7 +777,7 @@ export const createChatExperience = (
   }
 
   return {
-    update(nextConfig: TravrseChatConfig) {
+    update(nextConfig: ChatWidgetConfig) {
       config = { ...config, ...nextConfig };
       applyThemeVariables(mount, config);
 
@@ -841,5 +841,4 @@ export const createChatExperience = (
   };
 };
 
-export type TravrseChatController = Controller;
 export type ChatWidgetController = Controller;

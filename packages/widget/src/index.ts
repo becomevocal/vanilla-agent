@@ -1,35 +1,33 @@
 import {
-  initTravrseChat as initTravrseChatFn,
-  type TravrseInitHandle
+  initChatWidget as initChatWidgetFn,
+  type ChatWidgetInitHandle
 } from "./runtime/init";
 
 export type {
-  TravrseChatConfig,
-  TravrseChatTheme,
-  TravrseFeatureFlags,
-  TravrseInitOptions,
-  TravrseMessage,
-  TravrseLauncherConfig
+  ChatWidgetConfig,
+  ChatWidgetTheme,
+  ChatWidgetFeatureFlags,
+  ChatWidgetInitOptions,
+  ChatWidgetMessage,
+  ChatWidgetLauncherConfig,
+  ChatWidgetEvent
 } from "./types";
 
-export { initTravrseChatFn as initTravrseChat };
+export { initChatWidgetFn as initChatWidget };
 export {
   createChatExperience,
-  type TravrseChatController
+  type ChatWidgetController
 } from "./ui";
-export type { ChatWidgetController } from "./ui";
 export {
-  TravrseChatSession,
-  type TravrseSessionStatus
+  ChatWidgetSession,
+  type ChatWidgetSessionStatus
 } from "./session";
-export { TravrseChatClient } from "./client";
-export { TravrseChatClient as ChatWidgetClient } from "./client";
+export { ChatWidgetClient } from "./client";
 export {
   markdownPostprocessor,
   escapeHtml,
   directivePostprocessor
 } from "./postprocessors";
-export type { TravrseInitHandle };
-export type { TravrseInitHandle as ChatWidgetInitHandle };
+export type { ChatWidgetInitHandle };
 
-export default initTravrseChatFn;
+export default initChatWidgetFn;

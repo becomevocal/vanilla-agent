@@ -1,5 +1,5 @@
-import { createChatExperience, TravrseChatController } from "../ui";
-import { TravrseChatConfig, TravrseInitOptions } from "../types";
+import { createChatExperience, ChatWidgetController } from "../ui";
+import { ChatWidgetConfig, ChatWidgetInitOptions } from "../types";
 
 const ensureTarget = (target: string | HTMLElement): HTMLElement => {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -26,30 +26,30 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = href;
-    link.setAttribute("data-chat-widget", "true");
+    link.setAttribute("data-chaty-assistant", "true");
     root.insertBefore(link, root.firstChild);
   } else {
     const existing = document.head.querySelector<HTMLLinkElement>(
-      "link[data-chat-widget]"
+      "link[data-chaty-assistant]"
     );
     if (!existing) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
-      link.setAttribute("data-chat-widget", "true");
+      link.setAttribute("data-chaty-assistant", "true");
       document.head.appendChild(link);
     }
   }
 };
 
-export type TravrseInitHandle = TravrseChatController & { host: HTMLElement };
+export type ChatWidgetInitHandle = ChatWidgetController & { host: HTMLElement };
 
-export const initTravrseChat = (
-  options: TravrseInitOptions
-): TravrseInitHandle => {
+export const initChatWidget = (
+  options: ChatWidgetInitOptions
+): ChatWidgetInitHandle => {
   const target = ensureTarget(options.target);
   const host = document.createElement("div");
-  host.className = "chat-widget-host";
+  host.className = "chaty-assistant-host";
   target.appendChild(host);
 
   const useShadow = options.useShadowDom !== false;
@@ -60,13 +60,13 @@ export const initTravrseChat = (
     const shadowRoot = host.attachShadow({ mode: "open" });
     root = shadowRoot;
     mount = document.createElement("div");
-    mount.id = "chat-widget-root";
+    mount.id = "chaty-assistant-root";
     shadowRoot.appendChild(mount);
     mountStyles(shadowRoot);
   } else {
     root = host;
     mount = document.createElement("div");
-    mount.id = "chat-widget-root";
+    mount.id = "chaty-assistant-root";
     host.appendChild(mount);
     mountStyles(host);
   }
@@ -76,7 +76,7 @@ export const initTravrseChat = (
 
   return {
     host,
-    update(nextConfig: TravrseChatConfig) {
+    update(nextConfig: ChatWidgetConfig) {
       controller.update(nextConfig);
     },
     open() {

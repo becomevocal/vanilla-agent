@@ -1,36 +1,36 @@
-import { TravrseChatClient } from "./client";
+import { ChatWidgetClient } from "./client";
 import {
-  TravrseChatConfig,
-  TravrseChatEvent,
-  TravrseMessage
+  ChatWidgetConfig,
+  ChatWidgetEvent,
+  ChatWidgetMessage
 } from "./types";
 
-export type TravrseSessionStatus =
+export type ChatWidgetSessionStatus =
   | "idle"
   | "connecting"
   | "connected"
   | "error";
 
 type SessionCallbacks = {
-  onMessagesChanged: (messages: TravrseMessage[]) => void;
-  onStatusChanged: (status: TravrseSessionStatus) => void;
+  onMessagesChanged: (messages: ChatWidgetMessage[]) => void;
+  onStatusChanged: (status: ChatWidgetSessionStatus) => void;
   onStreamingChanged: (streaming: boolean) => void;
   onError?: (error: Error) => void;
 };
 
-export class TravrseChatSession {
-  private client: TravrseChatClient;
-  private messages: TravrseMessage[];
-  private status: TravrseSessionStatus = "idle";
+export class ChatWidgetSession {
+  private client: ChatWidgetClient;
+  private messages: ChatWidgetMessage[];
+  private status: ChatWidgetSessionStatus = "idle";
   private streaming = false;
   private abortController: AbortController | null = null;
 
   constructor(
-    private config: TravrseChatConfig = {},
+    private config: ChatWidgetConfig = {},
     private callbacks: SessionCallbacks
   ) {
     this.messages = [...(config.initialMessages ?? [])];
-    this.client = new TravrseChatClient(config);
+    this.client = new ChatWidgetClient(config);
 
     if (this.messages.length) {
       this.callbacks.onMessagesChanged([...this.messages]);
@@ -38,9 +38,9 @@ export class TravrseChatSession {
     this.callbacks.onStatusChanged(this.status);
   }
 
-  public updateConfig(next: TravrseChatConfig) {
+  public updateConfig(next: ChatWidgetConfig) {
     this.config = { ...this.config, ...next };
-    this.client = new TravrseChatClient(this.config);
+    this.client = new ChatWidgetClient(this.config);
   }
 
   public getMessages() {
@@ -61,7 +61,7 @@ export class TravrseChatSession {
 
     this.abortController?.abort();
 
-    const userMessage: TravrseMessage = {
+    const userMessage: ChatWidgetMessage = {
       id: `user-${Date.now()}`,
       role: "user",
       content: input,
@@ -85,12 +85,12 @@ export class TravrseChatSession {
         this.handleEvent
       );
     } catch (error) {
-      const fallback: TravrseMessage = {
+      const fallback: ChatWidgetMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
         createdAt: new Date().toISOString(),
         content:
-          "It looks like the Travrse proxy isn't returning a real response yet. Here's a sample message so you can continue testing locally."
+          "It looks like the proxy isn't returning a real response yet. Here's a sample message so you can continue testing locally."
       };
 
       this.appendMessage(fallback);
@@ -112,7 +112,7 @@ export class TravrseChatSession {
     this.setStatus("idle");
   }
 
-  private handleEvent = (event: TravrseChatEvent) => {
+  private handleEvent = (event: ChatWidgetEvent) => {
     if (event.type === "message") {
       this.upsertMessage(event.message);
     } else if (event.type === "status") {
@@ -131,7 +131,7 @@ export class TravrseChatSession {
     }
   };
 
-  private setStatus(status: TravrseSessionStatus) {
+  private setStatus(status: ChatWidgetSessionStatus) {
     if (this.status === status) return;
     this.status = status;
     this.callbacks.onStatusChanged(status);
@@ -143,12 +143,12 @@ export class TravrseChatSession {
     this.callbacks.onStreamingChanged(streaming);
   }
 
-  private appendMessage(message: TravrseMessage) {
+  private appendMessage(message: ChatWidgetMessage) {
     this.messages = [...this.messages, message];
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
-  private upsertMessage(message: TravrseMessage) {
+  private upsertMessage(message: ChatWidgetMessage) {
     const index = this.messages.findIndex((m) => m.id === message.id);
     if (index === -1) {
       this.appendMessage(message);
@@ -161,3 +161,4 @@ export class TravrseChatSession {
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 }
+

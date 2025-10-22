@@ -1,12 +1,12 @@
-import "@chaty-widget/vanilla/widget.css";
+import "@chaty-assistant/vanilla/widget.css";
 import "./index.css";
 import "./App.css";
 
 import {
-  initTravrseChat,
+  initChatWidget,
   createChatExperience,
   markdownPostprocessor
-} from "@chaty-widget/vanilla";
+} from "@chaty-assistant/vanilla";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -44,7 +44,7 @@ createChatExperience(inlineMount, {
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
 });
 
-const launcherController = initTravrseChat({
+const launcherController = initChatWidget({
   target: "#launcher-root",
   config: {
     apiUrl: proxyUrl,

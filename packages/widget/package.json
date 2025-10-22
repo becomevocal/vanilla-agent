@@ -1,7 +1,7 @@
 {
-  "name": "@chaty-widget/vanilla",
+  "name": "@chaty-assistant/vanilla",
   "version": "0.1.0",
-  "description": "Configurable streaming chat widget with optional proxy server",
+  "description": "Configurable streaming chat widget with optional proxy server (Travrse AI adapter included)",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -30,7 +30,7 @@
   "scripts": {
     "build": "rimraf dist && npm run build:styles && npm run build:client && npm run build:server",
     "build:styles": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/styles/widget.css','dist/widget.css');\"",
-    "build:client": "tsup src/index.ts --format esm,cjs,iife --global-name StreamChatWidget --minify --sourcemap --splitting false --dts --loader \".css=text\"",
+    "build:client": "tsup src/index.ts --format esm,cjs,iife --global-name ChatWidget --minify --sourcemap --splitting false --dts --loader \".css=text\"",
     "build:server": "tsup server/index.ts --format esm,cjs --dts --sourcemap",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit"
@@ -61,6 +61,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/becomevocal/chaty.git"
+    "url": "git+https://github.com/becomevocal/chaty-assistant.git"
   }
 }

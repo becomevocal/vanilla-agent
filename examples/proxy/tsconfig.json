@@ -7,8 +7,8 @@
     "noEmit": false,
     "baseUrl": ".",
     "paths": {
-      "@chaty-widget/vanilla": ["../../packages/widget/src"],
-      "@chaty-widget/vanilla/server": ["../../packages/widget/server"]
+      "@chaty-assistant/vanilla": ["../../packages/widget/src"],
+      "@chaty-assistant/vanilla/server": ["../../packages/widget/server"]
     }
   },
   "include": [

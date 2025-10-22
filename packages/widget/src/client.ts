@@ -1,20 +1,20 @@
-import { TravrseChatConfig, TravrseMessage, TravrseChatEvent } from "./types";
+import { ChatWidgetConfig, ChatWidgetMessage, ChatWidgetEvent } from "./types";
 
 type DispatchOptions = {
-  messages: TravrseMessage[];
+  messages: ChatWidgetMessage[];
   signal?: AbortSignal;
 };
 
-type SSEHandler = (event: TravrseChatEvent) => void;
+type SSEHandler = (event: ChatWidgetEvent) => void;
 
 const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
 
-export class TravrseChatClient {
+export class ChatWidgetClient {
   private readonly apiUrl: string;
   private readonly headers: Record<string, string>;
   private readonly debug: boolean;
 
-  constructor(private config: TravrseChatConfig = {}) {
+  constructor(private config: ChatWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
     this.headers = {
       "Content-Type": "application/json",
@@ -33,7 +33,7 @@ export class TravrseChatClient {
     const body = this.buildRequestBody(options.messages);
     if (this.debug) {
       // eslint-disable-next-line no-console
-      console.debug("[TravrseChatClient] dispatch body", body);
+      console.debug("[ChatWidgetClient] dispatch body", body);
     }
 
     const response = await fetch(this.apiUrl, {
@@ -45,7 +45,7 @@ export class TravrseChatClient {
 
     if (!response.ok || !response.body) {
       const error = new Error(
-        `Travrse API request failed: ${response.status} ${response.statusText}`
+        `Chat backend request failed: ${response.status} ${response.statusText}`
       );
       onEvent({ type: "error", error });
       throw error;
@@ -59,7 +59,7 @@ export class TravrseChatClient {
     }
   }
 
-  private buildRequestBody(messages: TravrseMessage[]) {
+  private buildRequestBody(messages: ChatWidgetMessage[]) {
     const previousMessages = messages.slice(0, -1).filter((m) => m.role !== "system");
     const formattedPrevious = previousMessages.map((message) => ({
       role: message.role,
@@ -114,7 +114,7 @@ export class TravrseChatClient {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    const message: TravrseMessage = {
+    const message: ChatWidgetMessage = {
       id: `message-${Date.now()}`,
       role: "assistant",
       content: "",
@@ -155,7 +155,7 @@ export class TravrseChatClient {
             error:
               error instanceof Error
                 ? error
-                : new Error("Failed to parse Travrse stream payload")
+                : new Error("Failed to parse chat stream payload")
           });
           continue;
         }

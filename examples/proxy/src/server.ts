@@ -1,11 +1,11 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import getPort from "get-port";
-import { createTravrseProxyApp } from "@chaty-widget/vanilla/server";
+import { createChatProxyApp } from "@chaty-assistant/vanilla/server";
 
 const preferredPort = Number(process.env.PORT ?? 43111);
 
-const app = createTravrseProxyApp({
+const app = createChatProxyApp({
   path: "/api/chat/dispatch",
   allowedOrigins: ["http://localhost:5173"]
 });

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { handle } from "hono/vercel";
 
-export type TravrseProxyOptions = {
+export type ChatProxyOptions = {
   upstreamUrl?: string;
   apiKey?: string;
   path?: string;
@@ -40,7 +40,7 @@ const withCors =
     );
   };
 
-export const createTravrseProxyApp = (options: TravrseProxyOptions = {}) => {
+export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
   const app = new Hono();
   const path = options.path ?? DEFAULT_PATH;
   const upstream = options.upstreamUrl ?? DEFAULT_ENDPOINT;
@@ -51,7 +51,7 @@ export const createTravrseProxyApp = (options: TravrseProxyOptions = {}) => {
     const apiKey = options.apiKey ?? process.env.TRAVRSE_API_KEY;
     if (!apiKey) {
       return c.json(
-        { error: "Missing Travrse API key. Set TRAVRSE_API_KEY." },
+        { error: "Missing API key. Set TRAVRSE_API_KEY." },
         401
       );
     }
@@ -88,7 +88,8 @@ export const createTravrseProxyApp = (options: TravrseProxyOptions = {}) => {
   return app;
 };
 
-export const createVercelHandler = (options?: TravrseProxyOptions) =>
-  handle(createTravrseProxyApp(options));
+export const createVercelHandler = (options?: ChatProxyOptions) =>
+  handle(createChatProxyApp(options));
 
-export default createTravrseProxyApp;
+
+export default createChatProxyApp;

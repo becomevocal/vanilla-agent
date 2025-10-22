@@ -1,11 +1,11 @@
 {
-  "name": "chaty-widget",
+  "name": "chaty-assistant-monorepo",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter @chaty-widget/vanilla build",
-    "build:widget": "pnpm --filter @chaty-widget/vanilla build",
-    "lint": "pnpm --filter @chaty-widget/vanilla lint",
-    "typecheck": "pnpm --filter @chaty-widget/vanilla typecheck",
+    "build": "pnpm --filter @chaty-assistant/vanilla build",
+    "build:widget": "pnpm --filter @chaty-assistant/vanilla build",
+    "lint": "pnpm --filter @chaty-assistant/vanilla lint",
+    "typecheck": "pnpm --filter @chaty-assistant/vanilla typecheck",
     "dev:widget": "pnpm --filter embedded-app dev",
     "dev:proxy": "pnpm --filter proxy dev",
     "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\""

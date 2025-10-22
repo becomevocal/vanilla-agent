@@ -10,8 +10,8 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@chaty-widget/vanilla": ["src"],
-      "@chaty-widget/vanilla/server": ["server"]
+      "@chaty-assistant/vanilla": ["src"],
+      "@chaty-assistant/vanilla/server": ["server"]
     },
     "declaration": true,
     "outDir": "dist"

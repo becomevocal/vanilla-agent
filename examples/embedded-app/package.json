@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@chaty-widget/vanilla": "workspace:^"
+    "@chaty-assistant/vanilla": "workspace:^"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

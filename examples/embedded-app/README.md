@@ -16,11 +16,11 @@ Or from the repo root:
 pnpm dev
 ```
 
-- Proxy starts on `http://localhost:43111` (or the next free port) and forwards requests to your chat backend (Travrse by default) once you set the appropriate secrets.
+- Proxy starts on `http://localhost:43111` (or the next free port) and forwards requests to your chat backend (Travrse adapter is bundled by default) once you set the appropriate secrets.
 - If you override the proxy port, export `VITE_PROXY_PORT` (and optionally `VITE_PROXY_URL`) so the frontend points at the right target.
 - Vite serves the demo UI on `http://localhost:5173`.
 
-Tweak `src/main.ts` to experiment with different configuration presets, launcher styles, or metadata payloads. The demo now exposes buttons (`Open Launcher`, `Toggle Launcher`) wired up via the controller returned from `initTravrseChat`.
+Tweak `src/main.ts` to experiment with different configuration presets, launcher styles, or metadata payloads. The demo now exposes buttons (`Open Launcher`, `Toggle Launcher`) wired up via the controller returned from `initChatWidget`.
 
 ## Directive demo
 

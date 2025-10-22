@@ -14,7 +14,7 @@ importers:
 
   examples/embedded-app:
     dependencies:
-      '@chaty-widget/vanilla':
+      '@chaty-assistant/vanilla':
         specifier: workspace:^
         version: link:../../packages/widget
     devDependencies:
@@ -27,7 +27,7 @@ importers:
 
   examples/proxy:
     dependencies:
-      '@chaty-widget/vanilla':
+      '@chaty-assistant/vanilla':
         specifier: workspace:^
         version: link:../../packages/widget
       '@hono/node-server':

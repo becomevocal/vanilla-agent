@@ -2,12 +2,10 @@
 
 Installable vanilla JavaScript widget for embedding a streaming AI assistant on any website.
 
-> The exported initializer is still named `initTravrseChat` for backwards compatibility with earlier Travrse integrations. Styles are precompiled with a `tvw-` prefix so they stay isolated from the host page, and the package ships with utilities for proxying your chat backend. Travrse support is built in, but the UI is backend-agnostic.
-
 ### Installation
 
 ```bash
-npm install @chaty-widget/vanilla
+npm install @chaty-assistant/vanilla
 ```
 
 ### Building locally
@@ -23,18 +21,18 @@ pnpm build
 ### Using with modules
 
 ```ts
-import '@chaty-widget/vanilla/widget.css';
+import '@chaty-assistant/vanilla/widget.css';
 import {
-  initTravrseChat,
+  initChatWidget,
   createChatExperience,
   markdownPostprocessor,
   directivePostprocessor
-} from '@chaty-widget/vanilla';
+} from '@chaty-assistant/vanilla';
 
 const proxyUrl = '/api/chat/dispatch';
 
 // Inline embed
-const inlineHost = document.querySelector('#chat-widget-inline')!;
+const inlineHost = document.querySelector('#inline-widget')!;
 createChatExperience(inlineHost, {
   apiUrl: proxyUrl,
   launcher: { enabled: false },
@@ -44,8 +42,8 @@ createChatExperience(inlineHost, {
 });
 
 // Floating launcher with runtime updates
-const controller = initTravrseChat({
-  target: '#chat-widget-launcher',
+const controller = initChatWidget({
+  target: '#launcher-root',
   config: {
     apiUrl: proxyUrl,
     launcher: {
@@ -72,11 +70,11 @@ controller.update({
 
 ### Programmatic control
 
-`initTravrseChat` (and `createChatExperience`) return a controller with `open()`, `close()`, and `toggle()` helpers so you can launch the widget from your own UI elements.
+`initChatWidget` (and `createChatExperience`) return a controller with `open()`, `close()`, and `toggle()` helpers so you can launch the widget from your own UI elements.
 
 ```ts
-const chat = initTravrseChat({
-  target: '#chat-widget-launcher',
+const chat = initChatWidget({
+  target: '#launcher-root',
   config: { /* ... */ }
 })
 
@@ -99,11 +97,11 @@ This package ships with a Travrse adapter by default. To use it, simply point `a
 2. Add the assets and initializer to your page:
 
 ```html
-<link rel="stylesheet" href="https://cdn.example.com/chaty-widget/widget.css" />
-<script src="https://cdn.example.com/chaty-widget/index.global.js"></script>
+<link rel="stylesheet" href="https://cdn.example.com/chaty-assistant/widget.css" />
+<script src="https://cdn.example.com/chaty-assistant/index.global.js"></script>
 <script>
-  window.StreamChatWidget.initTravrseChat({
-    target: '#chat-widget-anchor',
+  window.ChatWidget.initChatWidget({
+    target: '#chaty-assistant-anchor',
     config: {
       apiUrl: '/api/chat/dispatch',
       launcher: { title: 'AI Assistant', subtitle: 'Here to help' },
@@ -113,7 +111,7 @@ This package ships with a Travrse adapter by default. To use it, simply point `a
 </script>
 ```
 
-The script build exposes a `window.StreamChatWidget` global.
+The script build exposes a `window.ChatWidget` global.
 
 ### Configuration reference
 
@@ -121,28 +119,28 @@ The script build exposes a `window.StreamChatWidget` global.
 | --- | --- | --- |
 | `apiUrl` | `string` | Proxy endpoint for your chat backend (defaults to Travrse's cloud API). |
 | `metadata` | `Record<string, unknown>` | Additional context forwarded with each dispatch. |
-| `flowId` | `string` | Optional identifier for routing inside Travrse. |
+| `flowId` | `string` | Optional identifier for routing inside your backend. |
 | `headers` | `Record<string, string>` | Extra headers forwarded to your proxy. |
 | `copy` | `{ welcomeTitle?, welcomeSubtitle?, inputPlaceholder?, sendButtonLabel? }` | Customize user-facing text. |
 | `theme` | `{ primary?, secondary?, surface?, muted?, accent? }` | Override CSS variables for the widget. |
-| `features` | `TravrseFeatureFlags` | Toggle UI pieces (reserved for future expansion). |
+| `features` | `ChatWidgetFeatureFlags` | Toggle UI pieces (reserved for future expansion). |
 | `launcher` | `{ enabled?, autoExpand?, title?, subtitle?, iconUrl?, position? }` | Controls the floating launcher button. |
-| `initialMessages` | `TravrseMessage[]` | Seed the conversation transcript. |
+| `initialMessages` | `ChatWidgetMessage[]` | Seed the conversation transcript. |
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |
 | `postprocessMessage` | `(ctx) => string` | Transform message text before it renders (return HTML). Combine with `markdownPostprocessor` for rich output. |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
 | `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(360px, calc(100vw - 24px))`. |
 | `debug` | `boolean` | Emits verbose logs to `console`. |
 
-All options are safe to mutate via `initTravrseChat(...).update(newConfig)`.
+All options are safe to mutate via `initChatWidget(...).update(newConfig)`.
 
 ### Optional proxy server
 
 ```ts
 // api/chat.ts
-import { createTravrseProxyApp } from '@chaty-widget/vanilla/server';
+import { createChatProxyApp } from '@chaty-assistant/vanilla/server';
 
-export default createTravrseProxyApp({
+export default createChatProxyApp({
   path: '/api/chat/dispatch',
   allowedOrigins: ['https://www.example.com']
 });
@@ -151,7 +149,7 @@ export default createTravrseProxyApp({
 Host on Vercel by exporting a handler:
 
 ```ts
-import { createVercelHandler } from '@chaty-widget/vanilla/server';
+import { createVercelHandler } from '@chaty-assistant/vanilla/server';
 
 export default createVercelHandler({
   allowedOrigins: ['https://www.example.com']
@@ -162,7 +160,7 @@ When using Travrse, add `TRAVRSE_API_KEY` to your environment. The server forwar
 
 ### Development notes
 
-- The widget streams results using SSE and mirrors Travrse’s `flow_complete`/`step_chunk` events.
-- Tailwind classes are prefixed with `tvw-` and scoped to `#chat-widget-root`, so they won’t collide with the host page.
+- The widget streams results using SSE and mirrors the backend `flow_complete`/`step_chunk` events.
+- Tailwind classes are prefixed with `tvw-` and scoped to `#chaty-assistant-root`, so they won’t collide with the host page.
 - Run `pnpm dev` from the repository root to boot the example proxy (`examples/proxy`) and the vanilla demo (`examples/embedded-app`).
 - The proxy prefers port `43111` but automatically selects the next free port if needed.
