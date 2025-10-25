@@ -132,7 +132,7 @@ const updateLauncherButton = (
       : positionMap["bottom-right"];
 
   const base =
-    "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-full tvw-bg-travrse-surface tvw-py-2.5 tvw-pl-4 tvw-pr-3 tvw-shadow-lg tvw-border tvw-border-gray-200 tvw-transition hover:tvw-translate-y-[-2px]";
+    "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-full tvw-bg-travrse-surface tvw-py-2.5 tvw-pl-4 tvw-pr-3 tvw-shadow-lg tvw-border tvw-border-gray-200 tvw-transition hover:tvw-translate-y-[-2px] tvw-cursor-pointer";
 
   button.className = `${base} ${positionClass}`;
 };
@@ -253,7 +253,7 @@ const buildPanel = (config?: ChatWidgetConfig, showClose = true) => {
 
   const closeButton = createElement(
     "button",
-    "tvw-ml-auto tvw-inline-flex tvw-h-8 tvw-w-8 tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-travrse-muted hover:tvw-bg-gray-100"
+    "tvw-ml-auto tvw-inline-flex tvw-h-8 tvw-w-8 tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-travrse-muted hover:tvw-bg-gray-100 tvw-cursor-pointer"
   ) as HTMLButtonElement;
   closeButton.type = "button";
   closeButton.setAttribute("aria-label", "Close chat");
@@ -309,7 +309,7 @@ const buildPanel = (config?: ChatWidgetConfig, showClose = true) => {
   textarea.rows = 1;
   const sendButton = createElement(
     "button",
-    "tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-50"
+    "tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-50 tvw-cursor-pointer"
   ) as HTMLButtonElement;
   sendButton.type = "submit";
   sendButton.textContent = config?.copy?.sendButtonLabel ?? "Send";
@@ -527,7 +527,7 @@ export const createChatExperience = (
       );
       const submit = createElement(
         "button",
-        "tvw-inline-flex tvw-items-center tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-60"
+        "tvw-inline-flex tvw-items-center tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-60 tvw-cursor-pointer"
       ) as HTMLButtonElement;
       submit.type = "submit";
       submit.textContent = definition.submitLabel ?? "Submit";
@@ -618,7 +618,7 @@ export const createChatExperience = (
     chips.forEach((chip) => {
       const btn = createElement(
         "button",
-        "tvw-rounded-full tvw-bg-gray-100 tvw-px-3 tvw-py-1.5 tvw-text-xs tvw-font-medium tvw-text-travrse-muted hover:tvw-bg-gray-200"
+        "tvw-rounded-full tvw-bg-gray-100 tvw-px-3 tvw-py-1.5 tvw-text-xs tvw-font-medium tvw-text-travrse-muted hover:tvw-bg-gray-200 tvw-cursor-pointer"
       ) as HTMLButtonElement;
       btn.type = "button";
       btn.textContent = chip;

@@ -490,11 +490,11 @@
   max-width: 420px;
 }
 
-.tvw-w-[360px] {
+.tvw-w-\[360px\] {
   width: 360px;
 }
 
-.tvw-h-[640px] {
+.tvw-h-\[640px\] {
   height: 640px;
 }
 
@@ -538,4 +538,8 @@
 .tvw-form-field {
   display: flex;
   flex-direction: column;
+}
+
+.tvw-cursor-pointer {
+  cursor: pointer;
 }
