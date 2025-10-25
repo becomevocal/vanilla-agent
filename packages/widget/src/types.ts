@@ -19,6 +19,7 @@ export type ChatWidgetLauncherConfig = {
   title?: string;
   subtitle?: string;
   iconUrl?: string;
+  iconText?: string;
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   autoExpand?: boolean;
   width?: string;

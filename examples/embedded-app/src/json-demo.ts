@@ -57,6 +57,7 @@ initChatWidget({
       enabled: true,
       title: "Directive Demo",
       subtitle: "Opens the interactive form example",
+      iconText: "🧈",
       autoExpand: false,
       width: 'min(420px, 95vw)'
     },

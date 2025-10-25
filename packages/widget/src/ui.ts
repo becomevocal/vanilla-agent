@@ -108,7 +108,12 @@ const updateLauncherButton = (
 
   const icon = button.querySelector<HTMLSpanElement>("[data-role='launcher-icon']");
   if (icon) {
-    icon.textContent = launcher.iconUrl ? "" : "💬";
+    if (launcher.iconUrl) {
+      icon.style.display = "none";
+    } else {
+      icon.style.display = "";
+      icon.textContent = launcher.iconText ?? "💬";
+    }
   }
 
   const img = button.querySelector<HTMLImageElement>("[data-role='launcher-image']");
@@ -219,7 +224,7 @@ const buildPanel = (config?: ChatWidgetConfig, showClose = true) => {
     "div",
     "tvw-flex tvw-h-12 tvw-w-12 tvw-items-center tvw-justify-center tvw-rounded-xl tvw-bg-travrse-primary tvw-text-white tvw-text-xl"
   );
-  iconHolder.textContent = config?.launcher?.iconUrl ? "" : "💼";
+  iconHolder.textContent = config?.launcher?.iconUrl ? "" : (config?.launcher?.iconText ?? "💬");
 
   if (config?.launcher?.iconUrl) {
     const img = createElement("img") as HTMLImageElement;
