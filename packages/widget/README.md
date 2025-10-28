@@ -37,6 +37,10 @@ createChatExperience(inlineHost, {
   apiUrl: proxyUrl,
   launcher: { enabled: false },
   theme: { accent: '#2563eb', primary: '#111827' },
+  features: {
+    showReasoning: true,   // Show thinking bubbles (default: true)
+    showToolCalls: true    // Show tool usage bubbles (default: true)
+  },
   suggestionChips: ['What can you do?', 'Show API docs'],
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
 });
@@ -134,7 +138,7 @@ The script build exposes a `window.ChatWidget` global.
 | `headers` | `Record<string, string>` | Extra headers forwarded to your proxy. |
 | `copy` | `{ welcomeTitle?, welcomeSubtitle?, inputPlaceholder?, sendButtonLabel? }` | Customize user-facing text. |
 | `theme` | `{ primary?, secondary?, surface?, muted?, accent? }` | Override CSS variables for the widget. |
-| `features` | `ChatWidgetFeatureFlags` | Toggle UI pieces (reserved for future expansion). |
+| `features` | `ChatWidgetFeatureFlags` | Toggle UI features: `showReasoning?` (show thinking bubbles, default: `true`), `showToolCalls?` (show tool usage bubbles, default: `true`). |
 | `launcher` | `{ enabled?, autoExpand?, title?, subtitle?, iconUrl?, position? }` | Controls the floating launcher button. |
 | `initialMessages` | `ChatWidgetMessage[]` | Seed the conversation transcript. |
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |

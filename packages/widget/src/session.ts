@@ -24,12 +24,17 @@ export class ChatWidgetSession {
   private status: ChatWidgetSessionStatus = "idle";
   private streaming = false;
   private abortController: AbortController | null = null;
+  private sequenceCounter = Date.now();
 
   constructor(
     private config: ChatWidgetConfig = {},
     private callbacks: SessionCallbacks
   ) {
-    this.messages = [...(config.initialMessages ?? [])];
+    this.messages = [...(config.initialMessages ?? [])].map((message) => ({
+      ...message,
+      sequence: message.sequence ?? this.nextSequence()
+    }));
+    this.messages = this.sortMessages(this.messages);
     this.client = new ChatWidgetClient(config);
 
     if (this.messages.length) {
@@ -65,7 +70,8 @@ export class ChatWidgetSession {
       id: `user-${Date.now()}`,
       role: "user",
       content: input,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      sequence: this.nextSequence()
     };
 
     this.appendMessage(userMessage);
@@ -90,7 +96,8 @@ export class ChatWidgetSession {
         role: "assistant",
         createdAt: new Date().toISOString(),
         content:
-          "It looks like the proxy isn't returning a real response yet. Here's a sample message so you can continue testing locally."
+          "It looks like the proxy isn't returning a real response yet. Here's a sample message so you can continue testing locally.",
+        sequence: this.nextSequence()
       };
 
       this.appendMessage(fallback);
@@ -144,21 +151,53 @@ export class ChatWidgetSession {
   }
 
   private appendMessage(message: ChatWidgetMessage) {
-    this.messages = [...this.messages, message];
+    const withSequence = this.ensureSequence(message);
+    this.messages = this.sortMessages([...this.messages, withSequence]);
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
   private upsertMessage(message: ChatWidgetMessage) {
-    const index = this.messages.findIndex((m) => m.id === message.id);
+    const withSequence = this.ensureSequence(message);
+    const index = this.messages.findIndex((m) => m.id === withSequence.id);
     if (index === -1) {
-      this.appendMessage(message);
+      this.appendMessage(withSequence);
       return;
     }
 
     this.messages = this.messages.map((existing, idx) =>
-      idx === index ? { ...existing, ...message } : existing
+      idx === index ? { ...existing, ...withSequence } : existing
     );
+    this.messages = this.sortMessages(this.messages);
     this.callbacks.onMessagesChanged([...this.messages]);
   }
-}
 
+  private ensureSequence(message: ChatWidgetMessage): ChatWidgetMessage {
+    if (message.sequence !== undefined) {
+      return { ...message };
+    }
+    return {
+      ...message,
+      sequence: this.nextSequence()
+    };
+  }
+
+  private nextSequence() {
+    return this.sequenceCounter++;
+  }
+
+  private sortMessages(messages: ChatWidgetMessage[]) {
+    return [...messages].sort((a, b) => {
+      const seqA = a.sequence ?? 0;
+      const seqB = b.sequence ?? 0;
+      if (seqA !== seqB) return seqA - seqB;
+
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
+        return timeA - timeB;
+      }
+
+      return a.id.localeCompare(b.id);
+    });
+  }
+}

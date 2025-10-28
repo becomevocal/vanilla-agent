@@ -144,6 +144,11 @@
   line-height: 1rem;
 }
 
+.tvw-text-xxs {
+  font-size: 0.5rem;
+  line-height: 1rem;
+}
+
 .tvw-text-lg {
   font-size: 1.125rem;
   line-height: 1.75rem;

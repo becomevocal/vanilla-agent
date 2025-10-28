@@ -16,31 +16,7 @@ const app = createChatProxyApp({
 const directiveApp = createChatProxyApp({
   path: "/api/chat/dispatch-directive",
   allowedOrigins: ["http://localhost:5173"],
-  flowConfig: {
-    name: "Directive-Aware Chat Flow",
-    description: "Chat flow with form directive support",
-    steps: [
-      {
-        id: "directive_prompt",
-        name: "Directive Prompt",
-        type: "prompt",
-        enabled: true,
-        config: {
-          text: "{{_record.metadata.message}}",
-          model: "meta/llama3.1-8b-instruct-free",
-          responseFormat: "markdown",
-          outputVariable: "prompt_result",
-          userPrompt: "{{_record.metadata.message}}",
-          systemPrompt: `you are a helpful assistant, chatting with a user.
-
-IMPORTANT: When the user asks about scheduling, demos, or providing their details, respond with the directive <Form type="init"/> to render an interactive form.
-
-previous messages:
-{{_record.metadata.previous_messages}}`
-        }
-      }
-    ]
-  }
+  flowId: process.env.TRAVRSE_FLOW_ID,
 });
 
 // Mount both apps

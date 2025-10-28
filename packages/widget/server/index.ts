@@ -134,13 +134,15 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       options: {
         stream_response: true,
         record_mode: "virtual",
-        flow_mode: "virtual"
+        flow_mode: flowId ? "existing" : "virtual",
       }
     };
 
     // Use flow ID if provided, otherwise use flow config
     if (flowId) {
-      travrsePayload.flow_id = flowId;
+      travrsePayload.flow =  {
+        id: flowId,
+      }
     } else {
       travrsePayload.flow = flowConfig;
     }

@@ -29,6 +29,10 @@ createChatExperience(inlineMount, {
     surface: "#ffffff",
     muted: "#64748b"
   },
+  features: {
+    showReasoning: true,
+    showToolCalls: true
+  },
   copy: {
     welcomeTitle: "Directive-aware demo",
     welcomeSubtitle:
@@ -60,6 +64,10 @@ initChatWidget({
       iconText: "🧈",
       autoExpand: false,
       width: 'min(420px, 95vw)'
+    },
+    features: {
+      showReasoning: true,
+      showToolCalls: true
     },
     theme: {
       primary: "#020617",

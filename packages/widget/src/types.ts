@@ -1,9 +1,6 @@
 export type ChatWidgetFeatureFlags = {
-  suggestions?: boolean;
-  transcript?: boolean;
-  avatar?: boolean;
-  timestamp?: boolean;
-  collapsible?: boolean;
+  showReasoning?: boolean;
+  showToolCalls?: boolean;
 };
 
 export type ChatWidgetTheme = {
@@ -52,12 +49,41 @@ export type ChatWidgetConfig = {
 
 export type ChatWidgetMessageRole = "user" | "assistant" | "system";
 
+export type ChatWidgetReasoning = {
+  id: string;
+  status: "pending" | "streaming" | "complete";
+  chunks: string[];
+  startedAt?: number;
+  completedAt?: number;
+  durationMs?: number;
+};
+
+export type ChatWidgetToolCall = {
+  id: string;
+  name?: string;
+  status: "pending" | "running" | "complete";
+  args?: unknown;
+  chunks?: string[];
+  result?: unknown;
+  duration?: number;
+  startedAt?: number;
+  completedAt?: number;
+  durationMs?: number;
+};
+
+export type ChatWidgetMessageVariant = "assistant" | "reasoning" | "tool";
+
 export type ChatWidgetMessage = {
   id: string;
   role: ChatWidgetMessageRole;
   content: string;
   createdAt: string;
   streaming?: boolean;
+  variant?: ChatWidgetMessageVariant;
+  sequence?: number;
+  reasoning?: ChatWidgetReasoning;
+  toolCall?: ChatWidgetToolCall;
+  tools?: ChatWidgetToolCall[];
 };
 
 export type ChatWidgetEvent =

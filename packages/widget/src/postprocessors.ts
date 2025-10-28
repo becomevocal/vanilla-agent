@@ -7,7 +7,7 @@ marked.setOptions({ breaks: true });
  * untrusted content in your host page.
  */
 export const markdownPostprocessor = (text: string): string => {
-  return marked.parse(text);
+  return marked.parse(text) as string;
 };
 
 /**

@@ -1,5 +1,13 @@
+import {
+  escapeHtml
+} from "./postprocessors";
 import { ChatWidgetSession, ChatWidgetSessionStatus } from "./session";
-import { ChatWidgetConfig, ChatWidgetMessage } from "./types";
+import {
+  ChatWidgetConfig,
+  ChatWidgetMessage,
+  ChatWidgetReasoning,
+  ChatWidgetToolCall
+} from "./types";
 
 const statusCopy: Record<ChatWidgetSessionStatus, string> = {
   idle: "Online",
@@ -9,7 +17,7 @@ const statusCopy: Record<ChatWidgetSessionStatus, string> = {
 };
 
 const positionMap: Record<
-  NonNullable<ChatWidgetConfig["launcher"]>["position"],
+  "bottom-right" | "bottom-left" | "top-right" | "top-left",
   string
 > = {
   "bottom-right": "tvw-bottom-6 tvw-right-6",
@@ -51,47 +59,6 @@ const applyThemeVariables = (
   Object.entries(theme).forEach(([key, value]) => {
     element.style.setProperty(`--travrse-${key}`, value);
   });
-};
-
-const renderMessages = (
-  container: HTMLElement,
-  messages: ChatWidgetMessage[],
-  transform: MessageTransform,
-  enhance?: (bubble: HTMLElement, message: ChatWidgetMessage) => void
-) => {
-  container.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-
-  messages.forEach((message) => {
-    const bubble = createElement(
-      "div",
-      [
-        "tvw-max-w-[85%]",
-        "tvw-rounded-2xl",
-        "tvw-px-5",
-        "tvw-py-3",
-        "tvw-text-sm",
-        "tvw-leading-relaxed",
-        "tvw-shadow-sm",
-        message.role === "user"
-          ? "tvw-ml-auto tvw-bg-travrse-accent tvw-text-white"
-          : "tvw-bg-white tvw-border tvw-border-gray-100 tvw-text-travrse-primary"
-      ].join(" ")
-    );
-    bubble.innerHTML = transform({
-      text: message.content,
-      message,
-      streaming: Boolean(message.streaming)
-    });
-    enhance?.(bubble, message);
-
-    const wrapper = createElement("div", "tvw-flex");
-    wrapper.appendChild(bubble);
-    fragment.appendChild(wrapper);
-  });
-
-  container.appendChild(fragment);
-  container.scrollTop = container.scrollHeight;
 };
 
 const updateLauncherButton = (
@@ -253,7 +220,7 @@ const buildPanel = (config?: ChatWidgetConfig, showClose = true) => {
 
   const closeButton = createElement(
     "button",
-    "tvw-ml-auto tvw-inline-flex tvw-h-8 tvw-w-8 tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-travrse-muted hover:tvw-bg-gray-100 tvw-cursor-pointer"
+    "tvw-ml-auto tvw-inline-flex tvw-h-8 tvw-w-8 tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-travrse-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
   ) as HTMLButtonElement;
   closeButton.type = "button";
   closeButton.setAttribute("aria-label", "Close chat");
@@ -351,6 +318,8 @@ export const createChatExperience = (
   let autoExpand = config.launcher?.autoExpand ?? false;
   let open = launcherEnabled ? autoExpand : true;
   let postprocess = buildPostprocessor(config);
+  let showReasoning = config.features?.showReasoning ?? true;
+  let showToolCalls = config.features?.showToolCalls ?? true;
 
   const { wrapper, panel } = createWrapper(config);
   const {
@@ -422,6 +391,336 @@ export const createChatExperience = (
     });
   };
 
+  const createReasoningBubble = (message: ChatWidgetMessage) => {
+    const reasoning = message.reasoning;
+    const bubble = createElement(
+      "div",
+      [
+        "tvw-max-w-[85%]",
+        "tvw-rounded-2xl",
+        "tvw-bg-white",
+        "tvw-border",
+        "tvw-border-gray-100",
+        "tvw-text-travrse-primary",
+        "tvw-shadow-sm",
+        "tvw-overflow-hidden",
+        "tvw-px-0",
+        "tvw-py-0"
+      ].join(" ")
+    );
+
+    if (!reasoning) {
+      return bubble;
+    }
+
+    let expanded = reasoningExpansionState.has(message.id);
+    const header = createElement(
+      "button",
+      "tvw-flex tvw-w-full tvw-items-center tvw-justify-between tvw-gap-3 tvw-bg-transparent tvw-px-4 tvw-py-3 tvw-text-left tvw-cursor-pointer tvw-border-none"
+    ) as HTMLButtonElement;
+    header.type = "button";
+    header.setAttribute("aria-expanded", expanded ? "true" : "false");
+
+    const headerContent = createElement("div", "tvw-flex tvw-flex-col tvw-text-left");
+    const title = createElement("span", "tvw-text-xs tvw-font-semibold tvw-text-travrse-primary");
+    title.textContent = "Thinking...";
+    headerContent.appendChild(title);
+
+    const status = createElement("span", "tvw-text-xs tvw-text-travrse-primary");
+    status.textContent = describeReasonStatus(reasoning);
+    headerContent.appendChild(status);
+
+    if (reasoning.status === "complete") {
+      title.style.display = "none";
+    } else {
+      title.style.display = "";
+    }
+
+    const toggleLabel = createElement(
+      "span",
+      "tvw-text-xs tvw-text-travrse-primary"
+    );
+    toggleLabel.textContent = expanded ? "Hide" : "Show";
+
+    header.append(headerContent, toggleLabel);
+
+    const content = createElement(
+      "div",
+      "tvw-border-t tvw-border-gray-200 tvw-bg-gray-50 tvw-px-4 tvw-py-3"
+    );
+    content.style.display = expanded ? "" : "none";
+
+    const text = reasoning.chunks.join("");
+    const body = createElement(
+      "div",
+      "tvw-whitespace-pre-wrap tvw-text-xs tvw-leading-snug tvw-text-travrse-muted"
+    );
+    body.textContent =
+      text ||
+      (reasoning.status === "complete"
+        ? "No additional context was shared."
+        : "Waiting for details…");
+    content.appendChild(body);
+
+    const applyExpansionState = () => {
+      header.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggleLabel.textContent = expanded ? "Hide" : "Show";
+      content.style.display = expanded ? "" : "none";
+    };
+
+    const toggleExpansion = () => {
+      expanded = !expanded;
+      if (expanded) {
+        reasoningExpansionState.add(message.id);
+      } else {
+        reasoningExpansionState.delete(message.id);
+      }
+      applyExpansionState();
+    };
+
+    header.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      toggleExpansion();
+    });
+
+    header.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleExpansion();
+      }
+    });
+
+    applyExpansionState();
+
+    bubble.append(header, content);
+    return bubble;
+  };
+
+  const createToolBubble = (message: ChatWidgetMessage) => {
+    const tool = message.toolCall;
+    const bubble = createElement(
+      "div",
+      [
+        "tvw-max-w-[85%]",
+        "tvw-rounded-2xl",
+        "tvw-bg-white",
+        "tvw-border",
+        "tvw-border-gray-100",
+        "tvw-text-travrse-primary",
+        "tvw-shadow-sm",
+        "tvw-overflow-hidden",
+        "tvw-px-0",
+        "tvw-py-0"
+      ].join(" ")
+    );
+
+    if (!tool) {
+      return bubble;
+    }
+
+    let expanded = toolExpansionState.has(message.id);
+    const header = createElement(
+      "button",
+      "tvw-flex tvw-w-full tvw-items-center tvw-justify-between tvw-gap-3 tvw-bg-transparent tvw-px-4 tvw-py-3 tvw-text-left tvw-cursor-pointer tvw-border-none"
+    ) as HTMLButtonElement;
+    header.type = "button";
+    header.setAttribute("aria-expanded", expanded ? "true" : "false");
+
+    const headerContent = createElement("div", "tvw-flex tvw-flex-col tvw-text-left");
+    const title = createElement("span", "tvw-text-xs tvw-text-travrse-primary");
+    title.textContent = describeToolTitle(tool);
+    headerContent.appendChild(title);
+
+    if (tool.name) {
+      const name = createElement("span", "tvw-text-[11px] tvw-text-travrse-muted");
+      name.textContent = tool.name;
+      headerContent.appendChild(name);
+    }
+
+    const toggleLabel = createElement(
+      "span",
+      "tvw-text-xs tvw-text-travrse-primary"
+    );
+    toggleLabel.textContent = expanded ? "Hide" : "Show";
+
+    const headerMeta = createElement("div", "tvw-flex tvw-items-center tvw-gap-2");
+    headerMeta.append(toggleLabel);
+
+    header.append(headerContent, headerMeta);
+
+    const content = createElement(
+      "div",
+      "tvw-border-t tvw-border-gray-200 tvw-bg-gray-50 tvw-space-y-3 tvw-px-4 tvw-py-3"
+    );
+    content.style.display = expanded ? "" : "none";
+
+    if (tool.args !== undefined) {
+      const argsBlock = createElement("div", "tvw-space-y-1");
+      const argsLabel = createElement(
+        "div",
+        "tvw-font-xxs tvw-font-medium tvw-text-travrse-muted"
+      );
+      argsLabel.textContent = "Arguments";
+      const argsPre = createElement(
+        "pre",
+        "tvw-max-h-48 tvw-overflow-auto tvw-whitespace-pre-wrap tvw-rounded-lg tvw-border tvw-border-gray-100 tvw-bg-white tvw-px-3 tvw-py-2 tvw-font-xxs tvw-text-travrse-primary"
+      );
+      argsPre.textContent = formatUnknownValue(tool.args);
+      argsBlock.append(argsLabel, argsPre);
+      content.appendChild(argsBlock);
+    }
+
+    if (tool.chunks && tool.chunks.length) {
+      const logsBlock = createElement("div", "tvw-space-y-1");
+      const logsLabel = createElement(
+        "div",
+        "tvw-font-xxs tvw-font-medium tvw-text-travrse-muted"
+      );
+      logsLabel.textContent = "Activity";
+      const logsPre = createElement(
+        "pre",
+        "tvw-max-h-48 tvw-overflow-auto tvw-whitespace-pre-wrap tvw-rounded-lg tvw-border tvw-border-gray-100 tvw-bg-white tvw-px-3 tvw-py-2 tvw-font-xxs tvw-text-travrse-primary"
+      );
+      logsPre.textContent = tool.chunks.join("\n");
+      logsBlock.append(logsLabel, logsPre);
+      content.appendChild(logsBlock);
+    }
+
+    if (tool.status === "complete" && tool.result !== undefined) {
+      const resultBlock = createElement("div", "tvw-space-y-1");
+      const resultLabel = createElement(
+        "div",
+        "tvw-font-xxs tvw-text-sm tvw-text-travrse-muted"
+      );
+      resultLabel.textContent = "Result";
+      const resultPre = createElement(
+        "pre",
+        "tvw-max-h-48 tvw-overflow-auto tvw-whitespace-pre-wrap tvw-rounded-lg tvw-border tvw-border-gray-100 tvw-bg-white tvw-px-3 tvw-py-2 tvw-font-xxs tvw-text-travrse-primary"
+      );
+      resultPre.textContent = formatUnknownValue(tool.result);
+      resultBlock.append(resultLabel, resultPre);
+      content.appendChild(resultBlock);
+    }
+
+    if (tool.status === "complete" && typeof tool.duration === "number") {
+      const duration = createElement(
+        "div",
+        "tvw-font-xxs tvw-text-travrse-muted"
+      );
+      duration.textContent = `Duration: ${tool.duration}ms`;
+      content.appendChild(duration);
+    }
+
+    const applyToolExpansion = () => {
+      header.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggleLabel.textContent = expanded ? "Hide" : "Show";
+      content.style.display = expanded ? "" : "none";
+    };
+
+    const toggleToolExpansion = () => {
+      expanded = !expanded;
+      if (expanded) {
+        toolExpansionState.add(message.id);
+      } else {
+        toolExpansionState.delete(message.id);
+      }
+      applyToolExpansion();
+    };
+
+    header.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      toggleToolExpansion();
+    });
+
+    header.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleToolExpansion();
+      }
+    });
+
+    applyToolExpansion();
+
+    bubble.append(header, content);
+    return bubble;
+  };
+
+  const createStandardBubble = (
+    message: ChatWidgetMessage,
+    transform: MessageTransform
+  ) => {
+    const classes = [
+      "tvw-max-w-[85%]",
+      "tvw-rounded-2xl",
+      "tvw-text-sm",
+      "tvw-leading-relaxed",
+      "tvw-shadow-sm"
+    ];
+
+    if (message.role === "user") {
+      classes.push(
+        "tvw-ml-auto",
+        "tvw-bg-travrse-accent",
+        "tvw-text-white",
+        "tvw-px-5",
+        "tvw-py-3"
+      );
+    } else {
+      classes.push(
+        "tvw-bg-white",
+        "tvw-border",
+        "tvw-border-gray-100",
+        "tvw-text-travrse-primary",
+        "tvw-px-5",
+        "tvw-py-3"
+      );
+    }
+
+    const bubble = createElement("div", classes.join(" "));
+    bubble.innerHTML = transform({
+      text: message.content,
+      message,
+      streaming: Boolean(message.streaming)
+    });
+
+    if (message.role !== "user") {
+      enhanceWithForms(bubble, message);
+    }
+
+    return bubble;
+  };
+
+  const renderMessages = (
+    container: HTMLElement,
+    messages: ChatWidgetMessage[],
+    transform: MessageTransform
+  ) => {
+    container.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    messages.forEach((message) => {
+      let bubble: HTMLElement;
+      if (message.variant === "reasoning" && message.reasoning) {
+        if (!showReasoning) return;
+        bubble = createReasoningBubble(message);
+      } else if (message.variant === "tool" && message.toolCall) {
+        if (!showToolCalls) return;
+        bubble = createToolBubble(message);
+      } else {
+        bubble = createStandardBubble(message, transform);
+      }
+
+      const wrapper = createElement("div", "tvw-flex");
+      if (message.role === "user") {
+        wrapper.classList.add("tvw-justify-end");
+      }
+      wrapper.appendChild(bubble);
+      fragment.appendChild(wrapper);
+    });
+
+    container.appendChild(fragment);
+    container.scrollTop = container.scrollHeight;
+  };
   const formDefinitions: Record<
     string,
     {
@@ -458,122 +757,199 @@ export const createChatExperience = (
     }
   };
 
-  const enhanceBubble = (bubble: HTMLElement, message: ChatWidgetMessage) => {
+  const reasoningExpansionState = new Set<string>();
+  const toolExpansionState = new Set<string>();
+
+  const formatUnknownValue = (value: unknown): string => {
+    if (value === null) return "null";
+    if (value === undefined) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
+  };
+
+  const formatReasoningDuration = (reasoning: ChatWidgetReasoning) => {
+    const end = reasoning.completedAt ?? Date.now();
+    const start = reasoning.startedAt ?? end;
+    const durationMs =
+      reasoning.durationMs !== undefined
+        ? reasoning.durationMs
+        : Math.max(0, end - start);
+    const seconds = durationMs / 1000;
+    if (seconds < 0.1) {
+      return "Thought for <0.1 seconds";
+    }
+    const formatted =
+      seconds >= 10
+        ? Math.round(seconds).toString()
+        : seconds.toFixed(1).replace(/\.0$/, "");
+    return `Thought for ${formatted} seconds`;
+  };
+
+  const describeReasonStatus = (reasoning: ChatWidgetReasoning) => {
+    if (reasoning.status === "complete") return formatReasoningDuration(reasoning);
+    if (reasoning.status === "pending") return "Waiting";
+    return "";
+  };
+
+  const formatToolDuration = (tool: ChatWidgetToolCall) => {
+    const durationMs =
+      typeof tool.duration === "number"
+        ? tool.duration
+        : typeof tool.durationMs === "number"
+          ? tool.durationMs
+          : Math.max(
+              0,
+              (tool.completedAt ?? Date.now()) -
+                (tool.startedAt ?? tool.completedAt ?? Date.now())
+            );
+    const seconds = durationMs / 1000;
+    if (seconds < 0.1) {
+      return "Used tool for <0.1 seconds";
+    }
+    const formatted =
+      seconds >= 10
+        ? Math.round(seconds).toString()
+        : seconds.toFixed(1).replace(/\.0$/, "");
+    return `Used tool for ${formatted} seconds`;
+  };
+
+  const describeToolStatus = (status: ChatWidgetToolCall["status"]) => {
+    if (status === "complete") return "";
+    if (status === "pending") return "Starting";
+    return "Running";
+  };
+
+  const describeToolTitle = (tool: ChatWidgetToolCall) => {
+    if (tool.status === "complete") {
+      return formatToolDuration(tool);
+    }
+    return "Using tool...";
+  };
+
+  const enhanceWithForms = (bubble: HTMLElement, message: ChatWidgetMessage) => {
     const placeholders = bubble.querySelectorAll<HTMLElement>("[data-tv-form]");
-    if (!placeholders.length) return;
+    if (placeholders.length) {
+      placeholders.forEach((placeholder) => {
+        if (placeholder.dataset.enhanced === "true") return;
+        const type = placeholder.dataset.tvForm ?? "init";
+        placeholder.dataset.enhanced = "true";
 
-    placeholders.forEach((placeholder) => {
-      if (placeholder.dataset.enhanced === "true") return;
-      const type = placeholder.dataset.tvForm ?? "init";
-      placeholder.dataset.enhanced = "true";
+        const definition = formDefinitions[type] ?? formDefinitions.init;
+        placeholder.classList.add("tvw-form-card", "tvw-space-y-4");
 
-      const definition = formDefinitions[type] ?? formDefinitions.init;
-      placeholder.classList.add("tvw-form-card", "tvw-space-y-4");
-
-      const heading = createElement("div", "tvw-space-y-1");
-      const title = createElement(
-        "h3",
-        "tvw-text-base tvw-font-semibold tvw-text-travrse-primary"
-      );
-      title.textContent = definition.title;
-      heading.appendChild(title);
-      if (definition.description) {
-        const desc = createElement(
-          "p",
-          "tvw-text-sm tvw-text-travrse-muted"
+        const heading = createElement("div", "tvw-space-y-1");
+        const title = createElement(
+          "h3",
+          "tvw-text-base tvw-font-semibold tvw-text-travrse-primary"
         );
-        desc.textContent = definition.description;
-        heading.appendChild(desc);
-      }
-
-      const form = document.createElement("form");
-      form.className = "tvw-form-grid tvw-space-y-3";
-
-      definition.fields.forEach((field) => {
-        const group = createElement("label", "tvw-form-field tvw-flex tvw-flex-col tvw-gap-1");
-        group.htmlFor = `${message.id}-${type}-${field.name}`;
-        const label = createElement("span", "tvw-text-xs tvw-font-medium tvw-text-travrse-muted");
-        label.textContent = field.label;
-        group.appendChild(label);
-
-        const inputType = field.type ?? "text";
-        let control: HTMLInputElement | HTMLTextAreaElement;
-        if (inputType === "textarea") {
-          control = document.createElement("textarea");
-          control.rows = 3;
-        } else {
-          control = document.createElement("input");
-          control.type = inputType;
+        title.textContent = definition.title;
+        heading.appendChild(title);
+        if (definition.description) {
+          const desc = createElement(
+            "p",
+            "tvw-text-sm tvw-text-travrse-muted"
+          );
+          desc.textContent = definition.description;
+          heading.appendChild(desc);
         }
-        control.className =
-          "tvw-rounded-xl tvw-border tvw-border-gray-200 tvw-bg-white tvw-px-3 tvw-py-2 tvw-text-sm tvw-text-travrse-primary focus:tvw-outline-none focus:tvw-border-travrse-primary";
-        control.id = `${message.id}-${type}-${field.name}`;
-        control.name = field.name;
-        control.placeholder = field.placeholder ?? "";
-        if (field.required) {
-          control.required = true;
-        }
-        group.appendChild(control);
-        form.appendChild(group);
-      });
 
-      const actions = createElement(
-        "div",
-        "tvw-flex tvw-items-center tvw-justify-between tvw-gap-2"
-      );
-      const status = createElement(
-        "div",
-        "tvw-text-xs tvw-text-travrse-muted tvw-min-h-[1.5rem]"
-      );
-      const submit = createElement(
-        "button",
-        "tvw-inline-flex tvw-items-center tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-60 tvw-cursor-pointer"
-      ) as HTMLButtonElement;
-      submit.type = "submit";
-      submit.textContent = definition.submitLabel ?? "Submit";
-      actions.appendChild(status);
-      actions.appendChild(submit);
-      form.appendChild(actions);
+        const form = document.createElement("form");
+        form.className = "tvw-form-grid tvw-space-y-3";
 
-      placeholder.replaceChildren(heading, form);
+        definition.fields.forEach((field) => {
+          const group = createElement("label", "tvw-form-field tvw-flex tvw-flex-col tvw-gap-1");
+          group.htmlFor = `${message.id}-${type}-${field.name}`;
+          const label = createElement("span", "tvw-text-xs tvw-font-medium tvw-text-travrse-muted");
+          label.textContent = field.label;
+          group.appendChild(label);
 
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const formEndpoint = config.formEndpoint ?? "/form";
-        const formData = new FormData(form as HTMLFormElement);
-        const payload: Record<string, unknown> = {};
-        formData.forEach((value, key) => {
-          payload[key] = value;
+          const inputType = field.type ?? "text";
+          let control: HTMLInputElement | HTMLTextAreaElement;
+          if (inputType === "textarea") {
+            control = document.createElement("textarea");
+            control.rows = 3;
+          } else {
+            control = document.createElement("input");
+            control.type = inputType;
+          }
+          control.className =
+            "tvw-rounded-xl tvw-border tvw-border-gray-200 tvw-bg-white tvw-px-3 tvw-py-2 tvw-text-sm tvw-text-travrse-primary focus:tvw-outline-none focus:tvw-border-travrse-primary";
+          control.id = `${message.id}-${type}-${field.name}`;
+          control.name = field.name;
+          control.placeholder = field.placeholder ?? "";
+          if (field.required) {
+            control.required = true;
+          }
+          group.appendChild(control);
+          form.appendChild(group);
         });
-        payload["type"] = type;
 
-        submit.disabled = true;
-        status.textContent = "Submitting…";
+        const actions = createElement(
+          "div",
+          "tvw-flex tvw-items-center tvw-justify-between tvw-gap-2"
+        );
+        const status = createElement(
+          "div",
+          "tvw-text-xs tvw-text-travrse-muted tvw-min-h-[1.5rem]"
+        );
+        const submit = createElement(
+          "button",
+          "tvw-inline-flex tvw-items-center tvw-rounded-full tvw-bg-travrse-primary tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-60 tvw-cursor-pointer"
+        ) as HTMLButtonElement;
+        submit.type = "submit";
+        submit.textContent = definition.submitLabel ?? "Submit";
+        actions.appendChild(status);
+        actions.appendChild(submit);
+        form.appendChild(actions);
 
-        try {
-          const response = await fetch(formEndpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
+        placeholder.replaceChildren(heading, form);
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const formEndpoint = config.formEndpoint ?? "/form";
+          const formData = new FormData(form as HTMLFormElement);
+          const payload: Record<string, unknown> = {};
+          formData.forEach((value, key) => {
+            payload[key] = value;
           });
-          if (!response.ok) {
-            throw new Error(`Form submission failed (${response.status})`);
+          payload["type"] = type;
+
+          submit.disabled = true;
+          status.textContent = "Submitting…";
+
+          try {
+            const response = await fetch(formEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+              throw new Error(`Form submission failed (${response.status})`);
+            }
+            const data = await response.json();
+            status.textContent = data.message ?? "Thanks! We'll be in touch soon.";
+            if (data.success && data.nextPrompt) {
+              await session.sendMessage(String(data.nextPrompt));
+            }
+          } catch (error) {
+            status.textContent =
+              error instanceof Error ? error.message : "Something went wrong. Please try again.";
+          } finally {
+            submit.disabled = false;
           }
-          const data = await response.json();
-          status.textContent = data.message ?? "Thanks! We'll be in touch soon.";
-          if (data.success && data.nextPrompt) {
-            await session.sendMessage(String(data.nextPrompt));
-          }
-        } catch (error) {
-          status.textContent =
-            error instanceof Error ? error.message : "Something went wrong. Please try again.";
-        } finally {
-          submit.disabled = false;
-        }
+        });
       });
-    });
+    }
+
   };
 
   const updateOpenState = () => {
@@ -645,7 +1021,7 @@ export const createChatExperience = (
 
   session = new ChatWidgetSession(config, {
     onMessagesChanged(messages) {
-      renderMessages(messagesWrapper, messages, postprocess, enhanceBubble);
+      renderMessages(messagesWrapper, messages, postprocess);
       scheduleAutoScroll(!isStreaming);
     },
     onStatusChanged(status) {
@@ -788,6 +1164,8 @@ export const createChatExperience = (
 
       launcherEnabled = config.launcher?.enabled ?? true;
       autoExpand = config.launcher?.autoExpand ?? false;
+      showReasoning = config.features?.showReasoning ?? true;
+      showToolCalls = config.features?.showToolCalls ?? true;
 
       if (config.launcher?.enabled === false && launcherButton) {
         launcherButton.remove();
