@@ -173,7 +173,7 @@ import { createChatProxyApp } from '@chaty-assistant/vanilla/server';
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
   allowedOrigins: ['https://www.example.com'],
-  flowId: 'flow_abc123' // Flow created in Travrse dashboard
+  flowId: 'flow_abc123' // Flow created in Travrse dashboard or API
 });
 ```
 
@@ -195,12 +195,12 @@ export default createChatProxyApp({
         type: "prompt",
         enabled: true,
         config: {
-          text: "{{_record.metadata.message}}",
-          model: "anthropic/claude-3.5-sonnet",
+          model: "meta/llama3.1-8b-instruct-free",
           responseFormat: "markdown",
           outputVariable: "prompt_result",
-          userPrompt: "{{_record.metadata.message}}",
-          systemPrompt: "You are a specialized assistant. Previous messages:\n{{_record.metadata.previous_messages}}"
+          userPrompt: "{{user_message}}",
+          systemPrompt: "you are a helpful assistant, chatting with a user",
+          previousMessages: "{{messages}}"
         }
       }
     ]
@@ -226,6 +226,6 @@ Add `TRAVRSE_API_KEY` to your environment. The proxy constructs the Travrse payl
 ### Development notes
 
 - The widget streams results using SSE and mirrors the backend `flow_complete`/`step_chunk` events.
-- Tailwind classes are prefixed with `tvw-` and scoped to `#chaty-assistant-root`, so they won’t collide with the host page.
+- Tailwind-esc classes are prefixed with `tvw-` and scoped to `#chaty-assistant-root`, so they won’t collide with the host page.
 - Run `pnpm dev` from the repository root to boot the example proxy (`examples/proxy`) and the vanilla demo (`examples/embedded-app`).
 - The proxy prefers port `43111` but automatically selects the next free port if needed.

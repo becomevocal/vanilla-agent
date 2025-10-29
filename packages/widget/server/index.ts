@@ -38,13 +38,12 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
       type: "prompt",
       enabled: true,
       config: {
-        text: "{{_record.metadata.message}}",
         model: "meta/llama3.1-8b-instruct-free",
         responseFormat: "markdown",
         outputVariable: "prompt_result",
-        userPrompt: "{{_record.metadata.message}}",
-        systemPrompt:
-          "you are a helpful assistant, chatting with a user. \n\nprevious messages:\n{{_record.metadata.previous_messages}}"
+        userPrompt: "{{user_message}}",
+        systemPrompt: "you are a helpful assistant, chatting with a user",
+        previousMessages: "{{messages}}"
       }
     }
   ]
@@ -109,14 +108,16 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
 
     // Build the Travrse payload
     const messages = clientPayload.messages ?? [];
-    const previousMessages = messages.slice(0, -1).filter((m) => m.role !== "system");
-    const formattedPrevious = previousMessages.map((message) => ({
+    // Sort messages by timestamp to ensure correct order
+    const sortedMessages = [...messages].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+    const formattedMessages = sortedMessages.map((message) => ({
       role: message.role,
-      content: message.content,
-      created_at: message.createdAt
+      content: message.content
     }));
-
-    const currentMessage = messages[messages.length - 1]?.content ?? "";
 
     // Determine which flow to use
     const flowId = clientPayload.flowId ?? options.flowId;
@@ -126,15 +127,14 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       record: {
         name: "Streaming Chat Widget",
         type: "standalone",
-        metadata: {
-          message: currentMessage,
-          previous_messages: formattedPrevious
-        }
+        metadata: {}
       },
+      messages: formattedMessages,
       options: {
         stream_response: true,
         record_mode: "virtual",
         flow_mode: flowId ? "existing" : "virtual",
+        auto_append_metadata: false
       }
     };
 
