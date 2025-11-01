@@ -7,7 +7,7 @@ type DispatchOptions = {
 
 type SSEHandler = (event: ChatWidgetEvent) => void;
 
-const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
+const DEFAULT_ENDPOINT = "http://localhost:8787/v1/dispatch";
 
 export class ChatWidgetClient {
   private readonly apiUrl: string;
@@ -32,12 +32,20 @@ export class ChatWidgetClient {
     onEvent({ type: "status", status: "connecting" });
 
     // Build simplified payload with just messages and optional flowId
+    // Sort by createdAt to ensure chronological order (not local sequence)
     const body = {
-      messages: options.messages.map((message) => ({
-        role: message.role,
-        content: message.content,
-        createdAt: message.createdAt
-      })),
+      messages: options.messages
+        .slice()
+        .sort((a, b) => {
+          const timeA = new Date(a.createdAt).getTime();
+          const timeB = new Date(b.createdAt).getTime();
+          return timeA - timeB;
+        })
+        .map((message) => ({
+          role: message.role,
+          content: message.content,
+          createdAt: message.createdAt
+        })),
       ...(this.config.flowId && { flowId: this.config.flowId })
     };
 

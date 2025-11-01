@@ -187,16 +187,19 @@ export class ChatWidgetSession {
 
   private sortMessages(messages: ChatWidgetMessage[]) {
     return [...messages].sort((a, b) => {
-      const seqA = a.sequence ?? 0;
-      const seqB = b.sequence ?? 0;
-      if (seqA !== seqB) return seqA - seqB;
-
+      // Sort by createdAt timestamp first (chronological order)
       const timeA = new Date(a.createdAt).getTime();
       const timeB = new Date(b.createdAt).getTime();
       if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
         return timeA - timeB;
       }
 
+      // Fall back to sequence if timestamps are equal or invalid
+      const seqA = a.sequence ?? 0;
+      const seqB = b.sequence ?? 0;
+      if (seqA !== seqB) return seqA - seqB;
+
+      // Final fallback to ID
       return a.id.localeCompare(b.id);
     });
   }

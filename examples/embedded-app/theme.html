@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Widget - Theme Configurator</title>
+  </head>
+  <body>
+    <main class="configurator-layout">
+      <!-- Left Panel: Configuration Controls -->
+      <aside class="config-panel">
+        <div class="config-header">
+          <h1>Widget Configurator</h1>
+          <p class="subtitle">Customize your chat widget and export the configuration</p>
+        </div>
+
+        <!-- Theme Section -->
+        <section class="config-section">
+          <h2>Theme Colors</h2>
+          <div class="form-group">
+            <label for="color-primary">Primary</label>
+            <input type="color" id="color-primary" value="#111827" />
+            <input type="text" id="color-primary-text" value="#111827" />
+          </div>
+          <div class="form-group">
+            <label for="color-accent">Accent</label>
+            <input type="color" id="color-accent" value="#1d4ed8" />
+            <input type="text" id="color-accent-text" value="#1d4ed8" />
+          </div>
+          <div class="form-group">
+            <label for="color-surface">Surface</label>
+            <input type="color" id="color-surface" value="#ffffff" />
+            <input type="text" id="color-surface-text" value="#ffffff" />
+          </div>
+          <div class="form-group">
+            <label for="color-muted">Muted</label>
+            <input type="color" id="color-muted" value="#6b7280" />
+            <input type="text" id="color-muted-text" value="#6b7280" />
+          </div>
+          <div class="preset-themes">
+            <label>Presets:</label>
+            <button type="button" data-preset="default">Default</button>
+            <button type="button" data-preset="dark">Dark</button>
+            <button type="button" data-preset="contrast">High Contrast</button>
+          </div>
+        </section>
+
+        <!-- Border Radius Section -->
+        <section class="config-section">
+          <h2>Border Radius</h2>
+          <div class="form-group">
+            <label for="radiusSm">Small (text inputs, header icon)</label>
+            <input type="text" id="radiusSm" value="0.75rem" placeholder="e.g., 0.75rem or 12px" />
+          </div>
+          <div class="form-group">
+            <label for="radiusMd">Medium (forms, tool debugging info)</label>
+            <input type="text" id="radiusMd" value="1rem" placeholder="e.g., 1rem or 16px" />
+          </div>
+          <div class="form-group">
+            <label for="radiusLg">Large (main widget panel, message bubbles, input area)</label>
+            <input type="text" id="radiusLg" value="1.5rem" placeholder="e.g., 1.5rem or 24px" />
+          </div>
+          <div class="form-group">
+            <label for="radiusFull">Full (launcher button, send button, suggestion prompts)</label>
+            <input type="text" id="radiusFull" value="9999px" placeholder="e.g., 9999px" />
+          </div>
+          <div class="preset-themes">
+            <label>Radius Presets:</label>
+            <button type="button" data-radius-preset="sharp">Sharp</button>
+            <button type="button" data-radius-preset="default">Default</button>
+            <button type="button" data-radius-preset="rounded">Rounded</button>
+            <button type="button" data-radius-preset="extraRounded">Extra Rounded</button>
+          </div>
+        </section>
+
+        <!-- Launcher Section -->
+        <section class="config-section">
+          <h2>Launcher</h2>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="launcher-enabled" checked />
+              Enable Launcher
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="launcher-title">Title</label>
+            <input type="text" id="launcher-title" value="Chat Assistant" />
+          </div>
+          <div class="form-group">
+            <label for="launcher-subtitle">Subtitle</label>
+            <input type="text" id="launcher-subtitle" value="Here to help you get answers fast" />
+          </div>
+          <div class="form-group">
+            <label for="launcher-icon-text">Icon Text</label>
+            <input type="text" id="launcher-icon-text" value="💬" />
+          </div>
+          <div class="form-group">
+            <label for="launcher-position">Position</label>
+            <select id="launcher-position">
+              <option value="bottom-right" selected>Bottom Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="top-left">Top Left</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="launcher-width">Width (CSS)</label>
+            <input type="text" id="launcher-width" value="min(360px, calc(100vw - 24px))" />
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="launcher-auto-expand" />
+              Auto Expand on Load
+            </label>
+          </div>
+        </section>
+
+        <!-- Copy/Text Section -->
+        <section class="config-section">
+          <h2>Copy & Text</h2>
+          <div class="form-group">
+            <label for="copy-welcome-title">Welcome Title</label>
+            <input type="text" id="copy-welcome-title" value="Hello 👋" />
+          </div>
+          <div class="form-group">
+            <label for="copy-welcome-subtitle">Welcome Subtitle</label>
+            <input type="text" id="copy-welcome-subtitle" value="Ask anything about your account or products." />
+          </div>
+          <div class="form-group">
+            <label for="copy-placeholder">Input Placeholder</label>
+            <input type="text" id="copy-placeholder" value="Type your message…" />
+          </div>
+          <div class="form-group">
+            <label for="copy-send-button">Send Button Label</label>
+            <input type="text" id="copy-send-button" value="Send" />
+          </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="config-section">
+          <h2>Features</h2>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="feature-reasoning" checked />
+              Show Reasoning Bubbles
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="feature-tool-calls" checked />
+              Show Tool Call Bubbles
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="debug-mode" />
+              Debug Mode
+            </label>
+          </div>
+        </section>
+
+        <!-- Suggestion Chips Section -->
+        <section class="config-section">
+          <h2>Suggestion Chips</h2>
+          <div id="suggestion-chips-list">
+            <!-- Dynamically populated -->
+          </div>
+          <button type="button" id="add-suggestion-chip" class="add-button">+ Add Suggestion</button>
+        </section>
+
+        <!-- Other Options Section -->
+        <section class="config-section">
+          <h2>Other Options</h2>
+          <div class="form-group">
+            <label for="api-url">API URL</label>
+            <input type="text" id="api-url" value="/api/chat/dispatch" />
+          </div>
+          <div class="form-group">
+            <label for="flow-id">Flow ID (optional)</label>
+            <input type="text" id="flow-id" placeholder="flow_abc123" />
+          </div>
+        </section>
+
+        <!-- Export Section -->
+        <section class="config-section export-section">
+          <h2>Export Configuration</h2>
+          <div class="export-buttons">
+            <button type="button" id="copy-json" class="export-button">Copy Config JSON</button>
+            <button type="button" id="copy-code" class="export-button">Copy Code Snippet</button>
+          </div>
+          <div id="export-feedback" class="export-feedback"></div>
+        </section>
+      </aside>
+
+      <!-- Right Panel: Live Preview -->
+      <div class="preview-panel">
+        <div class="preview-header">
+          <h2>Live Preview</h2>
+          <div class="preview-controls">
+            <button type="button" id="reset-config" class="reset-button">Reset to Defaults</button>
+          </div>
+        </div>
+        <div class="preview-description">
+          <p>Interact with the preview below to test your configuration. Changes update in real-time.</p>
+        </div>
+        <div class="preview-container">
+          <div id="widget-preview"></div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/theme-configurator.ts"></script>
+  </body>
+</html>

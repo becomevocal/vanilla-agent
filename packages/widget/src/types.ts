@@ -1,3 +1,5 @@
+import type { ChatWidgetPlugin } from "./plugins/types";
+
 export type ChatWidgetFeatureFlags = {
   showReasoning?: boolean;
   showToolCalls?: boolean;
@@ -9,6 +11,10 @@ export type ChatWidgetTheme = {
   surface?: string;
   muted?: string;
   accent?: string;
+  radiusSm?: string;
+  radiusMd?: string;
+  radiusLg?: string;
+  radiusFull?: string;
 };
 
 export type ChatWidgetLauncherConfig = {
@@ -45,6 +51,7 @@ export type ChatWidgetConfig = {
     message: ChatWidgetMessage;
     streaming: boolean;
   }) => string;
+  plugins?: ChatWidgetPlugin[];
 };
 
 export type ChatWidgetMessageRole = "user" | "assistant" | "system";

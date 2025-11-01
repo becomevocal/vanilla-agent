@@ -25,7 +25,7 @@ export type ChatProxyOptions = {
   flowConfig?: TravrseFlowConfig;
 };
 
-const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
+const DEFAULT_ENDPOINT = "http://localhost:8787/v1/dispatch";
 const DEFAULT_PATH = "/api/chat/dispatch";
 
 const DEFAULT_FLOW: TravrseFlowConfig = {
@@ -141,10 +141,45 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
     // Use flow ID if provided, otherwise use flow config
     if (flowId) {
       travrsePayload.flow =  {
-        id: flowId,
+        "name": "Chat with 8b",
+        "description": "Flow with 1 step",
+        "steps": [
+          {
+            "id": "step_01k8wnwpdcferbrq79tzj49aec",
+            "name": "Prompt 1",
+            "type": "prompt",
+            "order": 0,
+            "enabled": true,
+            "config": {
+              "text": "{{user_message}}",
+              "model": "qwen/qwen3-8b",
+              "tools": {
+                "tool_ids": [
+                  "tool_01k8ky2xpjfzybye5ywcmjr379",
+                  "builtin:firecrawl"
+                ]
+              },
+              "reasoning": false,
+              "user_prompt": "{{user_message}}",
+              "output_variable": "prompt_result",
+              "response_format": "JSON"
+            }
+          }
+        ]
       }
     } else {
       travrsePayload.flow = flowConfig;
+    }
+
+    // Development logging
+    const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+
+    if (isDevelopment) {
+      console.log("\n=== Travrse Proxy Request ===");
+      console.log("URL:", upstream);
+      console.log("API Key Used:", apiKey ? "Yes" : "No");
+      console.log("API Key (first 12 chars):", apiKey ? apiKey.substring(0, 12) : "N/A");
+      console.log("Request Payload:", JSON.stringify(travrsePayload, null, 2));
     }
 
     const response = await fetch(upstream, {
@@ -155,6 +190,23 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       },
       body: JSON.stringify(travrsePayload)
     });
+
+    if (isDevelopment) {
+      console.log("Response Status:", response.status);
+      console.log("Response Status Text:", response.statusText);
+
+      // If there's an error, try to read and log the response body
+      if (!response.ok) {
+        const clonedResponse = response.clone();
+        try {
+          const errorBody = await clonedResponse.text();
+          console.log("Error Response Body:", errorBody);
+        } catch (e) {
+          console.log("Could not read error response body:", e);
+        }
+      }
+      console.log("=== End Travrse Proxy Request ===\n");
+    }
 
     return new Response(response.body, {
       status: response.status,

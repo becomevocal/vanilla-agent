@@ -30,4 +30,8 @@ export {
 } from "./postprocessors";
 export type { ChatWidgetInitHandle };
 
+// Plugin system exports
+export type { ChatWidgetPlugin } from "./plugins/types";
+export { pluginRegistry } from "./plugins/registry";
+
 export default initChatWidgetFn;
