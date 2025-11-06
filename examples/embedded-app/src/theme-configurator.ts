@@ -18,47 +18,147 @@ const THEME_PRESETS = {
     primary: "#111827",
     accent: "#1d4ed8",
     surface: "#ffffff",
-    muted: "#6b7280"
+    muted: "#6b7280",
+    container: "#f8fafc",
+    border: "#f1f5f9",
+    divider: "#f1f5f9",
+    messageBorder: "#f1f5f9",
+    inputBackground: "#ffffff",
+    callToAction: "#ffffff",
+    callToActionBackground: "#000000"
   },
   dark: {
     primary: "#f9fafb",
     accent: "#60a5fa",
     surface: "#1f2937",
-    muted: "#9ca3af"
+    muted: "#9ca3af",
+    container: "#111827",
+    border: "#374151",
+    divider: "#374151",
+    messageBorder: "#4b5563",
+    inputBackground: "#1f2937",
+    callToAction: "#000000",
+    callToActionBackground: "#ffffff"
   },
   contrast: {
     primary: "#000000",
     accent: "#0066cc",
     surface: "#ffffff",
-    muted: "#666666"
+    muted: "#666666",
+    container: "#e5e5e5",
+    border: "#999999",
+    divider: "#999999",
+    messageBorder: "#999999",
+    inputBackground: "#ffffff",
+    callToAction: "#ffffff",
+    callToActionBackground: "#0066cc"
   }
 };
 
 // Radius presets
 const RADIUS_PRESETS = {
-  sharp: {
-    radiusSm: "0.25rem",
-    radiusMd: "0.375rem",
-    radiusLg: "0.5rem",
-    radiusFull: "9999px"
-  },
   default: {
     radiusSm: "0.75rem",
     radiusMd: "1rem",
     radiusLg: "1.5rem",
-    radiusFull: "9999px"
+    launcherRadius: "9999px",
+    buttonRadius: "9999px"
   },
+  sharp: {
+    radiusSm: "1px",
+    radiusMd: "2px",
+    radiusLg: "2px",
+    launcherRadius: "3px",
+    buttonRadius: "3px"
+  },  
   rounded: {
     radiusSm: "1rem",
     radiusMd: "1.25rem",
     radiusLg: "2rem",
-    radiusFull: "9999px"
+    launcherRadius: "0.5rem",
+    buttonRadius: "0.5rem"
   },
   extraRounded: {
     radiusSm: "1.5rem",
     radiusMd: "2rem",
     radiusLg: "2.5rem",
-    radiusFull: "9999px"
+    launcherRadius: "5rem",
+    buttonRadius: "5rem"
+  }
+};
+
+// Send button presets
+const SEND_BUTTON_PRESETS = {
+  iconArrow: {
+    useIcon: true,
+    iconName: "arrow-up",
+    iconText: "↑",
+    size: "36px",
+    backgroundColor: "#000000",
+    textColor: "#ffffff",
+    borderWidth: "0px",
+    borderColor: "#000000",
+    paddingX: "10px",
+    paddingY: "6px",
+    showTooltip: true,
+    tooltipText: "Send message"
+  },
+  iconSend: {
+    useIcon: true,
+    iconName: "send",
+    iconText: "➤",
+    size: "36px",
+    backgroundColor: "#000000",
+    textColor: "#ffffff",
+    borderWidth: "0px",
+    borderColor: "#000000",
+    paddingX: "10px",
+    paddingY: "6px",
+    showTooltip: true,
+    tooltipText: "Send message"
+  },
+  text: {
+    useIcon: false,
+    backgroundColor: "#3b82f6",
+    textColor: "#ffffff",
+    borderWidth: "0px",
+    borderColor: "#000000",
+    paddingX: "16px",
+    paddingY: "8px",
+    showTooltip: false,
+    tooltipText: "Send message"
+  }
+};
+
+// Call to action (launcher agent icon) presets
+const CALL_TO_ACTION_PRESETS = {
+  arrow: {
+    agentIconName: "arrow-up-right",
+    agentIconText: "↗",
+    agentIconSize: "40px",
+    agentIconPadding: "12px",
+    agentIconBackgroundColor: "#3b82f6"
+  },
+  sparkles: {
+    agentIconName: "sparkles",
+    agentIconText: "✨",
+    agentIconSize: "40px",
+    agentIconPadding: "12px",
+    agentIconBackgroundColor: "#8b5cf6"
+  },
+  send: {
+    agentIconName: "send",
+    agentIconText: "➤",
+    agentIconSize: "40px",
+    agentIconPadding: "12px",
+    agentIconBackgroundColor: "#3b82f6"
+  },
+  text: {
+    agentIconName: "",
+    agentIconText: "↗",
+    agentIconSize: "40px",
+    agentIconPadding: "12px",
+    agentIconBackgroundColor: "#3b82f6"
   }
 };
 
@@ -73,13 +173,35 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     iconText: "💬",
     position: "bottom-right",
     width: "min(360px, calc(100vw - 24px))",
-    autoExpand: false
+    autoExpand: false,
+    agentIconText: "↗",
+    agentIconColor: "#ffffff",
+    agentIconBackgroundColor: "#3b82f6",
+    agentIconHidden: false,
+    agentIconPadding: "5px",
+    iconSize: "40px",
+    agentIconSize: "32px",
+    headerIconSize: "48px",
+    closeButtonSize: "32px"
   },
   copy: {
     welcomeTitle: "Hello 👋",
     welcomeSubtitle: "Ask anything about your account or products.",
     inputPlaceholder: "Type your message…",
     sendButtonLabel: "Send"
+  },
+  sendButton: {
+    borderWidth: "0px",
+    borderColor: "#000000",
+    paddingX: "16px",
+    paddingY: "8px"
+  },
+  statusIndicator: {
+    visible: true,
+    idleText: "Online",
+    connectingText: "Connecting…",
+    connectedText: "Streaming…",
+    errorText: "Offline"
   },
   features: {
     showReasoning: true,
@@ -126,6 +248,17 @@ const debouncedUpdate = (config: ChatWidgetConfig) => {
   }, 300);
 };
 
+// Immediate update (for presets and explicit actions)
+const immediateUpdate = (config: ChatWidgetConfig) => {
+  if (updateTimeout !== null) {
+    clearTimeout(updateTimeout);
+    updateTimeout = null;
+  }
+  currentConfig = config;
+  widgetController.update(config);
+  saveConfigToLocalStorage(config);
+};
+
 // Local storage
 const STORAGE_KEY = "chaty-widget-config";
 
@@ -154,6 +287,14 @@ function loadConfigFromLocalStorage(): ChatWidgetConfig | null {
         theme: {
           ...defaults.theme,
           ...parsed.theme
+        },
+        sendButton: {
+          ...defaults.sendButton,
+          ...parsed.sendButton
+        },
+        statusIndicator: {
+          ...defaults.statusIndicator,
+          ...parsed.statusIndicator
         }
       };
     }
@@ -177,9 +318,149 @@ function getInput<T extends HTMLElement>(id: string): T {
   return el as T;
 }
 
+// CSS value parsing utilities
+interface ParsedCssValue {
+  value: number;
+  unit: "px" | "rem";
+}
+
+function parseCssValue(cssValue: string): ParsedCssValue {
+  const trimmed = cssValue.trim();
+  
+  // Handle special case: "9999px" maps to max slider value
+  if (trimmed === "9999px") {
+    return { value: 100, unit: "px" };
+  }
+  
+  // Match number followed by unit (px or rem)
+  const match = trimmed.match(/^([\d.]+)(px|rem)$/);
+  if (!match) {
+    // Default fallback: assume px if no unit
+    const numValue = parseFloat(trimmed);
+    return { value: isNaN(numValue) ? 0 : numValue, unit: "px" };
+  }
+  
+  const value = parseFloat(match[1]);
+  const unit = match[2] as "px" | "rem";
+  
+  return { value: isNaN(value) ? 0 : value, unit };
+}
+
+function formatCssValue(parsed: ParsedCssValue): string {
+  // Handle special case: if value is 100 and unit is px, and it's for radiusFull, use "9999px"
+  // (We'll handle this in the specific context where needed)
+  return `${parsed.value}${parsed.unit}`;
+}
+
+function convertToPx(value: number, unit: "px" | "rem"): number {
+  if (unit === "px") return value;
+  // Assume 16px = 1rem base
+  return value * 16;
+}
+
+function convertFromPx(pxValue: number, preferredUnit: "px" | "rem"): ParsedCssValue {
+  if (preferredUnit === "px") {
+    return { value: Math.round(pxValue), unit: "px" };
+  }
+  // Convert to rem, round to 2 decimal places
+  return { value: Math.round((pxValue / 16) * 100) / 100, unit: "rem" };
+}
+
+interface SliderConfig {
+  sliderId: string;
+  textInputId: string;
+  min: number;
+  max: number;
+  step: number;
+  isRadiusFull?: boolean;
+  onUpdate: (value: string) => void;
+  getInitialValue: () => string;
+}
+
+function setupSliderInput(config: SliderConfig) {
+  const slider = getInput<HTMLInputElement>(config.sliderId);
+  const textInput = getInput<HTMLInputElement>(config.textInputId);
+  
+  // Track preferred unit to preserve user preference
+  let preferredUnit: "px" | "rem" = "px";
+  
+  // Initialize from current config
+  const initialValue = config.getInitialValue();
+  const parsed = parseCssValue(initialValue);
+  preferredUnit = parsed.unit;
+  
+  // Convert to px for slider
+  const pxValue = convertToPx(parsed.value, parsed.unit);
+  slider.value = pxValue.toString();
+  textInput.value = initialValue;
+  
+  // Handle special case: radiusFull "9999px"
+  if (config.isRadiusFull && initialValue === "9999px") {
+    slider.value = config.max.toString();
+  }
+  
+  // Flag to prevent update loops
+  let isUpdating = false;
+  
+  // Update from slider to text input
+  slider.addEventListener("input", () => {
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    const sliderValue = parseFloat(slider.value);
+    const converted = convertFromPx(sliderValue, preferredUnit);
+    
+    // Handle special case: radiusFull max value
+    let cssValue: string;
+    if (config.isRadiusFull && sliderValue >= config.max) {
+      cssValue = "9999px";
+      preferredUnit = "px";
+    } else {
+      cssValue = formatCssValue(converted);
+    }
+    
+    textInput.value = cssValue;
+    config.onUpdate(cssValue);
+    isUpdating = false;
+  });
+  
+  // Update from text input to slider
+  textInput.addEventListener("input", () => {
+    if (isUpdating) return;
+    
+    const value = textInput.value.trim();
+    if (!value) return;
+    
+    const parsed = parseCssValue(value);
+    
+    // Update preferred unit
+    preferredUnit = parsed.unit;
+    
+    // Convert to px for slider
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    
+    // Clamp to slider range
+    const clampedValue = Math.max(config.min, Math.min(config.max, pxValue));
+    
+    // Handle special case: radiusFull "9999px"
+    if (config.isRadiusFull && value === "9999px") {
+      slider.value = config.max.toString();
+    } else {
+      slider.value = clampedValue.toString();
+    }
+    
+    // Update config if value is valid
+    if (value === parsed.value + parsed.unit || (config.isRadiusFull && value === "9999px")) {
+      isUpdating = true;
+      config.onUpdate(value);
+      isUpdating = false;
+    }
+  });
+}
+
 // Theme controls
 function setupThemeControls() {
-  const themeKeys = ["primary", "accent", "surface", "muted"] as const;
+  const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted"] as const;
 
   themeKeys.forEach((key) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
@@ -205,18 +486,32 @@ function setupThemeControls() {
   });
 
   // Radius controls
-  const radiusKeys = ["radiusSm", "radiusMd", "radiusLg", "radiusFull"] as const;
+  const radiusKeys = ["radiusSm", "radiusMd", "radiusLg", "launcherRadius", "buttonRadius"] as const;
+  
+  const radiusConfigs = {
+    radiusSm: { min: 0, max: 32, step: 1 },
+    radiusMd: { min: 0, max: 48, step: 1 },
+    radiusLg: { min: 0, max: 64, step: 1 },
+    launcherRadius: { min: 0, max: 100, step: 1, isRadiusFull: true },
+    buttonRadius: { min: 0, max: 100, step: 1, isRadiusFull: true }
+  };
 
   radiusKeys.forEach((key) => {
-    const input = getInput<HTMLInputElement>(`${key}`);
-
-    input.addEventListener("input", () => {
-      updateTheme(key, input.value);
+    const config = radiusConfigs[key];
+    setupSliderInput({
+      sliderId: `${key}-slider`,
+      textInputId: key,
+      min: config.min,
+      max: config.max,
+      step: config.step,
+      isRadiusFull: "isRadiusFull" in config ? config.isRadiusFull : undefined,
+      onUpdate: (value: string) => {
+        updateTheme(key, value);
+      },
+      getInitialValue: () => {
+        return currentConfig.theme?.[key] || RADIUS_PRESETS.default[key];
+      }
     });
-
-    // Set initial values
-    const initialValue = currentConfig.theme?.[key] || RADIUS_PRESETS.default[key];
-    input.value = initialValue;
   });
 
   // Color preset buttons
@@ -244,37 +539,189 @@ function updateTheme(key: string, value: string) {
       [key]: value
     }
   };
-  debouncedUpdate(newConfig);
+  // Use immediate update for radius values to ensure instant visual feedback
+  if (key.startsWith('radius')) {
+    immediateUpdate(newConfig);
+  } else {
+    debouncedUpdate(newConfig);
+  }
 }
 
 function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const themeValues = THEME_PRESETS[preset];
-  Object.entries(themeValues).forEach(([key, value]) => {
+  const { callToActionBackground, ...themeColors } = themeValues;
+  
+  Object.entries(themeColors).forEach(([key, value]) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
     const textInput = getInput<HTMLInputElement>(`color-${key}-text`);
     colorInput.value = value;
     textInput.value = value;
   });
 
+  // Also set the call to action background color
+  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
+  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
+  if (agentIconBackgroundColorInput && agentIconBackgroundColorTextInput) {
+    agentIconBackgroundColorInput.value = callToActionBackground;
+    agentIconBackgroundColorTextInput.value = callToActionBackground;
+  }
+
   const newConfig = {
     ...currentConfig,
-    theme: { ...themeValues, ...currentConfig.theme }
+    theme: { ...currentConfig.theme, ...themeColors },
+    launcher: {
+      ...currentConfig.launcher,
+      agentIconBackgroundColor: callToActionBackground
+    }
   };
-  debouncedUpdate(newConfig);
+  immediateUpdate(newConfig);
 }
 
 function applyRadiusPreset(preset: keyof typeof RADIUS_PRESETS) {
   const radiusValues = RADIUS_PRESETS[preset];
   Object.entries(radiusValues).forEach(([key, value]) => {
-    const input = getInput<HTMLInputElement>(key);
-    input.value = value;
+    const textInput = getInput<HTMLInputElement>(key);
+    const slider = getInput<HTMLInputElement>(`${key}-slider`);
+    textInput.value = value;
+    
+    // Update slider value
+    const parsed = parseCssValue(value);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    
+    // Handle special case: radiusFull "9999px"
+    if (key === "radiusFull" && value === "9999px") {
+      slider.value = "100";
+    } else {
+      slider.value = pxValue.toString();
+    }
   });
 
   const newConfig = {
     ...currentConfig,
     theme: { ...currentConfig.theme, ...radiusValues }
   };
-  debouncedUpdate(newConfig);
+  immediateUpdate(newConfig);
+}
+
+function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
+  const presetValues = SEND_BUTTON_PRESETS[preset];
+  
+  // Get all the input elements
+  const useIconInput = getInput<HTMLInputElement>("send-button-use-icon");
+  const iconTextInput = getInput<HTMLInputElement>("send-button-icon-text");
+  const iconNameInput = getInput<HTMLInputElement>("send-button-icon-name");
+  const sizeInput = getInput<HTMLInputElement>("send-button-size");
+  const backgroundColorInput = getInput<HTMLInputElement>("send-button-background-color");
+  const backgroundColorTextInput = getInput<HTMLInputElement>("send-button-background-color-text");
+  const textColorInput = getInput<HTMLInputElement>("send-button-text-color");
+  const textColorTextInput = getInput<HTMLInputElement>("send-button-text-color-text");
+  const borderColorInput = getInput<HTMLInputElement>("send-button-border-color");
+  const borderColorTextInput = getInput<HTMLInputElement>("send-button-border-color-text");
+  const borderWidthInput = getInput<HTMLInputElement>("send-button-border-width");
+  const borderWidthSlider = getInput<HTMLInputElement>("send-button-border-width-slider");
+  const paddingXInput = getInput<HTMLInputElement>("send-button-padding-x");
+  const paddingXSlider = getInput<HTMLInputElement>("send-button-padding-x-slider");
+  const paddingYInput = getInput<HTMLInputElement>("send-button-padding-y");
+  const paddingYSlider = getInput<HTMLInputElement>("send-button-padding-y-slider");
+  const sizeSlider = getInput<HTMLInputElement>("send-button-size-slider");
+  const showTooltipInput = getInput<HTMLInputElement>("send-button-show-tooltip");
+  const tooltipTextInput = getInput<HTMLInputElement>("send-button-tooltip-text");
+  
+  // Update all input fields with preset values
+  if (presetValues.useIcon !== undefined) useIconInput.checked = presetValues.useIcon;
+  if ("iconText" in presetValues && presetValues.iconText) iconTextInput.value = presetValues.iconText;
+  if ("iconName" in presetValues && presetValues.iconName !== undefined) iconNameInput.value = presetValues.iconName || "";
+  if ("size" in presetValues && presetValues.size) {
+    sizeInput.value = presetValues.size;
+    const parsed = parseCssValue(presetValues.size);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    sizeSlider.value = pxValue.toString();
+  }
+  if (presetValues.backgroundColor) {
+    backgroundColorInput.value = presetValues.backgroundColor;
+    backgroundColorTextInput.value = presetValues.backgroundColor;
+  }
+  if (presetValues.textColor) {
+    textColorInput.value = presetValues.textColor;
+    textColorTextInput.value = presetValues.textColor;
+  }
+  if (presetValues.borderColor) {
+    borderColorInput.value = presetValues.borderColor;
+    borderColorTextInput.value = presetValues.borderColor;
+  }
+  if (presetValues.borderWidth) {
+    borderWidthInput.value = presetValues.borderWidth;
+    const parsed = parseCssValue(presetValues.borderWidth);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    borderWidthSlider.value = pxValue.toString();
+  }
+  if (presetValues.paddingX) {
+    paddingXInput.value = presetValues.paddingX;
+    const parsed = parseCssValue(presetValues.paddingX);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    paddingXSlider.value = pxValue.toString();
+  }
+  if (presetValues.paddingY) {
+    paddingYInput.value = presetValues.paddingY;
+    const parsed = parseCssValue(presetValues.paddingY);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    paddingYSlider.value = pxValue.toString();
+  }
+  if (presetValues.showTooltip !== undefined) showTooltipInput.checked = presetValues.showTooltip;
+  if (presetValues.tooltipText) tooltipTextInput.value = presetValues.tooltipText;
+  
+  const newConfig = {
+    ...currentConfig,
+    sendButton: { ...currentConfig.sendButton, ...presetValues }
+  };
+  immediateUpdate(newConfig);
+}
+
+function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
+  const presetValues = CALL_TO_ACTION_PRESETS[preset];
+  
+  // Get input elements
+  const agentIconTextInput = getInput<HTMLInputElement>("launcher-agent-icon-text");
+  const agentIconNameInput = getInput<HTMLInputElement>("launcher-agent-icon-name");
+  const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
+  const agentIconSizeSlider = getInput<HTMLInputElement>("launcher-agent-icon-size-slider");
+  const agentIconPaddingInput = getInput<HTMLInputElement>("launcher-agent-icon-padding");
+  const agentIconPaddingSlider = getInput<HTMLInputElement>("launcher-agent-icon-padding-slider");
+  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
+  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
+  
+  // Update input fields with preset values
+  if (presetValues.agentIconText) agentIconTextInput.value = presetValues.agentIconText;
+  if (presetValues.agentIconName !== undefined) agentIconNameInput.value = presetValues.agentIconName || "";
+  if (presetValues.agentIconSize) {
+    agentIconSizeInput.value = presetValues.agentIconSize;
+    const parsed = parseCssValue(presetValues.agentIconSize);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    agentIconSizeSlider.value = pxValue.toString();
+  }
+  if (presetValues.agentIconPadding) {
+    agentIconPaddingInput.value = presetValues.agentIconPadding;
+    const parsed = parseCssValue(presetValues.agentIconPadding);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    agentIconPaddingSlider.value = pxValue.toString();
+  }
+  if (presetValues.agentIconBackgroundColor) {
+    agentIconBackgroundColorInput.value = presetValues.agentIconBackgroundColor;
+    agentIconBackgroundColorTextInput.value = presetValues.agentIconBackgroundColor;
+  }
+  
+  const newConfig = {
+    ...currentConfig,
+    launcher: { 
+      ...currentConfig.launcher, 
+      agentIconText: presetValues.agentIconText,
+      agentIconName: presetValues.agentIconName || undefined,
+      agentIconSize: presetValues.agentIconSize,
+      agentIconPadding: presetValues.agentIconPadding || undefined,
+      agentIconBackgroundColor: presetValues.agentIconBackgroundColor
+    }
+  };
+  immediateUpdate(newConfig);
 }
 
 // Launcher controls
@@ -286,6 +733,18 @@ function setupLauncherControls() {
   const positionInput = getInput<HTMLSelectElement>("launcher-position");
   const widthInput = getInput<HTMLInputElement>("launcher-width");
   const autoExpandInput = getInput<HTMLInputElement>("launcher-auto-expand");
+  const agentIconTextInput = getInput<HTMLInputElement>("launcher-agent-icon-text");
+  const agentIconNameInput = getInput<HTMLInputElement>("launcher-agent-icon-name");
+  const agentIconHiddenInput = getInput<HTMLInputElement>("launcher-agent-icon-hidden");
+  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
+  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
+  
+  // Size inputs - these will be handled by sliders, but we still need references for the update function
+  const iconSizeInput = getInput<HTMLInputElement>("launcher-icon-size");
+  const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
+  const agentIconPaddingInput = getInput<HTMLInputElement>("launcher-agent-icon-padding");
+  const headerIconSizeInput = getInput<HTMLInputElement>("launcher-header-icon-size");
+  const closeButtonSizeInput = getInput<HTMLInputElement>("launcher-close-button-size");
 
   // Set initial values
   enabledInput.checked = currentConfig.launcher?.enabled ?? true;
@@ -295,6 +754,11 @@ function setupLauncherControls() {
   positionInput.value = currentConfig.launcher?.position ?? "bottom-right";
   widthInput.value = currentConfig.launcher?.width ?? "min(360px, calc(100vw - 24px))";
   autoExpandInput.checked = currentConfig.launcher?.autoExpand ?? false;
+  agentIconTextInput.value = currentConfig.launcher?.agentIconText ?? "↗";
+  agentIconNameInput.value = currentConfig.launcher?.agentIconName ?? "";
+  agentIconHiddenInput.checked = currentConfig.launcher?.agentIconHidden ?? false;
+  agentIconBackgroundColorInput.value = currentConfig.launcher?.agentIconBackgroundColor ?? "";
+  agentIconBackgroundColorTextInput.value = currentConfig.launcher?.agentIconBackgroundColor ?? "";
 
   const updateLauncher = () => {
     const newConfig = {
@@ -307,17 +771,86 @@ function setupLauncherControls() {
         iconText: iconTextInput.value,
         position: positionInput.value as "bottom-right" | "bottom-left" | "top-right" | "top-left",
         width: widthInput.value,
-        autoExpand: autoExpandInput.checked
+        autoExpand: autoExpandInput.checked,
+        agentIconText: agentIconTextInput.value,
+        agentIconName: agentIconNameInput.value || undefined,
+        agentIconHidden: agentIconHiddenInput.checked,
+        agentIconBackgroundColor: agentIconBackgroundColorInput.value || undefined,
+        iconSize: iconSizeInput.value,
+        agentIconSize: agentIconSizeInput.value,
+        agentIconPadding: agentIconPaddingInput.value || undefined,
+        headerIconSize: headerIconSizeInput.value,
+        closeButtonSize: closeButtonSizeInput.value
       }
     };
     debouncedUpdate(newConfig);
   };
 
-  [enabledInput, titleInput, subtitleInput, iconTextInput, positionInput, widthInput, autoExpandInput]
+  // Setup sliders for size inputs
+  const sizeInputs = [
+    { key: "iconSize", inputId: "launcher-icon-size", sliderId: "launcher-icon-size-slider" },
+    { key: "agentIconSize", inputId: "launcher-agent-icon-size", sliderId: "launcher-agent-icon-size-slider" },
+    { key: "headerIconSize", inputId: "launcher-header-icon-size", sliderId: "launcher-header-icon-size-slider" },
+    { key: "closeButtonSize", inputId: "launcher-close-button-size", sliderId: "launcher-close-button-size-slider" }
+  ];
+
+  sizeInputs.forEach(({ key, inputId, sliderId }) => {
+    setupSliderInput({
+      sliderId,
+      textInputId: inputId,
+      min: 16,
+      max: 128,
+      step: 1,
+      onUpdate: (value: string) => {
+        updateLauncher();
+      },
+      getInitialValue: () => {
+        return currentConfig.launcher?.[key as keyof typeof currentConfig.launcher] as string || 
+               (key === "iconSize" ? "40px" : 
+                key === "agentIconSize" ? "32px" : 
+                key === "headerIconSize" ? "48px" : "32px");
+      }
+    });
+  });
+
+  // Setup slider for agent icon padding
+  setupSliderInput({
+    sliderId: "launcher-agent-icon-padding-slider",
+    textInputId: "launcher-agent-icon-padding",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateLauncher();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.agentIconPadding ?? "5px";
+    }
+  });
+
+  // Bidirectional sync for agent icon background color
+  agentIconBackgroundColorInput.addEventListener("input", () => {
+    agentIconBackgroundColorTextInput.value = agentIconBackgroundColorInput.value;
+    updateLauncher();
+  });
+  agentIconBackgroundColorTextInput.addEventListener("input", () => {
+    agentIconBackgroundColorInput.value = agentIconBackgroundColorTextInput.value;
+    updateLauncher();
+  });
+
+  [enabledInput, titleInput, subtitleInput, iconTextInput, positionInput, widthInput, autoExpandInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput]
     .forEach((input) => {
       input.addEventListener("input", updateLauncher);
       input.addEventListener("change", updateLauncher);
     });
+
+  // Call to action preset buttons
+  document.querySelectorAll("[data-call-to-action-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = (button as HTMLElement).dataset.callToActionPreset as keyof typeof CALL_TO_ACTION_PRESETS;
+      applyCallToActionPreset(preset);
+    });
+  });
 }
 
 // Copy/Text controls
@@ -326,12 +859,124 @@ function setupCopyControls() {
   const welcomeSubtitleInput = getInput<HTMLInputElement>("copy-welcome-subtitle");
   const placeholderInput = getInput<HTMLInputElement>("copy-placeholder");
   const sendButtonInput = getInput<HTMLInputElement>("copy-send-button");
+  const borderColorInput = getInput<HTMLInputElement>("send-button-border-color");
+  const borderColorTextInput = getInput<HTMLInputElement>("send-button-border-color-text");
+  const useIconInput = getInput<HTMLInputElement>("send-button-use-icon");
+  const iconTextInput = getInput<HTMLInputElement>("send-button-icon-text");
+  const iconNameInput = getInput<HTMLInputElement>("send-button-icon-name");
+  const sizeInput = getInput<HTMLInputElement>("send-button-size");
+  const backgroundColorInput = getInput<HTMLInputElement>("send-button-background-color");
+  const backgroundColorTextInput = getInput<HTMLInputElement>("send-button-background-color-text");
+  const textColorInput = getInput<HTMLInputElement>("send-button-text-color");
+  const textColorTextInput = getInput<HTMLInputElement>("send-button-text-color-text");
+  const showTooltipInput = getInput<HTMLInputElement>("send-button-show-tooltip");
+  const tooltipTextInput = getInput<HTMLInputElement>("send-button-tooltip-text");
 
   // Set initial values
   welcomeTitleInput.value = currentConfig.copy?.welcomeTitle ?? "Hello 👋";
   welcomeSubtitleInput.value = currentConfig.copy?.welcomeSubtitle ?? "Ask anything about your account or products.";
   placeholderInput.value = currentConfig.copy?.inputPlaceholder ?? "Type your message…";
   sendButtonInput.value = currentConfig.copy?.sendButtonLabel ?? "Send";
+  const borderColor = currentConfig.sendButton?.borderColor ?? "#000000";
+  borderColorInput.value = borderColor;
+  borderColorTextInput.value = borderColor;
+  useIconInput.checked = currentConfig.sendButton?.useIcon ?? false;
+  iconTextInput.value = currentConfig.sendButton?.iconText ?? "↑";
+  iconNameInput.value = currentConfig.sendButton?.iconName ?? "";
+  sizeInput.value = currentConfig.sendButton?.size ?? "40px";
+  const bgColor = currentConfig.sendButton?.backgroundColor ?? "";
+  backgroundColorInput.value = bgColor || "#111827";
+  backgroundColorTextInput.value = bgColor || "#111827";
+  const txtColor = currentConfig.sendButton?.textColor ?? "";
+  textColorInput.value = txtColor || "#ffffff";
+  textColorTextInput.value = txtColor || "#ffffff";
+  showTooltipInput.checked = currentConfig.sendButton?.showTooltip ?? false;
+  tooltipTextInput.value = currentConfig.sendButton?.tooltipText ?? "Send message";
+
+  // Setup slider inputs for border width and padding
+  setupSliderInput({
+    sliderId: "send-button-border-width-slider",
+    textInputId: "send-button-border-width",
+    min: 0,
+    max: 10,
+    step: 1,
+    onUpdate: (value: string) => {
+      const newConfig = {
+        ...currentConfig,
+        sendButton: {
+          ...currentConfig.sendButton,
+          borderWidth: value.trim() || undefined
+        }
+      };
+      debouncedUpdate(newConfig);
+    },
+    getInitialValue: () => {
+      return currentConfig.sendButton?.borderWidth ?? "0px";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "send-button-padding-x-slider",
+    textInputId: "send-button-padding-x",
+    min: 0,
+    max: 64,
+    step: 1,
+    onUpdate: (value: string) => {
+      const newConfig = {
+        ...currentConfig,
+        sendButton: {
+          ...currentConfig.sendButton,
+          paddingX: value.trim() || undefined
+        }
+      };
+      debouncedUpdate(newConfig);
+    },
+    getInitialValue: () => {
+      return currentConfig.sendButton?.paddingX ?? "16px";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "send-button-padding-y-slider",
+    textInputId: "send-button-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      const newConfig = {
+        ...currentConfig,
+        sendButton: {
+          ...currentConfig.sendButton,
+          paddingY: value.trim() || undefined
+        }
+      };
+      debouncedUpdate(newConfig);
+    },
+    getInitialValue: () => {
+      return currentConfig.sendButton?.paddingY ?? "8px";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "send-button-size-slider",
+    textInputId: "send-button-size",
+    min: 24,
+    max: 64,
+    step: 1,
+    onUpdate: (value: string) => {
+      const newConfig = {
+        ...currentConfig,
+        sendButton: {
+          ...currentConfig.sendButton,
+          size: value.trim() || undefined
+        }
+      };
+      debouncedUpdate(newConfig);
+    },
+    getInitialValue: () => {
+      return currentConfig.sendButton?.size ?? "40px";
+    }
+  });
 
   const updateCopy = () => {
     const newConfig = {
@@ -341,13 +986,106 @@ function setupCopyControls() {
         welcomeSubtitle: welcomeSubtitleInput.value,
         inputPlaceholder: placeholderInput.value,
         sendButtonLabel: sendButtonInput.value
+      },
+      sendButton: {
+        ...currentConfig.sendButton,
+        borderColor: borderColorTextInput.value.trim() || undefined,
+        useIcon: useIconInput.checked,
+        iconText: iconTextInput.value.trim() || undefined,
+        iconName: iconNameInput.value.trim() || undefined,
+        size: sizeInput.value.trim() || undefined,
+        backgroundColor: backgroundColorTextInput.value.trim() || undefined,
+        textColor: textColorTextInput.value.trim() || undefined,
+        showTooltip: showTooltipInput.checked,
+        tooltipText: tooltipTextInput.value.trim() || undefined
       }
     };
     debouncedUpdate(newConfig);
   };
 
-  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput]
+  // Sync border color picker and text input
+  borderColorInput.addEventListener("input", () => {
+    borderColorTextInput.value = borderColorInput.value;
+    updateCopy();
+  });
+
+  borderColorTextInput.addEventListener("input", () => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(borderColorTextInput.value)) {
+      borderColorInput.value = borderColorTextInput.value;
+      updateCopy();
+    }
+  });
+
+  // Sync background color picker and text input
+  backgroundColorInput.addEventListener("input", () => {
+    backgroundColorTextInput.value = backgroundColorInput.value;
+    updateCopy();
+  });
+
+  backgroundColorTextInput.addEventListener("input", () => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(backgroundColorTextInput.value)) {
+      backgroundColorInput.value = backgroundColorTextInput.value;
+      updateCopy();
+    }
+  });
+
+  // Sync text color picker and text input
+  textColorInput.addEventListener("input", () => {
+    textColorTextInput.value = textColorInput.value;
+    updateCopy();
+  });
+
+  textColorTextInput.addEventListener("input", () => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(textColorTextInput.value)) {
+      textColorInput.value = textColorTextInput.value;
+      updateCopy();
+    }
+  });
+
+  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput]
     .forEach((input) => input.addEventListener("input", updateCopy));
+
+  // Send button preset buttons
+  document.querySelectorAll("[data-send-button-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = (button as HTMLElement).dataset.sendButtonPreset as keyof typeof SEND_BUTTON_PRESETS;
+      applySendButtonPreset(preset);
+    });
+  });
+}
+
+// Status Indicator controls
+function setupStatusIndicatorControls() {
+  const visibleInput = getInput<HTMLInputElement>("status-indicator-visible");
+  const idleTextInput = getInput<HTMLInputElement>("status-indicator-idle");
+  const connectingTextInput = getInput<HTMLInputElement>("status-indicator-connecting");
+  const connectedTextInput = getInput<HTMLInputElement>("status-indicator-connected");
+  const errorTextInput = getInput<HTMLInputElement>("status-indicator-error");
+
+  // Set initial values
+  visibleInput.checked = currentConfig.statusIndicator?.visible ?? true;
+  idleTextInput.value = currentConfig.statusIndicator?.idleText ?? "Online";
+  connectingTextInput.value = currentConfig.statusIndicator?.connectingText ?? "Connecting…";
+  connectedTextInput.value = currentConfig.statusIndicator?.connectedText ?? "Streaming…";
+  errorTextInput.value = currentConfig.statusIndicator?.errorText ?? "Offline";
+
+  const updateStatusIndicator = () => {
+    const newConfig = {
+      ...currentConfig,
+      statusIndicator: {
+        visible: visibleInput.checked,
+        idleText: idleTextInput.value || undefined,
+        connectingText: connectingTextInput.value || undefined,
+        connectedText: connectedTextInput.value || undefined,
+        errorText: errorTextInput.value || undefined
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  visibleInput.addEventListener("change", updateStatusIndicator);
+  [idleTextInput, connectingTextInput, connectedTextInput, errorTextInput]
+    .forEach((input) => input.addEventListener("input", updateStatusIndicator));
 }
 
 // Features controls
@@ -383,9 +1121,15 @@ function setupSuggestionChipsControls() {
   const chipsList = getInput<HTMLDivElement>("suggestion-chips-list");
   const addButton = getInput<HTMLButtonElement>("add-suggestion-chip");
 
-  const renderChips = () => {
-    const chips = currentConfig.suggestionChips || [];
+  const renderChips = (chipsToRender?: string[]) => {
+    // Use provided chips or fall back to currentConfig
+    const chips = chipsToRender ?? currentConfig.suggestionChips ?? [];
+    
+    // Clear the list
     chipsList.innerHTML = "";
+    
+    // If no chips, we're done
+    if (chips.length === 0) return;
 
     chips.forEach((chip, index) => {
       const chipItem = document.createElement("div");
@@ -395,9 +1139,12 @@ function setupSuggestionChipsControls() {
       chipInput.type = "text";
       chipInput.value = chip;
       chipInput.addEventListener("input", () => {
-        const newChips = [...chips];
+        // Read current chips from currentConfig to avoid stale closure
+        const currentChips = currentConfig.suggestionChips || [];
+        const newChips = [...currentChips];
         newChips[index] = chipInput.value;
         updateSuggestionChips(newChips);
+        // Don't call renderChips() here to avoid focus loss while typing
       });
 
       const deleteButton = document.createElement("button");
@@ -405,9 +1152,11 @@ function setupSuggestionChipsControls() {
       deleteButton.textContent = "×";
       deleteButton.className = "delete-chip";
       deleteButton.addEventListener("click", () => {
-        const newChips = chips.filter((_, i) => i !== index);
+        // Read current chips from currentConfig to avoid stale closure
+        const currentChips = currentConfig.suggestionChips || [];
+        const newChips = currentChips.filter((_, i) => i !== index);
         updateSuggestionChips(newChips);
-        renderChips();
+        renderChips(newChips); // Re-render to update the UI after deletion
       });
 
       chipItem.appendChild(chipInput);
@@ -417,17 +1166,45 @@ function setupSuggestionChipsControls() {
   };
 
   const updateSuggestionChips = (chips: string[]) => {
-    const newConfig = {
+    // Update currentConfig immediately so renderChips() sees the updated value
+    currentConfig = {
       ...currentConfig,
       suggestionChips: chips
     };
-    debouncedUpdate(newConfig);
+    debouncedUpdate(currentConfig);
   };
 
-  addButton.addEventListener("click", () => {
+  addButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Ensure currentConfig exists
+    if (!currentConfig) {
+      currentConfig = getDefaultConfig();
+    }
+    
     const chips = currentConfig.suggestionChips || [];
-    updateSuggestionChips([...chips, "New suggestion"]);
-    renderChips();
+    const newChips = [...chips, "New suggestion"];
+    
+    // Update currentConfig immediately
+    currentConfig = {
+      ...currentConfig,
+      suggestionChips: newChips
+    };
+    
+    // Render immediately with the new chips array
+    renderChips(newChips);
+    
+    // Verify the chips were rendered
+    const renderedCount = chipsList.children.length;
+    if (renderedCount !== newChips.length) {
+      console.error(`Expected ${newChips.length} chips but rendered ${renderedCount}`);
+    }
+    
+    // Then trigger debounced update for widget
+    debouncedUpdate(currentConfig);
+    
+    return false;
   });
 
   renderChips();
@@ -583,6 +1360,7 @@ function init() {
   setupThemeControls();
   setupLauncherControls();
   setupCopyControls();
+  setupStatusIndicatorControls();
   setupFeatureControls();
   setupSuggestionChipsControls();
   setupOtherOptionsControls();

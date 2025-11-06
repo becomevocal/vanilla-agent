@@ -2,6 +2,7 @@ import { escapeHtml } from "./postprocessors";
 import { ChatWidgetSession, ChatWidgetSessionStatus } from "./session";
 import { ChatWidgetConfig, ChatWidgetMessage } from "./types";
 import { applyThemeVariables } from "./utils/theme";
+import { renderLucideIcon } from "./utils/icons";
 import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel } from "./components/panel";
@@ -50,10 +51,22 @@ export const createChatExperience = (
 
   let launcherEnabled = config.launcher?.enabled ?? true;
   let autoExpand = config.launcher?.autoExpand ?? false;
+  let prevAutoExpand = autoExpand;
+  let prevLauncherEnabled = launcherEnabled;
   let open = launcherEnabled ? autoExpand : true;
   let postprocess = buildPostprocessor(config);
   let showReasoning = config.features?.showReasoning ?? true;
   let showToolCalls = config.features?.showToolCalls ?? true;
+  
+  // Get status indicator config
+  const statusConfig = config.statusIndicator ?? {};
+  const getStatusText = (status: ChatWidgetSessionStatus): string => {
+    if (status === "idle") return statusConfig.idleText ?? statusCopy.idle;
+    if (status === "connecting") return statusConfig.connectingText ?? statusCopy.connecting;
+    if (status === "connected") return statusConfig.connectedText ?? statusCopy.connected;
+    if (status === "error") return statusConfig.errorText ?? statusCopy.error;
+    return statusCopy[status];
+  };
 
   const { wrapper, panel } = createWrapper(config);
   const {
@@ -63,11 +76,13 @@ export const createChatExperience = (
     suggestions,
     textarea,
     sendButton,
+    sendButtonWrapper,
     composerForm,
     statusText,
     introTitle,
     introSubtitle,
-    closeButton
+    closeButton,
+    iconHolder
   } = buildPanel(config, launcherEnabled);
 
   panel.appendChild(container);
@@ -216,10 +231,18 @@ export const createChatExperience = (
       wrapper.classList.remove("tvw-pointer-events-none", "tvw-opacity-0");
       panel.classList.remove("tvw-scale-95", "tvw-opacity-0");
       panel.classList.add("tvw-scale-100", "tvw-opacity-100");
+      // Hide launcher button when widget is open
+      if (launcherButtonInstance) {
+        launcherButtonInstance.element.style.display = "none";
+      }
     } else {
       wrapper.classList.add("tvw-pointer-events-none", "tvw-opacity-0");
       panel.classList.remove("tvw-scale-100", "tvw-opacity-100");
       panel.classList.add("tvw-scale-95", "tvw-opacity-0");
+      // Show launcher button when widget is closed
+      if (launcherButtonInstance) {
+        launcherButtonInstance.element.style.display = "";
+      }
     }
   };
 
@@ -254,10 +277,30 @@ export const createChatExperience = (
   session = new ChatWidgetSession(config, {
     onMessagesChanged(messages) {
       renderMessagesWithPlugins(messagesWrapper, messages, postprocess);
+      // Re-render suggestions to hide them after first user message
+      // Pass messages directly to avoid calling session.getMessages() during construction
+      if (session) {
+        const hasUserMessage = messages.some((msg) => msg.role === "user");
+        if (hasUserMessage) {
+          // Hide suggestions if user message exists
+          suggestionsManager.render([], session, textarea, messages);
+        } else {
+          // Show suggestions if no user message yet
+          suggestionsManager.render(config.suggestionChips, session, textarea, messages);
+        }
+      }
       scheduleAutoScroll(!isStreaming);
     },
     onStatusChanged(status) {
-      statusText.textContent = statusCopy[status];
+      const currentStatusConfig = config.statusIndicator ?? {};
+      const getCurrentStatusText = (status: ChatWidgetSessionStatus): string => {
+        if (status === "idle") return currentStatusConfig.idleText ?? statusCopy.idle;
+        if (status === "connecting") return currentStatusConfig.connectingText ?? statusCopy.connecting;
+        if (status === "connected") return currentStatusConfig.connectedText ?? statusCopy.connected;
+        if (status === "error") return currentStatusConfig.errorText ?? statusCopy.error;
+        return statusCopy[status];
+      };
+      statusText.textContent = getCurrentStatusText(status);
     },
     onStreamingChanged(streaming) {
       isStreaming = streaming;
@@ -409,7 +452,6 @@ export const createChatExperience = (
       if (config.launcher?.enabled === false && launcherButtonInstance) {
         launcherButtonInstance.destroy();
         launcherButtonInstance = null;
-        setOpenState(true);
       }
 
       if (config.launcher?.enabled !== false && !launcherButtonInstance) {
@@ -421,13 +463,49 @@ export const createChatExperience = (
         launcherButtonInstance.update(config);
       }
 
-      if (!launcherEnabled) {
-        setOpenState(true);
-      } else if (config.launcher?.autoExpand !== undefined) {
-        setOpenState(Boolean(config.launcher.autoExpand));
+      // Only update open state if launcher enabled state changed or autoExpand value changed
+      const launcherEnabledChanged = launcherEnabled !== prevLauncherEnabled;
+      const autoExpandChanged = autoExpand !== prevAutoExpand;
+
+      if (launcherEnabledChanged) {
+        // Launcher was enabled/disabled - update state accordingly
+        if (!launcherEnabled) {
+          // When launcher is disabled, always keep panel open
+          open = true;
+          updateOpenState();
+        } else {
+          // Launcher was just enabled - respect autoExpand setting
+          setOpenState(autoExpand);
+        }
+      } else if (autoExpandChanged) {
+        // autoExpand value changed - update state to match
+        setOpenState(autoExpand);
       }
+      // Otherwise, preserve current open state (user may have manually opened/closed)
+
+      // Update previous values for next comparison
+      prevAutoExpand = autoExpand;
+      prevLauncherEnabled = launcherEnabled;
       recalcPanelHeight();
       refreshCloseButton();
+
+      // Update panel icon sizes
+      const launcher = config.launcher ?? {};
+      if (iconHolder) {
+        const headerIconSize = launcher.headerIconSize ?? "48px";
+        iconHolder.style.height = headerIconSize;
+        iconHolder.style.width = headerIconSize;
+        const img = iconHolder.querySelector("img");
+        if (img) {
+          img.style.height = headerIconSize;
+          img.style.width = headerIconSize;
+        }
+      }
+      if (closeButton) {
+        const closeButtonSize = launcher.closeButtonSize ?? "32px";
+        closeButton.style.height = closeButtonSize;
+        closeButton.style.width = closeButtonSize;
+      }
 
       postprocess = buildPostprocessor(config);
       session.updateConfig(config);
@@ -439,6 +517,157 @@ export const createChatExperience = (
       suggestionsManager.render(config.suggestionChips, session, textarea);
       updateCopy();
       setComposerDisabled(session.isStreaming());
+      
+      // Update send button styling
+      const sendButtonConfig = config.sendButton ?? {};
+      const useIcon = sendButtonConfig.useIcon ?? false;
+      const iconText = sendButtonConfig.iconText ?? "↑";
+      const iconName = sendButtonConfig.iconName;
+      const tooltipText = sendButtonConfig.tooltipText ?? "Send message";
+      const showTooltip = sendButtonConfig.showTooltip ?? false;
+      const buttonSize = sendButtonConfig.size ?? "40px";
+      const backgroundColor = sendButtonConfig.backgroundColor;
+      const textColor = sendButtonConfig.textColor;
+
+      // Update button content and styling based on mode
+      if (useIcon) {
+        // Icon mode: circular button
+        sendButton.style.width = buttonSize;
+        sendButton.style.height = buttonSize;
+        sendButton.style.minWidth = buttonSize;
+        sendButton.style.minHeight = buttonSize;
+        sendButton.style.fontSize = "18px";
+        sendButton.style.lineHeight = "1";
+        
+        // Clear existing content
+        sendButton.innerHTML = "";
+        
+        // Use Lucide icon if iconName is provided, otherwise fall back to iconText
+        if (iconName) {
+          const iconSize = parseFloat(buttonSize) || 24;
+          const iconColor = textColor && typeof textColor === 'string' && textColor.trim() ? textColor.trim() : "currentColor";
+          const iconSvg = renderLucideIcon(iconName, iconSize, iconColor, 2);
+          if (iconSvg) {
+            sendButton.appendChild(iconSvg);
+            sendButton.style.color = iconColor;
+          } else {
+            // Fallback to text if icon fails to render
+            sendButton.textContent = iconText;
+            if (textColor) {
+              sendButton.style.color = textColor;
+            } else {
+              sendButton.classList.add("tvw-text-white");
+            }
+          }
+        } else {
+          sendButton.textContent = iconText;
+          if (textColor) {
+            sendButton.style.color = textColor;
+          } else {
+            sendButton.classList.add("tvw-text-white");
+          }
+        }
+        
+        // Update classes
+        sendButton.className = "tvw-rounded-button tvw-flex tvw-items-center tvw-justify-center disabled:tvw-opacity-50 tvw-cursor-pointer";
+        
+        if (backgroundColor) {
+          sendButton.style.backgroundColor = backgroundColor;
+          sendButton.classList.remove("tvw-bg-cw-primary");
+        } else {
+          sendButton.classList.add("tvw-bg-cw-primary");
+        }
+      } else {
+        // Text mode: existing behavior
+        sendButton.textContent = config.copy?.sendButtonLabel ?? "Send";
+        sendButton.style.width = "";
+        sendButton.style.height = "";
+        sendButton.style.minWidth = "";
+        sendButton.style.minHeight = "";
+        sendButton.style.fontSize = "";
+        sendButton.style.lineHeight = "";
+        
+        // Update classes
+        sendButton.className = "tvw-rounded-button tvw-bg-cw-accent tvw-px-4 tvw-py-2 tvw-text-sm tvw-font-semibold tvw-text-white disabled:tvw-opacity-50 tvw-cursor-pointer";
+        
+        if (backgroundColor) {
+          sendButton.style.backgroundColor = backgroundColor;
+          sendButton.classList.remove("tvw-bg-cw-accent");
+        } else {
+          sendButton.classList.add("tvw-bg-cw-accent");
+        }
+        
+        if (textColor) {
+          sendButton.style.color = textColor;
+        } else {
+          sendButton.classList.add("tvw-text-white");
+        }
+      }
+
+      // Apply border styling
+      if (sendButtonConfig.borderWidth) {
+        sendButton.style.borderWidth = sendButtonConfig.borderWidth;
+        sendButton.style.borderStyle = "solid";
+      } else {
+        sendButton.style.borderWidth = "";
+        sendButton.style.borderStyle = "";
+      }
+      if (sendButtonConfig.borderColor) {
+        sendButton.style.borderColor = sendButtonConfig.borderColor;
+      } else {
+        sendButton.style.borderColor = "";
+      }
+
+      // Apply padding styling (works in both icon and text mode)
+      if (sendButtonConfig.paddingX) {
+        sendButton.style.paddingLeft = sendButtonConfig.paddingX;
+        sendButton.style.paddingRight = sendButtonConfig.paddingX;
+      } else {
+        sendButton.style.paddingLeft = "";
+        sendButton.style.paddingRight = "";
+      }
+      if (sendButtonConfig.paddingY) {
+        sendButton.style.paddingTop = sendButtonConfig.paddingY;
+        sendButton.style.paddingBottom = sendButtonConfig.paddingY;
+      } else {
+        sendButton.style.paddingTop = "";
+        sendButton.style.paddingBottom = "";
+      }
+
+      // Update tooltip
+      const tooltip = sendButtonWrapper?.querySelector(".tvw-send-button-tooltip");
+      if (showTooltip && tooltipText) {
+        if (!tooltip) {
+          // Create tooltip if it doesn't exist
+          const newTooltip = document.createElement("div");
+          newTooltip.className = "tvw-send-button-tooltip";
+          newTooltip.textContent = tooltipText;
+          sendButtonWrapper?.insertBefore(newTooltip, sendButton);
+        } else {
+          tooltip.textContent = tooltipText;
+          tooltip.style.display = "";
+        }
+      } else if (tooltip) {
+        tooltip.style.display = "none";
+      }
+      
+      // Update status indicator visibility and text
+      const statusIndicatorConfig = config.statusIndicator ?? {};
+      const isVisible = statusIndicatorConfig.visible ?? true;
+      statusText.style.display = isVisible ? "" : "none";
+      
+      // Update status text if status is currently set
+      if (session) {
+        const currentStatus = session.getStatus();
+        const getCurrentStatusText = (status: ChatWidgetSessionStatus): string => {
+          if (status === "idle") return statusIndicatorConfig.idleText ?? statusCopy.idle;
+          if (status === "connecting") return statusIndicatorConfig.connectingText ?? statusCopy.connecting;
+          if (status === "connected") return statusIndicatorConfig.connectedText ?? statusCopy.connected;
+          if (status === "error") return statusIndicatorConfig.errorText ?? statusCopy.error;
+          return statusCopy[status];
+        };
+        statusText.textContent = getCurrentStatusText(currentStatus);
+      }
     },
     open() {
       if (!launcherEnabled) return;

@@ -36,8 +36,8 @@ const actionFlowConfig: TravrseFlowConfig = {
       type: "prompt",
       enabled: true,
       config: {
-        model: "qwen/qwen3-8b",
-        //model: "meta/llama3.1-8b-instruct-free",
+        // model: "qwen/qwen3-8b",
+        model: "meta/llama3.1-8b-instruct-free",
         responseFormat: "JSON",
         outputVariable: "prompt_result",
         userPrompt: "{{user_message}}",

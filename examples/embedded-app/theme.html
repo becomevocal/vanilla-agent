@@ -19,23 +19,91 @@
           <h2>Theme Colors</h2>
           <div class="form-group">
             <label for="color-primary">Primary</label>
-            <input type="color" id="color-primary" value="#111827" />
-            <input type="text" id="color-primary-text" value="#111827" />
+            <p class="color-description">Main text color, buttons, and icons</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-primary" value="#111827" />
+              <input type="text" id="color-primary-text" value="#111827" />
+            </div>
           </div>
           <div class="form-group">
             <label for="color-accent">Accent</label>
-            <input type="color" id="color-accent" value="#1d4ed8" />
-            <input type="text" id="color-accent-text" value="#1d4ed8" />
+            <p class="color-description">User message bubbles and send button</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-accent" value="#1d4ed8" />
+              <input type="text" id="color-accent-text" value="#1d4ed8" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-callToAction">Call to Action</label>
+            <p class="color-description">Launcher call to action icon color</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-callToAction" value="#ffffff" />
+              <input type="text" id="color-callToAction-text" value="#ffffff" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-agent-icon-background-color">Call to Action Background Color</label>
+            <p class="color-description">Launcher call to action background color</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="launcher-agent-icon-background-color" />
+              <input type="text" id="launcher-agent-icon-background-color-text" />
+            </div>
           </div>
           <div class="form-group">
             <label for="color-surface">Surface</label>
-            <input type="color" id="color-surface" value="#ffffff" />
-            <input type="text" id="color-surface-text" value="#ffffff" />
+            <p class="color-description">Panel, input area, and assistant message bubble backgrounds</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-surface" value="#ffffff" />
+              <input type="text" id="color-surface-text" value="#ffffff" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-container">Container</label>
+            <p class="color-description">Message container background</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-container" value="#f8fafc" />
+              <input type="text" id="color-container-text" value="#f8fafc" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-border">Border</label>
+            <p class="color-description">Panel outer border</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-border" value="#f1f5f9" />
+              <input type="text" id="color-border-text" value="#f1f5f9" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-divider">Divider</label>
+            <p class="color-description">Header and footer dividers</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-divider" value="#f1f5f9" />
+              <input type="text" id="color-divider-text" value="#f1f5f9" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-messageBorder">Message Border</label>
+            <p class="color-description">Message bubble borders</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-messageBorder" value="#f1f5f9" />
+              <input type="text" id="color-messageBorder-text" value="#f1f5f9" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-inputBackground">Input Background</label>
+            <p class="color-description">Message input area background</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-inputBackground" value="#ffffff" />
+              <input type="text" id="color-inputBackground-text" value="#ffffff" />
+            </div>
           </div>
           <div class="form-group">
             <label for="color-muted">Muted</label>
-            <input type="color" id="color-muted" value="#6b7280" />
-            <input type="text" id="color-muted-text" value="#6b7280" />
+            <p class="color-description">Secondary text, subtitles, and timestamps</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-muted" value="#6b7280" />
+              <input type="text" id="color-muted-text" value="#6b7280" />
+            </div>
           </div>
           <div class="preset-themes">
             <label>Presets:</label>
@@ -49,25 +117,49 @@
         <section class="config-section">
           <h2>Border Radius</h2>
           <div class="form-group">
-            <label for="radiusSm">Small (text inputs, header icon)</label>
-            <input type="text" id="radiusSm" value="0.75rem" placeholder="e.g., 0.75rem or 12px" />
+            <label for="radiusSm">Small</label>
+            <p class="color-description">Text inputs and header icon</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="radiusSm-slider" min="0" max="32" step="1" />
+              <input type="text" id="radiusSm" value="0.75rem" placeholder="e.g., 0.75rem or 12px" />
+            </div>
           </div>
           <div class="form-group">
-            <label for="radiusMd">Medium (forms, tool debugging info)</label>
-            <input type="text" id="radiusMd" value="1rem" placeholder="e.g., 1rem or 16px" />
+            <label for="radiusMd">Medium</label>
+            <p class="color-description">Forms and tool debugging info</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="radiusMd-slider" min="0" max="48" step="1" />
+              <input type="text" id="radiusMd" value="1rem" placeholder="e.g., 1rem or 16px" />
+            </div>
           </div>
           <div class="form-group">
-            <label for="radiusLg">Large (main widget panel, message bubbles, input area)</label>
-            <input type="text" id="radiusLg" value="1.5rem" placeholder="e.g., 1.5rem or 24px" />
+            <label for="radiusLg">Large</label>
+            <p class="color-description">Main widget panel, message bubbles, and input area</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="radiusLg-slider" min="0" max="64" step="1" />
+              <input type="text" id="radiusLg" value="1.5rem" placeholder="e.g., 1.5rem or 24px" />
+            </div>
           </div>
           <div class="form-group">
-            <label for="radiusFull">Full (launcher button, send button, suggestion prompts)</label>
-            <input type="text" id="radiusFull" value="9999px" placeholder="e.g., 9999px" />
+            <label for="launcherRadius">Launcher</label>
+            <p class="color-description">Launcher button</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcherRadius-slider" min="0" max="100" step="1" />
+              <input type="text" id="launcherRadius" value="9999px" placeholder="e.g., 9999px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="buttonRadius">Button</label>
+            <p class="color-description">Send button and suggestion chips</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="buttonRadius-slider" min="0" max="100" step="1" />
+              <input type="text" id="buttonRadius" value="9999px" placeholder="e.g., 9999px" />
+            </div>
           </div>
           <div class="preset-themes">
             <label>Radius Presets:</label>
-            <button type="button" data-radius-preset="sharp">Sharp</button>
             <button type="button" data-radius-preset="default">Default</button>
+            <button type="button" data-radius-preset="sharp">Sharp</button>
             <button type="button" data-radius-preset="rounded">Rounded</button>
             <button type="button" data-radius-preset="extraRounded">Extra Rounded</button>
           </div>
@@ -77,9 +169,10 @@
         <section class="config-section">
           <h2>Launcher</h2>
           <div class="form-group">
-            <label>
+            <label class="toggle-label">
               <input type="checkbox" id="launcher-enabled" checked />
-              Enable Launcher
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Enable Launcher</span>
             </label>
           </div>
           <div class="form-group">
@@ -91,7 +184,7 @@
             <input type="text" id="launcher-subtitle" value="Here to help you get answers fast" />
           </div>
           <div class="form-group">
-            <label for="launcher-icon-text">Icon Text</label>
+            <label for="launcher-icon-text">Agent Icon Text</label>
             <input type="text" id="launcher-icon-text" value="💬" />
           </div>
           <div class="form-group">
@@ -108,10 +201,70 @@
             <input type="text" id="launcher-width" value="min(360px, calc(100vw - 24px))" />
           </div>
           <div class="form-group">
-            <label>
+            <label class="toggle-label">
               <input type="checkbox" id="launcher-auto-expand" />
-              Auto Expand on Load
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Auto Expand on Load</span>
             </label>
+          </div>
+          <div class="preset-themes">
+            <label>Call to Action Presets:</label>
+            <button type="button" data-call-to-action-preset="arrow">Arrow</button>
+            <button type="button" data-call-to-action-preset="sparkles">Sparkles</button>
+            <button type="button" data-call-to-action-preset="send">Send</button>
+            <button type="button" data-call-to-action-preset="text">Text Only</button>
+          </div>
+          <div class="form-group">
+            <label for="launcher-agent-icon-text">Call to Action Text</label>
+            <input type="text" id="launcher-agent-icon-text" value="↗" placeholder="e.g., ↗, →, ←" />
+            <p class="color-description">Fallback text/emoji if Lucide icon name is not provided</p>
+          </div>
+          <div class="form-group">
+            <label for="launcher-agent-icon-name">Call to Action Lucide Icon Name</label>
+            <input type="text" id="launcher-agent-icon-name" placeholder="e.g., arrow-up-right, send, sparkles" />
+            <p class="color-description">Leave empty to use icon text. See <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer">Lucide Icons</a> for available icons.</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="launcher-agent-icon-hidden" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Hide Call to Action</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="launcher-icon-size">Agent Icon Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-icon-size-slider" min="16" max="128" step="1" />
+              <input type="text" id="launcher-icon-size" value="40px" placeholder="e.g., 40px, 2.5rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-agent-icon-size">Call to Action Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-agent-icon-size-slider" min="16" max="128" step="1" />
+              <input type="text" id="launcher-agent-icon-size" value="32px" placeholder="e.g., 32px, 2rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-agent-icon-padding">Call to Action Padding (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-agent-icon-padding-slider" min="0" max="32" step="1" />
+              <input type="text" id="launcher-agent-icon-padding" placeholder="e.g., 4px, 0.25rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-header-icon-size">Header Icon Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-header-icon-size-slider" min="16" max="128" step="1" />
+              <input type="text" id="launcher-header-icon-size" value="48px" placeholder="e.g., 48px, 3rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-size">Close Button Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-close-button-size-slider" min="16" max="128" step="1" />
+              <input type="text" id="launcher-close-button-size" value="32px" placeholder="e.g., 32px, 2rem" />
+            </div>
           </div>
         </section>
 
@@ -134,34 +287,151 @@
             <label for="copy-send-button">Send Button Label</label>
             <input type="text" id="copy-send-button" value="Send" />
           </div>
+          <div class="preset-themes">
+            <label>Send Button Presets:</label>
+            <button type="button" data-send-button-preset="iconArrow">Icon (Arrow)</button>
+            <button type="button" data-send-button-preset="iconSend">Icon (Send)</button>
+            <button type="button" data-send-button-preset="text">Text</button>
+          </div>
+          <div class="form-group">
+            <label for="send-button-border-width">Send Button Border Width (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="send-button-border-width-slider" min="0" max="10" step="1" />
+              <input type="text" id="send-button-border-width" placeholder="e.g., 0px, 1px, 2px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="send-button-border-color">Send Button Border Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="send-button-border-color" value="#000000" />
+              <input type="text" id="send-button-border-color-text" value="#000000" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="send-button-padding-x">Send Button Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="send-button-padding-x-slider" min="0" max="64" step="1" />
+              <input type="text" id="send-button-padding-x" placeholder="e.g., 16px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="send-button-padding-y">Send Button Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="send-button-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="send-button-padding-y" placeholder="e.g., 8px, 0.5rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="send-button-use-icon" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Use Icon Instead of Text</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="send-button-icon-text">Send Button Icon Text</label>
+            <input type="text" id="send-button-icon-text" value="↑" placeholder="e.g., ↑, →, ↗" />
+            <p class="color-description">Fallback text/emoji if Lucide icon name is not provided</p>
+          </div>
+          <div class="form-group">
+            <label for="send-button-icon-name">Send Button Lucide Icon Name</label>
+            <input type="text" id="send-button-icon-name" placeholder="e.g., arrow-up, send, arrow-right" />
+            <p class="color-description">Leave empty to use icon text. See <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer">Lucide Icons</a> for available icons.</p>
+          </div>
+          <div class="form-group">
+            <label for="send-button-size">Send Button Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="send-button-size-slider" min="24" max="64" step="1" />
+              <input type="text" id="send-button-size" placeholder="e.g., 40px, 2.5rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="send-button-background-color">Send Button Background Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="send-button-background-color" />
+              <input type="text" id="send-button-background-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="send-button-text-color">Send Button Text/Icon Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="send-button-text-color" />
+              <input type="text" id="send-button-text-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="send-button-show-tooltip" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Tooltip</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="send-button-tooltip-text">Tooltip Text</label>
+            <input type="text" id="send-button-tooltip-text" value="Send message" placeholder="e.g., Send message" />
+          </div>
+        </section>
+
+        <!-- Status Indicator Section -->
+        <section class="config-section">
+          <h2>Status Indicator</h2>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="status-indicator-visible" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Status Indicator</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="status-indicator-idle">Idle Text</label>
+            <input type="text" id="status-indicator-idle" value="Online" />
+          </div>
+          <div class="form-group">
+            <label for="status-indicator-connecting">Connecting Text</label>
+            <input type="text" id="status-indicator-connecting" value="Connecting…" />
+          </div>
+          <div class="form-group">
+            <label for="status-indicator-connected">Connected Text</label>
+            <input type="text" id="status-indicator-connected" value="Streaming…" />
+          </div>
+          <div class="form-group">
+            <label for="status-indicator-error">Error Text</label>
+            <input type="text" id="status-indicator-error" value="Offline" />
+          </div>
         </section>
 
         <!-- Features Section -->
         <section class="config-section">
           <h2>Features</h2>
           <div class="form-group">
-            <label>
+            <label class="toggle-label">
               <input type="checkbox" id="feature-reasoning" checked />
-              Show Reasoning Bubbles
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Reasoning Bubbles</span>
             </label>
+            <p class="color-description">Display the AI's reasoning process in separate message bubbles</p>
           </div>
           <div class="form-group">
-            <label>
+            <label class="toggle-label">
               <input type="checkbox" id="feature-tool-calls" checked />
-              Show Tool Call Bubbles
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Tool Call Bubbles</span>
             </label>
+            <p class="color-description">Display tool/function calls made by the AI in separate message bubbles</p>
           </div>
           <div class="form-group">
-            <label>
+            <label class="toggle-label">
               <input type="checkbox" id="debug-mode" />
-              Debug Mode
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Debug Mode</span>
             </label>
+            <p class="color-description">Log debug information to the browser console</p>
           </div>
         </section>
 
         <!-- Suggestion Chips Section -->
         <section class="config-section">
-          <h2>Suggestion Chips</h2>
+          <h2>Initial Suggestion Chips</h2>
           <div id="suggestion-chips-list">
             <!-- Dynamically populated -->
           </div>
@@ -180,16 +450,6 @@
             <input type="text" id="flow-id" placeholder="flow_abc123" />
           </div>
         </section>
-
-        <!-- Export Section -->
-        <section class="config-section export-section">
-          <h2>Export Configuration</h2>
-          <div class="export-buttons">
-            <button type="button" id="copy-json" class="export-button">Copy Config JSON</button>
-            <button type="button" id="copy-code" class="export-button">Copy Code Snippet</button>
-          </div>
-          <div id="export-feedback" class="export-feedback"></div>
-        </section>
       </aside>
 
       <!-- Right Panel: Live Preview -->
@@ -197,9 +457,12 @@
         <div class="preview-header">
           <h2>Live Preview</h2>
           <div class="preview-controls">
+            <button type="button" id="copy-json" class="export-button">Copy Config JSON</button>
+            <button type="button" id="copy-code" class="export-button">Copy Code Snippet</button>
             <button type="button" id="reset-config" class="reset-button">Reset to Defaults</button>
           </div>
         </div>
+        <div id="export-feedback" class="export-feedback"></div>
         <div class="preview-description">
           <p>Interact with the preview below to test your configuration. Changes update in real-time.</p>
         </div>

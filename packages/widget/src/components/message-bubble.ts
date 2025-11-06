@@ -29,9 +29,9 @@ export const createStandardBubble = (
     );
   } else {
     classes.push(
-      "tvw-bg-white",
+      "tvw-bg-cw-surface",
       "tvw-border",
-      "tvw-border-gray-100",
+      "tvw-border-cw-message-border",
       "tvw-text-cw-primary",
       "tvw-px-5",
       "tvw-py-3"
@@ -47,4 +47,6 @@ export const createStandardBubble = (
 
   return bubble;
 };
+
+
 

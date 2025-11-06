@@ -38,11 +38,16 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
       type: "prompt",
       enabled: true,
       config: {
-        model: "meta/llama3.1-8b-instruct-free",
+        model: "gpt-4o",
         responseFormat: "markdown",
         outputVariable: "prompt_result",
         userPrompt: "{{user_message}}",
         systemPrompt: "you are a helpful assistant, chatting with a user",
+        "tools": {
+            "tool_ids": [
+              "builtin:dalle"
+            ]
+          },
         previousMessages: "{{messages}}"
       }
     }

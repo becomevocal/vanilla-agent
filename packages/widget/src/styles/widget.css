@@ -73,7 +73,8 @@
   --cw-radius-sm: 0.75rem;
   --cw-radius-md: 1rem;
   --cw-radius-lg: 1.5rem;
-  --cw-radius-full: 9999px;
+  --cw-launcher-radius: 9999px;
+  --cw-button-radius: 9999px;
 }
 
 .tvw-rounded-xl {
@@ -89,7 +90,15 @@
 }
 
 .tvw-rounded-full {
-  border-radius: var(--cw-radius-full);
+  border-radius: var(--cw-launcher-radius);
+}
+
+.tvw-rounded-launcher {
+  border-radius: var(--cw-launcher-radius);
+}
+
+.tvw-rounded-button {
+  border-radius: var(--cw-button-radius);
 }
 
 .tvw-overflow-hidden {
@@ -98,6 +107,14 @@
 
 .tvw-bg-cw-surface {
   background-color: var(--cw-surface, #ffffff);
+}
+
+.tvw-bg-cw-container {
+  background-color: var(--cw-container, #f8fafc);
+}
+
+.tvw-bg-cw-input-background {
+  background-color: var(--cw-input-background, #ffffff);
 }
 
 .tvw-bg-white {
@@ -118,6 +135,10 @@
 
 .tvw-text-cw-primary {
   color: var(--cw-primary, #111827);
+}
+
+.tvw-text-cw-call-to-action {
+  color: var(--cw-call-to-action, #ffffff);
 }
 
 .tvw-text-cw-muted {
@@ -285,6 +306,48 @@
 
 .tvw-border-gray-100 {
   border-color: #f1f5f9;
+}
+
+.tvw-border-cw-border {
+  border-color: var(--cw-border, #f1f5f9);
+}
+
+.tvw-border-t {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: rgba(148, 163, 184, 0.28);
+}
+
+.tvw-border-t-cw-border {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--cw-border, #f1f5f9);
+}
+
+.tvw-border-b-cw-border {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--cw-border, #f1f5f9);
+}
+
+.tvw-border-t-cw-divider {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: var(--cw-divider, #f1f5f9);
+}
+
+.tvw-border-b-cw-divider {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--cw-divider, #f1f5f9);
+}
+
+.tvw-border-cw-divider {
+  border-color: var(--cw-divider, #f1f5f9);
+}
+
+.tvw-border-cw-message-border {
+  border-color: var(--cw-message-border, #f1f5f9);
 }
 
 .tvw-fixed {
@@ -518,6 +581,31 @@
   outline: none;
 }
 
+.tvw-border-none:focus {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Ensure textarea in composer form has no border on focus */
+textarea:focus {
+  border: none !important;
+  outline: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Prevent form container from showing focus styles */
+form:focus-within {
+  outline: none !important;
+}
+
+form:focus-within textarea {
+  border: none !important;
+  outline: none !important;
+}
+
 .tvw-whitespace-pre-wrap {
   white-space: pre-wrap;
 }
@@ -554,4 +642,44 @@
 
 .tvw-cursor-pointer {
   cursor: pointer;
+}
+
+/* Send button tooltip */
+.tvw-send-button-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tvw-send-button-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--cw-primary, #111827);
+  color: var(--cw-surface, #ffffff);
+  padding: 6px 12px;
+  border-radius: var(--cw-radius-sm, 0.75rem);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 1000;
+}
+
+.tvw-send-button-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--cw-primary, #111827);
+}
+
+.tvw-send-button-wrapper:hover .tvw-send-button-tooltip,
+.tvw-send-button-wrapper:focus-within .tvw-send-button-tooltip {
+  opacity: 1;
 }
