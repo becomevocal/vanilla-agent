@@ -1,11 +1,11 @@
-import "@chaty-assistant/vanilla/widget.css";
+import "site-agent/widget.css";
 import "./index.css";
 
 import {
   initChatWidget,
   type ChatWidgetMessage,
   type ChatWidgetConfig
-} from "@chaty-assistant/vanilla";
+} from "site-agent";
 import {
   collectPageContext,
   formatPageContext,

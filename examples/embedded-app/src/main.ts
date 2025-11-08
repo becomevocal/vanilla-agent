@@ -1,4 +1,4 @@
-import "@chaty-assistant/vanilla/widget.css";
+import "site-agent/widget.css";
 import "./index.css";
 import "./App.css";
 
@@ -6,7 +6,7 @@ import {
   initChatWidget,
   createChatExperience,
   markdownPostprocessor
-} from "@chaty-assistant/vanilla";
+} from "site-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =

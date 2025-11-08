@@ -1,25 +1,20 @@
 {
-  "name": "@chaty-assistant/vanilla",
+  "name": "site-agent",
   "version": "0.1.0",
-  "description": "Configurable streaming chat widget with optional proxy server (Travrse AI adapter included)",
+  "description": "Themeable, plugable streaming agent widget for websites, in plain JS with support for voice input and reasoning / tool output.",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./widget.css": {
       "import": "./widget.css",
       "default": "./dist/widget.css"
-    },
-    "./server": {
-      "import": "./dist/server/index.js",
-      "require": "./dist/server/index.cjs",
-      "types": "./dist/server/index.d.ts"
     }
   },
   "files": [
@@ -28,15 +23,14 @@
     "src"
   ],
   "scripts": {
-    "build": "rimraf dist && npm run build:styles && npm run build:client && npm run build:server",
+    "build": "rimraf dist && npm run build:styles && npm run build:client && npm run build:installer",
     "build:styles": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/styles/widget.css','dist/widget.css');\"",
     "build:client": "tsup src/index.ts --format esm,cjs,iife --global-name ChatWidget --minify --sourcemap --splitting false --dts --loader \".css=text\"",
-    "build:server": "tsup server/index.ts --format esm,cjs --dts --sourcemap",
+    "build:installer": "tsup src/install.ts --format iife --global-name SiteAgentInstaller --out-dir dist --minify --sourcemap --no-splitting",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "hono": "^4.4.9",
     "lucide": "^0.552.0",
     "marked": "^12.0.2"
   },
@@ -62,6 +56,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/becomevocal/chaty-assistant.git"
+    "url": "git+https://github.com/becomevocal/site-agent.git"
   }
 }

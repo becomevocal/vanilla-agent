@@ -1,4 +1,4 @@
-import type { ChatWidgetMessage } from "@chaty-assistant/vanilla/types";
+import type { ChatWidgetMessage } from "site-agent/types";
 
 export type ActionResponse =
   | {
@@ -22,8 +22,8 @@ export type PageElement = {
   tagName: string;
 };
 
-const STORAGE_KEY = "chaty-action-middleware";
-const NAV_FLAG_KEY = "chaty-nav-flag";
+const STORAGE_KEY = "site-agent-action-middleware";
+const NAV_FLAG_KEY = "site-agent-nav-flag";
 
 export interface StorageData {
   chatHistory: ChatWidgetMessage[];

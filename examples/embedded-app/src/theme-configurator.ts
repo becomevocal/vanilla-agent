@@ -1,12 +1,12 @@
-import "@chaty-assistant/vanilla/widget.css";
+import "site-agent/widget.css";
 import "./index.css";
 import "./theme-configurator.css";
 
 import {
   createChatExperience,
   markdownPostprocessor
-} from "@chaty-assistant/vanilla";
-import type { ChatWidgetConfig } from "@chaty-assistant/vanilla";
+} from "site-agent";
+import type { ChatWidgetConfig } from "site-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -346,7 +346,7 @@ const immediateUpdate = (config: ChatWidgetConfig) => {
 };
 
 // Local storage
-const STORAGE_KEY = "chaty-widget-config";
+const STORAGE_KEY = "site-agent-widget-config";
 
 function saveConfigToLocalStorage(config: ChatWidgetConfig) {
   try {
@@ -1888,6 +1888,8 @@ function setupOtherOptionsControls() {
 function setupExportControls() {
   const copyJsonButton = getInput<HTMLButtonElement>("copy-json");
   const copyCodeButton = getInput<HTMLButtonElement>("copy-code");
+  const dropdownMenu = getInput<HTMLDivElement>("code-dropdown-menu");
+  const dropdownItems = document.querySelectorAll<HTMLButtonElement>(".dropdown-item");
   const feedbackDiv = getInput<HTMLDivElement>("export-feedback");
 
   const showFeedback = (message: string) => {
@@ -1910,22 +1912,69 @@ function setupExportControls() {
     });
   });
 
-  copyCodeButton.addEventListener("click", () => {
-    const code = generateCodeSnippet();
-    navigator.clipboard.writeText(code).then(() => {
-      showFeedback("✓ Code snippet copied to clipboard!");
+  const dropdownContainer = copyCodeButton.closest(".code-dropdown-container") as HTMLElement;
+
+  // Toggle dropdown menu
+  copyCodeButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = dropdownMenu.classList.contains("show");
+    if (isOpen) {
+      dropdownMenu.classList.remove("show");
+      dropdownContainer?.classList.remove("open");
+    } else {
+      dropdownMenu.classList.add("show");
+      dropdownContainer?.classList.add("open");
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!copyCodeButton.contains(e.target as Node) && !dropdownMenu.contains(e.target as Node)) {
+      dropdownMenu.classList.remove("show");
+      dropdownContainer?.classList.remove("open");
+    }
+  });
+
+  // Handle dropdown item clicks
+  dropdownItems.forEach((item) => {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const format = item.getAttribute("data-format");
+      if (format) {
+        const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual");
+        navigator.clipboard.writeText(code).then(() => {
+          const formatNames = {
+            esm: "ESM/Module",
+            "script-installer": "Script Tag (Auto Installer)",
+            "script-manual": "Script Tag (Manual)"
+          };
+          showFeedback(`✓ ${formatNames[format]} code copied to clipboard!`);
+          dropdownMenu.classList.remove("show");
+          dropdownContainer?.classList.remove("open");
+        });
+      }
     });
   });
 }
 
-function generateCodeSnippet(): string {
+function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual" = "esm"): string {
   const config = { ...currentConfig };
   delete config.postprocessMessage;
   delete config.initialMessages;
 
+  if (format === "esm") {
+    return generateESMCode(config);
+  } else if (format === "script-installer") {
+    return generateScriptInstallerCode(config);
+  } else {
+    return generateScriptManualCode(config);
+  }
+}
+
+function generateESMCode(config: any): string {
   const lines: string[] = [
-    "import '@chaty-assistant/vanilla/widget.css';",
-    "import { initChatWidget, markdownPostprocessor } from '@chaty-assistant/vanilla';",
+    "import 'site-agent/widget.css';",
+    "import { initChatWidget, markdownPostprocessor } from 'site-agent';",
     "",
     "initChatWidget({",
     "  target: '#chat-widget-root',",
@@ -1990,6 +2039,146 @@ function generateCodeSnippet(): string {
   return lines.join("\n");
 }
 
+function generateScriptInstallerCode(config: any): string {
+  const lines: string[] = [
+    "<script>",
+    "  window.siteAgentConfig = {",
+    "    target: '#chat-widget-root',",
+    "    config: {"
+  ];
+
+  if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
+  if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
+
+  if (config.theme) {
+    lines.push("      theme: {");
+    Object.entries(config.theme).forEach(([key, value]) => {
+      lines.push(`        ${key}: "${value}",`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.launcher) {
+    lines.push("      launcher: {");
+    Object.entries(config.launcher).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.copy) {
+    lines.push("      copy: {");
+    Object.entries(config.copy).forEach(([key, value]) => {
+      lines.push(`        ${key}: "${value}",`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.features) {
+    lines.push("      features: {");
+    Object.entries(config.features).forEach(([key, value]) => {
+      lines.push(`        ${key}: ${value},`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.suggestionChips && config.suggestionChips.length > 0) {
+    lines.push("      suggestionChips: [");
+    config.suggestionChips.forEach((chip) => {
+      lines.push(`        "${chip}",`);
+    });
+    lines.push("      ],");
+  }
+
+  if (config.debug) {
+    lines.push(`      debug: ${config.debug},`);
+  }
+
+  lines.push("    }");
+  lines.push("  };");
+  lines.push("</script>");
+  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/install.global.js\"></script>");
+
+  return lines.join("\n");
+}
+
+function generateScriptManualCode(config: any): string {
+  const lines: string[] = [
+    "<!-- Load CSS -->",
+    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/widget.css\" />",
+    "",
+    "<!-- Load JavaScript -->",
+    "<script src=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/index.global.js\"></script>",
+    "",
+    "<!-- Initialize widget -->",
+    "<script>",
+    "  window.ChatWidget.initChatWidget({",
+    "    target: '#chat-widget-root',",
+    "    config: {"
+  ];
+
+  if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
+  if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
+
+  if (config.theme) {
+    lines.push("      theme: {");
+    Object.entries(config.theme).forEach(([key, value]) => {
+      lines.push(`        ${key}: "${value}",`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.launcher) {
+    lines.push("      launcher: {");
+    Object.entries(config.launcher).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.copy) {
+    lines.push("      copy: {");
+    Object.entries(config.copy).forEach(([key, value]) => {
+      lines.push(`        ${key}: "${value}",`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.features) {
+    lines.push("      features: {");
+    Object.entries(config.features).forEach(([key, value]) => {
+      lines.push(`        ${key}: ${value},`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.suggestionChips && config.suggestionChips.length > 0) {
+    lines.push("      suggestionChips: [");
+    config.suggestionChips.forEach((chip) => {
+      lines.push(`        "${chip}",`);
+    });
+    lines.push("      ],");
+  }
+
+  if (config.debug) {
+    lines.push(`      debug: ${config.debug},`);
+  }
+
+  lines.push("    }");
+  lines.push("  });");
+  lines.push("</script>");
+
+  return lines.join("\n");
+}
+
 // Reset controls
 function setupResetControls() {
   const resetButton = getInput<HTMLButtonElement>("reset-config");
@@ -2026,7 +2215,7 @@ function init() {
 }
 
 // Accordion state management
-const ACCORDION_STATE_KEY = "chaty-assistant-accordion-state";
+const ACCORDION_STATE_KEY = "site-agent-accordion-state";
 
 function getAccordionState(): Record<string, boolean> {
   try {

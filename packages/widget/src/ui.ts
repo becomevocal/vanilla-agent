@@ -39,9 +39,9 @@ export const createChatExperience = (
   mount: HTMLElement,
   initialConfig?: ChatWidgetConfig
 ): Controller => {
-  // Tailwind config uses important: "#chaty-assistant-root", so ensure mount has this ID
-  if (!mount.id || mount.id !== "chaty-assistant-root") {
-    mount.id = "chaty-assistant-root";
+  // Tailwind config uses important: "#site-agent-root", so ensure mount has this ID
+  if (!mount.id || mount.id !== "site-agent-root") {
+    mount.id = "site-agent-root";
   }
 
   let config = { ...initialConfig };
@@ -697,10 +697,6 @@ export const createChatExperience = (
 
   if (launcherButtonInstance) {
     mount.appendChild(launcherButtonInstance.element);
-    // Call update AFTER element is in DOM to ensure computed styles work
-    if (launcherButtonInstance._needsInitialUpdate && launcherButtonInstance._initialConfig) {
-      launcherButtonInstance.update(launcherButtonInstance._initialConfig);
-    }
   }
   updateOpenState();
   suggestionsManager.render(config.suggestionChips, session, textarea);
@@ -1269,7 +1265,7 @@ export const createChatExperience = (
       }
 
       // Update tooltip
-      const tooltip = sendButtonWrapper?.querySelector(".tvw-send-button-tooltip");
+      const tooltip = sendButtonWrapper?.querySelector(".tvw-send-button-tooltip") as HTMLElement | null;
       if (showTooltip && tooltipText) {
         if (!tooltip) {
           // Create tooltip if it doesn't exist

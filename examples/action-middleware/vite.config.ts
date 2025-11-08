@@ -6,11 +6,11 @@ const proxyPort = Number(process.env.PROXY_PORT ?? 43111);
 export default defineConfig({
   resolve: {
     alias: {
-      "@chaty-assistant/vanilla": path.resolve(
+      "site-agent": path.resolve(
         __dirname,
         "../../packages/widget/src"
       ),
-      "@chaty-assistant/vanilla/widget.css": path.resolve(
+      "site-agent/widget.css": path.resolve(
         __dirname,
         "../../packages/widget/widget.css"
       )

@@ -9,18 +9,15 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "paths": {
-      "site-agent": ["src"]
-    },
     "declaration": true,
     "outDir": "dist"
   },
   "include": [
-    "src/**/*",
-    "tailwind.config.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist"
   ]
 }
+
