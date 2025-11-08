@@ -1,5 +1,5 @@
 {
-  "name": "site-agent-monorepo",
+  "name": "site-agent",
   "private": true,
   "scripts": {
     "build": "pnpm --filter site-agent build && pnpm --filter site-agent-proxy build",
