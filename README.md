@@ -1,4 +1,4 @@
-## 💻 Site Agent ✨ A configurable agent widget in plain JS for websites
+## 💻 Vanilla Agent ✨ A configurable agent widget in plain JS for websites
 It's an AI chat SDK plus local demos and tooling. Flexible foundation to ship an always on custom assistant on a website.
 
 Travrse is initial AI platform adapter available out of the box, but the UI and proxy are written so that you can point them at any SSE-capable platform.
