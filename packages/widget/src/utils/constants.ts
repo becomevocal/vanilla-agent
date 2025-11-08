@@ -7,3 +7,5 @@ export const statusCopy: Record<ChatWidgetSessionStatus, string> = {
   error: "Offline"
 };
 
+
+

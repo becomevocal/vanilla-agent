@@ -10,15 +10,13 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@chaty-assistant/vanilla": ["src"],
-      "@chaty-assistant/vanilla/server": ["server"]
+      "vanilla-agent": ["src"]
     },
     "declaration": true,
     "outDir": "dist"
   },
   "include": [
     "src/**/*",
-    "server/**/*",
     "tailwind.config.ts"
   ],
   "exclude": [

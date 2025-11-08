@@ -25,7 +25,7 @@ export type ChatProxyOptions = {
   flowConfig?: TravrseFlowConfig;
 };
 
-const DEFAULT_ENDPOINT = "http://localhost:8787/v1/dispatch";
+const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
 const DEFAULT_PATH = "/api/chat/dispatch";
 
 const DEFAULT_FLOW: TravrseFlowConfig = {
@@ -39,11 +39,17 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
       enabled: true,
       config: {
         model: "meta/llama3.1-8b-instruct-free",
-        responseFormat: "markdown",
-        outputVariable: "prompt_result",
-        userPrompt: "{{user_message}}",
-        systemPrompt: "you are a helpful assistant, chatting with a user",
-        previousMessages: "{{messages}}"
+        // model: "gpt-4o",
+        response_format: "markdown",
+        output_variable: "prompt_result",
+        user_prompt: "{{user_message}}",
+        system_prompt: "you are a helpful assistant, chatting with a user",
+        // tools: {
+        //   tool_ids: [
+        //     "builtin:dalle"
+        //   ]
+        // },
+        previous_messages: "{{messages}}"
       }
     }
   ]
@@ -51,31 +57,31 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
 
 const withCors =
   (allowedOrigins: string[] | undefined) =>
-  async (c: Context, next: () => Promise<void>) => {
-    const origin = c.req.header("origin") ?? "*";
-    const headers: Record<string, string> = {
-      "Access-Control-Allow-Origin":
-        allowedOrigins && allowedOrigins.length
-          ? allowedOrigins.includes(origin)
-            ? origin
-            : allowedOrigins[0]
-          : origin,
-      "Access-Control-Allow-Headers":
-        c.req.header("access-control-request-headers") ??
-        "Content-Type, Authorization",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      Vary: "Origin"
+    async (c: Context, next: () => Promise<void>) => {
+      const origin = c.req.header("origin") ?? "*";
+      const headers: Record<string, string> = {
+        "Access-Control-Allow-Origin":
+          allowedOrigins && allowedOrigins.length
+            ? allowedOrigins.includes(origin)
+              ? origin
+              : allowedOrigins[0]
+            : origin,
+        "Access-Control-Allow-Headers":
+          c.req.header("access-control-request-headers") ??
+          "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        Vary: "Origin"
+      };
+
+      if (c.req.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers });
+      }
+
+      await next();
+      Object.entries(headers).forEach(([key, value]) =>
+        c.header(key, value, { append: false })
+      );
     };
-
-    if (c.req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers });
-    }
-
-    await next();
-    Object.entries(headers).forEach(([key, value]) =>
-      c.header(key, value, { append: false })
-    );
-  };
 
 export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
   const app = new Hono();
@@ -140,7 +146,7 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
 
     // Use flow ID if provided, otherwise use flow config
     if (flowId) {
-      travrsePayload.flow =  {
+      travrsePayload.flow = {
         "name": "Chat with 8b",
         "description": "Flow with 1 step",
         "steps": [
@@ -153,12 +159,12 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
             "config": {
               "text": "{{user_message}}",
               "model": "qwen/qwen3-8b",
-              "tools": {
-                "tool_ids": [
-                  "tool_01k8ky2xpjfzybye5ywcmjr379",
-                  "builtin:firecrawl"
-                ]
-              },
+              // "tools": {
+              //   "tool_ids": [
+              //     "tool_01k8ky2xpjfzybye5ywcmjr379",
+              //     "builtin:firecrawl"
+              //   ]
+              // },
               "reasoning": false,
               "user_prompt": "{{user_message}}",
               "output_variable": "prompt_result",
@@ -226,3 +232,4 @@ export const createVercelHandler = (options?: ChatProxyOptions) =>
 
 
 export default createChatProxyApp;
+

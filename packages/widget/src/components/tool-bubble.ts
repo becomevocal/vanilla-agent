@@ -12,9 +12,9 @@ export const createToolBubble = (message: ChatWidgetMessage): HTMLElement => {
     [
       "tvw-max-w-[85%]",
       "tvw-rounded-2xl",
-      "tvw-bg-white",
+      "tvw-bg-cw-surface",
       "tvw-border",
-      "tvw-border-gray-100",
+      "tvw-border-cw-message-border",
       "tvw-text-cw-primary",
       "tvw-shadow-sm",
       "tvw-overflow-hidden",
@@ -153,4 +153,6 @@ export const createToolBubble = (message: ChatWidgetMessage): HTMLElement => {
   bubble.append(header, content);
   return bubble;
 };
+
+
 

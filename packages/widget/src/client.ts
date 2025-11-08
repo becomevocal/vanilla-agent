@@ -7,7 +7,7 @@ type DispatchOptions = {
 
 type SSEHandler = (event: ChatWidgetEvent) => void;
 
-const DEFAULT_ENDPOINT = "http://localhost:8787/v1/dispatch";
+const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
 
 export class ChatWidgetClient {
   private readonly apiUrl: string;

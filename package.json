@@ -1,16 +1,21 @@
 {
-  "name": "chaty-assistant-monorepo",
+  "name": "vanilla-agent",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter @chaty-assistant/vanilla build",
-    "build:widget": "pnpm --filter @chaty-assistant/vanilla build",
-    "lint": "pnpm --filter @chaty-assistant/vanilla lint",
-    "typecheck": "pnpm --filter @chaty-assistant/vanilla typecheck",
+    "build": "pnpm --filter vanilla-agent build && pnpm --filter vanilla-agent-proxy build",
+    "build:widget": "pnpm --filter vanilla-agent build",
+    "build:proxy": "pnpm --filter vanilla-agent-proxy build",
+    "lint": "pnpm --filter vanilla-agent lint && pnpm --filter vanilla-agent-proxy lint",
+    "typecheck": "pnpm --filter vanilla-agent typecheck && pnpm --filter vanilla-agent-proxy typecheck",
     "dev:widget": "pnpm --filter embedded-app dev",
     "dev:proxy": "pnpm --filter proxy dev",
-    "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\""
+    "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\"",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "concurrently": "^8.2.2"
   }
 }

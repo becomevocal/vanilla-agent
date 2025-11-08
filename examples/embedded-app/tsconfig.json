@@ -4,8 +4,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@chaty-assistant/vanilla": ["../../packages/widget/src"],
-      "@chaty-assistant/vanilla/server": ["../../packages/widget/server"]
+      "vanilla-agent": ["../../packages/widget/src"],
+      "vanilla-agent-proxy": ["../../packages/proxy/src"]
     }
   },
   "include": [

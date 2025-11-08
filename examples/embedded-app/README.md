@@ -22,6 +22,29 @@ pnpm dev
 
 Tweak `src/main.ts` to experiment with different configuration presets, launcher styles, or metadata payloads. The demo now exposes buttons (`Open Launcher`, `Toggle Launcher`) wired up via the controller returned from `initChatWidget`.
 
-## Directive demo
+## Examples
 
-Open `http://localhost:5173/json.html` to see the JSON/directive example that renders interactive forms. The widget detects directives like `<Form type="init"/>` (or the JSON equivalent) and swaps them for custom UI, submitting to the proxy's `/form` endpoint.
+### Basic Demo
+- **Main page**: `http://localhost:5173` or `http://localhost:5173/index.html`
+  - Shows inline widget and launcher widget examples
+  - Basic chat functionality
+
+### Directive Demo
+- **Directive page**: `http://localhost:5173/json.html`
+  - Demonstrates the JSON/directive postprocessor that renders interactive forms
+  - The widget detects directives like `<Form type="init"/>` (or the JSON equivalent) and swaps them for custom UI, submitting to the proxy's `/form` endpoint
+
+### Action Middleware / E-commerce Demo
+- **E-commerce page**: `http://localhost:5173/action-middleware.html`
+  - Demonstrates chat middleware that interacts with the page DOM
+  - Collects DOM elements (classnames + innerText) and sends them to the LLM as context
+  - Parses JSON action responses and executes actions (message, navigation, clicking elements)
+  - Includes chat history persistence via localStorage
+  - **Product detail page**: `http://localhost:5173/products.html` (for navigation demo)
+
+The action middleware example demonstrates:
+- DOM context collection for LLM decision-making
+- JSON action parsing (`message`, `nav_then_click`, `message_and_click`)
+- Automatic element clicking based on LLM responses
+- Page navigation with persistent chat state
+- localStorage-based chat history persistence

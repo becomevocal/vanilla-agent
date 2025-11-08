@@ -1,9 +1,9 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: ["./src/**/*.ts", "./server/**/*.ts"],
+  content: ["./src/**/*.ts"],
   prefix: "tvw-",
-  important: "#chaty-assistant-root",
+  important: "#vanilla-agent-root",
   theme: {
     extend: {
       colors: {

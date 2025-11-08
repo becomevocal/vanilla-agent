@@ -86,3 +86,5 @@ export interface ChatWidgetPlugin {
   onUnregister?: () => void;
 }
 
+
+
