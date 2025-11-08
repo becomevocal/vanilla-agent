@@ -39,9 +39,9 @@ export const createChatExperience = (
   mount: HTMLElement,
   initialConfig?: ChatWidgetConfig
 ): Controller => {
-  // Tailwind config uses important: "#site-agent-root", so ensure mount has this ID
-  if (!mount.id || mount.id !== "site-agent-root") {
-    mount.id = "site-agent-root";
+  // Tailwind config uses important: "#vanilla-agent-root", so ensure mount has this ID
+  if (!mount.id || mount.id !== "vanilla-agent-root") {
+    mount.id = "vanilla-agent-root";
   }
 
   let config = { ...initialConfig };

@@ -1,4 +1,4 @@
-import "site-agent/widget.css";
+import "vanilla-agent/widget.css";
 import "./index.css";
 
 import {
@@ -6,7 +6,7 @@ import {
   type ChatWidgetMessage,
   type ChatWidgetConfig,
   markdownPostprocessor
-} from "site-agent";
+} from "vanilla-agent";
 import {
   collectPageContext,
   formatPageContext,

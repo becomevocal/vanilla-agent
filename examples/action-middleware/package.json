@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "site-agent": "workspace:^"
+    "vanilla-agent": "workspace:^"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

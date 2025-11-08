@@ -1,12 +1,12 @@
-import "site-agent/widget.css";
+import "vanilla-agent/widget.css";
 import "./index.css";
 import "./theme-configurator.css";
 
 import {
   createChatExperience,
   markdownPostprocessor
-} from "site-agent";
-import type { ChatWidgetConfig } from "site-agent";
+} from "vanilla-agent";
+import type { ChatWidgetConfig } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -346,7 +346,7 @@ const immediateUpdate = (config: ChatWidgetConfig) => {
 };
 
 // Local storage
-const STORAGE_KEY = "site-agent-widget-config";
+const STORAGE_KEY = "vanilla-agent-widget-config";
 
 function saveConfigToLocalStorage(config: ChatWidgetConfig) {
   try {
@@ -1973,8 +1973,8 @@ function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual
 
 function generateESMCode(config: any): string {
   const lines: string[] = [
-    "import 'site-agent/widget.css';",
-    "import { initChatWidget, markdownPostprocessor } from 'site-agent';",
+    "import 'vanilla-agent/widget.css';",
+    "import { initChatWidget, markdownPostprocessor } from 'vanilla-agent';",
     "",
     "initChatWidget({",
     "  target: '#chat-widget-root',",
@@ -2101,7 +2101,7 @@ function generateScriptInstallerCode(config: any): string {
   lines.push("    }");
   lines.push("  };");
   lines.push("</script>");
-  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/install.global.js\"></script>");
+  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js\"></script>");
 
   return lines.join("\n");
 }
@@ -2109,10 +2109,10 @@ function generateScriptInstallerCode(config: any): string {
 function generateScriptManualCode(config: any): string {
   const lines: string[] = [
     "<!-- Load CSS -->",
-    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/widget.css\" />",
+    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/widget.css\" />",
     "",
     "<!-- Load JavaScript -->",
-    "<script src=\"https://cdn.jsdelivr.net/npm/site-agent@latest/dist/index.global.js\"></script>",
+    "<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js\"></script>",
     "",
     "<!-- Initialize widget -->",
     "<script>",
@@ -2215,7 +2215,7 @@ function init() {
 }
 
 // Accordion state management
-const ACCORDION_STATE_KEY = "site-agent-accordion-state";
+const ACCORDION_STATE_KEY = "vanilla-agent-accordion-state";
 
 function getAccordionState(): Record<string, boolean> {
   try {

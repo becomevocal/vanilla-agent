@@ -1,4 +1,4 @@
-import type { ChatWidgetMessage } from "site-agent";
+import type { ChatWidgetMessage } from "vanilla-agent";
 
 export type ActionResponse =
   | {
@@ -31,9 +31,9 @@ export type PageElement = {
   tagName: string;
 };
 
-const STORAGE_KEY = "site-agent-action-middleware";
-const NAV_FLAG_KEY = "site-agent-nav-flag";
-const EXECUTED_ACTIONS_KEY = "site-agent-executed-actions"; // Track which message IDs have had actions executed
+const STORAGE_KEY = "vanilla-agent-action-middleware";
+const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
+const EXECUTED_ACTIONS_KEY = "vanilla-agent-executed-actions"; // Track which message IDs have had actions executed
 
 export interface StorageData {
   chatHistory: ChatWidgetMessage[];
@@ -271,7 +271,7 @@ export function executeAction(
     }
     
     // Check if we've already navigated recently (stored in sessionStorage)
-    const lastNavTime = sessionStorage.getItem("site-agent-last-nav-time");
+    const lastNavTime = sessionStorage.getItem("vanilla-agent-last-nav-time");
     const now = Date.now();
     if (lastNavTime) {
       const timeSinceLastNav = now - parseInt(lastNavTime, 10);
@@ -282,7 +282,7 @@ export function executeAction(
     }
     
     isNavigating = true;
-    sessionStorage.setItem("site-agent-last-nav-time", now.toString());
+    sessionStorage.setItem("vanilla-agent-last-nav-time", now.toString());
     
     // Save navigation flag and navigate
     const navFlag = {

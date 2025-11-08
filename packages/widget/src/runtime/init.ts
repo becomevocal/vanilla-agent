@@ -38,14 +38,14 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
-      link.setAttribute("data-site-agent", "true");
+      link.setAttribute("data-vanilla-agent", "true");
       root.insertBefore(link, root.firstChild);
     }
     // If href is null (IIFE build), CSS should already be loaded globally
   } else {
     // For non-shadow DOM, check if CSS is already loaded
     const existing = document.head.querySelector<HTMLLinkElement>(
-      "link[data-site-agent]"
+      "link[data-vanilla-agent]"
     );
     if (!existing) {
       if (href) {
@@ -53,7 +53,7 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
         const link = document.createElement("link");
         link.rel = "stylesheet";
         link.href = href;
-        link.setAttribute("data-site-agent", "true");
+        link.setAttribute("data-vanilla-agent", "true");
         document.head.appendChild(link);
       }
       // IIFE build - CSS should be loaded via <link> tag before script
@@ -69,7 +69,7 @@ export const initChatWidget = (
 ): ChatWidgetInitHandle => {
   const target = ensureTarget(options.target);
   const host = document.createElement("div");
-  host.className = "site-agent-host";
+  host.className = "vanilla-agent-host";
   target.appendChild(host);
 
   const useShadow = options.useShadowDom !== false;
@@ -80,13 +80,13 @@ export const initChatWidget = (
     const shadowRoot = host.attachShadow({ mode: "open" });
     root = shadowRoot;
     mount = document.createElement("div");
-    mount.id = "site-agent-root";
+    mount.id = "vanilla-agent-root";
     shadowRoot.appendChild(mount);
     mountStyles(shadowRoot);
   } else {
     root = host;
     mount = document.createElement("div");
-    mount.id = "site-agent-root";
+    mount.id = "vanilla-agent-root";
     host.appendChild(mount);
     mountStyles(host);
   }

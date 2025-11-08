@@ -1,5 +1,5 @@
 {
-  "name": "site-agent",
+  "name": "vanilla-agent",
   "version": "0.1.0",
   "description": "Themeable, plugable streaming agent widget for websites, in plain JS with support for voice input and reasoning / tool output.",
   "type": "module",
@@ -56,6 +56,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/becomevocal/site-agent.git"
+    "url": "git+https://github.com/becomevocal/chaty.git"
   }
 }

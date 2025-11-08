@@ -396,8 +396,8 @@
       document.getElementById('clear-storage-btn').addEventListener('click', () => {
         if (confirm('Are you sure you want to clear all chat history and reset? This will reload the page.')) {
           // Clear localStorage keys used by the middleware
-          localStorage.removeItem('site-agent-action-middleware');
-          localStorage.removeItem('site-agent-nav-flag');
+          localStorage.removeItem('vanilla-agent-action-middleware');
+          localStorage.removeItem('vanilla-agent-nav-flag');
           
           // Show notification
           const notification = document.createElement('div');

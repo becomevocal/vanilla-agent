@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "site-agent": ["src"]
+      "vanilla-agent": ["src"]
     },
     "declaration": true,
     "outDir": "dist"

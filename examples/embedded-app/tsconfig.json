@@ -4,8 +4,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "site-agent": ["../../packages/widget/src"],
-      "site-agent-proxy": ["../../packages/proxy/src"]
+      "vanilla-agent": ["../../packages/widget/src"],
+      "vanilla-agent-proxy": ["../../packages/proxy/src"]
     }
   },
   "include": [

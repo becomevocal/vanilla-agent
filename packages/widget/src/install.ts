@@ -41,7 +41,7 @@ declare global {
       return { cssUrl: config.cssUrl, jsUrl: config.jsUrl };
     }
     
-    const packageName = "site-agent";
+    const packageName = "vanilla-agent";
     const basePath = `/npm/${packageName}@${version}/dist`;
     
     if (cdn === "unpkg") {
@@ -61,7 +61,7 @@ declare global {
 
   // Check if CSS is already loaded
   const isCssLoaded = () => {
-    return !!document.head.querySelector('link[data-site-agent]') ||
+    return !!document.head.querySelector('link[data-vanilla-agent]') ||
            !!document.head.querySelector(`link[href*="widget.css"]`);
   };
 
@@ -81,7 +81,7 @@ declare global {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = cssUrl;
-      link.setAttribute("data-site-agent", "true");
+      link.setAttribute("data-vanilla-agent", "true");
       link.onload = () => resolve();
       link.onerror = () => reject(new Error(`Failed to load CSS from ${cssUrl}`));
       document.head.appendChild(link);

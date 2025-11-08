@@ -3,8 +3,8 @@ It's an AI chat SDK plus local demos and tooling. Flexible foundation to ship an
 
 Travrse is initial AI platform adapter available out of the box, but the UI and proxy are written so that you can point them at any SSE-capable platform.
 
-- `packages/widget` – the installable chat widget (`site-agent`).
-- `packages/proxy` – the optional proxy server library (`site-agent-proxy`) for handling flow configuration using Travrse.
+- `packages/widget` – the installable chat widget (`vanilla-agent`).
+- `packages/proxy` – the optional proxy server library (`vanilla-agent-proxy`) for handling flow configuration using Travrse.
 - `examples/embedded-app` – a Vite vanilla app showcasing runtime configuration (see `json.html` for the directive demo).
 - `examples/proxy` – a lightweight Hono server that proxies to your AI engine for local development.
 
@@ -22,7 +22,7 @@ The script starts the proxy on `http://localhost:43111` (auto-selects another fr
 
 See `packages/widget/README.md` for publishing details, configuration reference, and Travrse integration notes.
 
-Install the widget library with `npm install site-agent`. For the proxy server, use `npm install site-agent-proxy`.
+Install the widget library with `npm install vanilla-agent`. For the proxy server, use `npm install vanilla-agent-proxy`.
 
 ### Publishing
 

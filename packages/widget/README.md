@@ -1,11 +1,11 @@
-## Streaming Chat Widget
+## Streaming Agent Widget
 
 Installable vanilla JavaScript widget for embedding a streaming AI assistant on any website.
 
 ### Installation
 
 ```bash
-npm install site-agent
+npm install vanilla-agent
 ```
 
 ### Building locally
@@ -21,13 +21,13 @@ pnpm build
 ### Using with modules
 
 ```ts
-import 'site-agent/widget.css';
+import 'vanilla-agent/widget.css';
 import {
   initChatWidget,
   createChatExperience,
   markdownPostprocessor,
   directivePostprocessor
-} from 'site-agent';
+} from 'vanilla-agent';
 
 const proxyUrl = '/api/chat/dispatch';
 
@@ -134,7 +134,7 @@ The easiest way is to use the automatic installer script. It handles loading CSS
     }
   };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/site-agent@latest/dist/install.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"></script>
 ```
 
 **Installer options:**
@@ -159,7 +159,7 @@ The easiest way is to use the automatic installer script. It handles loading CSS
     }
   };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/site-agent@0.1.0/dist/install.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@0.1.0/dist/install.global.js"></script>
 ```
 
 #### Method 2: Manual installation
@@ -168,15 +168,15 @@ For more control, manually load CSS and JavaScript:
 
 ```html
 <!-- Load CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/site-agent@latest/dist/widget.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/widget.css" />
 
 <!-- Load JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/site-agent@latest/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js"></script>
 
 <!-- Initialize widget -->
 <script>
   window.ChatWidget.initChatWidget({
-    target: '#site-agent-anchor', // or 'body' for floating launcher
+    target: '#vanilla-agent-anchor', // or 'body' for floating launcher
     config: {
       apiUrl: '/api/chat/dispatch',
       launcher: {
@@ -195,8 +195,8 @@ For more control, manually load CSS and JavaScript:
 
 **CDN options:**
 
-- **jsDelivr** (recommended): `https://cdn.jsdelivr.net/npm/site-agent@VERSION/dist/`
-- **unpkg**: `https://unpkg.com/site-agent@VERSION/dist/`
+- **jsDelivr** (recommended): `https://cdn.jsdelivr.net/npm/vanilla-agent@VERSION/dist/`
+- **unpkg**: `https://unpkg.com/vanilla-agent@VERSION/dist/`
 
 Replace `VERSION` with `latest` for auto-updates, or a specific version like `0.1.0` for stability.
 
@@ -236,7 +236,7 @@ The proxy server handles flow configuration and forwards requests to Travrse. Yo
 
 ```ts
 // api/chat.ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -247,7 +247,7 @@ export default createChatProxyApp({
 **Option 2: Reference a Travrse flow ID**
 
 ```ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -259,7 +259,7 @@ export default createChatProxyApp({
 **Option 3: Define a custom flow**
 
 ```ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -290,7 +290,7 @@ export default createChatProxyApp({
 **Hosting on Vercel:**
 
 ```ts
-import { createVercelHandler } from 'site-agent-proxy';
+import { createVercelHandler } from 'vanilla-agent-proxy';
 
 export default createVercelHandler({
   allowedOrigins: ['https://www.example.com'],
@@ -305,6 +305,6 @@ Add `TRAVRSE_API_KEY` to your environment. The proxy constructs the Travrse payl
 ### Development notes
 
 - The widget streams results using SSE and mirrors the backend `flow_complete`/`step_chunk` events.
-- Tailwind-esc classes are prefixed with `tvw-` and scoped to `#site-agent-root`, so they won't collide with the host page.
+- Tailwind-esc classes are prefixed with `tvw-` and scoped to `#vanilla-agent-root`, so they won't collide with the host page.
 - Run `pnpm dev` from the repository root to boot the example proxy (`examples/proxy`) and the vanilla demo (`examples/embedded-app`).
 - The proxy prefers port `43111` but automatically selects the next free port if needed.

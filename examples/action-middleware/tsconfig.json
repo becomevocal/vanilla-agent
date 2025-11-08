@@ -4,7 +4,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "site-agent": ["../../packages/widget/src"]
+      "vanilla-agent": ["../../packages/widget/src"]
     }
   },
   "include": [

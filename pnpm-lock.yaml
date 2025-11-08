@@ -17,7 +17,7 @@ importers:
 
   examples/action-middleware:
     dependencies:
-      site-agent:
+      vanilla-agent:
         specifier: workspace:^
         version: link:../../packages/widget
     devDependencies:
@@ -30,7 +30,7 @@ importers:
 
   examples/embedded-app:
     dependencies:
-      site-agent:
+      vanilla-agent:
         specifier: workspace:^
         version: link:../../packages/widget
     devDependencies:
@@ -55,12 +55,12 @@ importers:
       hono:
         specifier: ^4.4.9
         version: 4.10.0
-      site-agent-proxy:
-        specifier: workspace:^
-        version: link:../../packages/proxy
       stripe:
         specifier: ^14.21.0
         version: 14.25.0
+      vanilla-agent-proxy:
+        specifier: workspace:^
+        version: link:../../packages/proxy
     devDependencies:
       '@types/node':
         specifier: ^20.12.7

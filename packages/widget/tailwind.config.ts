@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./src/**/*.ts"],
   prefix: "tvw-",
-  important: "#site-agent-root",
+  important: "#vanilla-agent-root",
   theme: {
     extend: {
       colors: {

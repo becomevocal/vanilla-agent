@@ -6,11 +6,11 @@ const proxyPort = Number(process.env.PROXY_PORT ?? 43111);
 export default defineConfig({
   resolve: {
     alias: {
-      "site-agent": path.resolve(
+      "vanilla-agent": path.resolve(
         __dirname,
         "../../packages/widget/src"
       ),
-      "site-agent/widget.css": path.resolve(
+      "vanilla-agent/widget.css": path.resolve(
         __dirname,
         "../../packages/widget/widget.css"
       )

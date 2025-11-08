@@ -1,11 +1,11 @@
-import "site-agent/widget.css";
+import "vanilla-agent/widget.css";
 import "./index.css";
 
 import {
   initChatWidget,
   type ChatWidgetMessage,
   type ChatWidgetConfig
-} from "site-agent";
+} from "vanilla-agent";
 import {
   collectPageContext,
   formatPageContext,

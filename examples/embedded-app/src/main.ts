@@ -1,4 +1,4 @@
-import "site-agent/widget.css";
+import "vanilla-agent/widget.css";
 import "./index.css";
 import "./App.css";
 
@@ -6,7 +6,7 @@ import {
   initChatWidget,
   createChatExperience,
   markdownPostprocessor
-} from "site-agent";
+} from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =

@@ -1,4 +1,4 @@
-import type { ChatWidgetMessage } from "site-agent/types";
+import type { ChatWidgetMessage } from "vanilla-agent/types";
 
 export type ActionResponse =
   | {
@@ -22,8 +22,8 @@ export type PageElement = {
   tagName: string;
 };
 
-const STORAGE_KEY = "site-agent-action-middleware";
-const NAV_FLAG_KEY = "site-agent-nav-flag";
+const STORAGE_KEY = "vanilla-agent-action-middleware";
+const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
 
 export interface StorageData {
   chatHistory: ChatWidgetMessage[];

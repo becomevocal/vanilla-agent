@@ -1,12 +1,12 @@
 {
-  "name": "site-agent",
+  "name": "vanilla-agent",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter site-agent build && pnpm --filter site-agent-proxy build",
-    "build:widget": "pnpm --filter site-agent build",
-    "build:proxy": "pnpm --filter site-agent-proxy build",
-    "lint": "pnpm --filter site-agent lint && pnpm --filter site-agent-proxy lint",
-    "typecheck": "pnpm --filter site-agent typecheck && pnpm --filter site-agent-proxy typecheck",
+    "build": "pnpm --filter vanilla-agent build && pnpm --filter vanilla-agent-proxy build",
+    "build:widget": "pnpm --filter vanilla-agent build",
+    "build:proxy": "pnpm --filter vanilla-agent-proxy build",
+    "lint": "pnpm --filter vanilla-agent lint && pnpm --filter vanilla-agent-proxy lint",
+    "typecheck": "pnpm --filter vanilla-agent typecheck && pnpm --filter vanilla-agent-proxy typecheck",
     "dev:widget": "pnpm --filter embedded-app dev",
     "dev:proxy": "pnpm --filter proxy dev",
     "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\"",

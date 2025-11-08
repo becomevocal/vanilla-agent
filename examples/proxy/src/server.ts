@@ -2,7 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import getPort from "get-port";
 import Stripe from "stripe";
-import { createChatProxyApp, type TravrseFlowConfig } from "site-agent-proxy";
+import { createChatProxyApp, type TravrseFlowConfig } from "vanilla-agent-proxy";
 
 const preferredPort = Number(process.env.PORT ?? 43111);
 

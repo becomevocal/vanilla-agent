@@ -1,11 +1,11 @@
-## Site Agent Proxy
+## Vanilla Agent Proxy
 
-Proxy server library for `site-agent` widget. Handles flow configuration and forwards requests to Travrse or other AI backends.
+Proxy server library for `vanilla-agent` widget. Handles flow configuration and forwards requests to Travrse or other AI backends.
 
 ### Installation
 
 ```bash
-npm install site-agent-proxy
+npm install vanilla-agent-proxy
 ```
 
 ### Usage
@@ -16,7 +16,7 @@ The proxy server handles flow configuration and forwards requests to Travrse. Yo
 
 ```ts
 // api/chat.ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -27,7 +27,7 @@ export default createChatProxyApp({
 **Option 2: Reference a Travrse flow ID**
 
 ```ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -39,7 +39,7 @@ export default createChatProxyApp({
 **Option 3: Define a custom flow**
 
 ```ts
-import { createChatProxyApp } from 'site-agent-proxy';
+import { createChatProxyApp } from 'vanilla-agent-proxy';
 
 export default createChatProxyApp({
   path: '/api/chat/dispatch',
@@ -70,7 +70,7 @@ export default createChatProxyApp({
 **Hosting on Vercel:**
 
 ```ts
-import { createVercelHandler } from 'site-agent-proxy';
+import { createVercelHandler } from 'vanilla-agent-proxy';
 
 export default createVercelHandler({
   allowedOrigins: ['https://www.example.com'],
