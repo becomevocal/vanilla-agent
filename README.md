@@ -1,12 +1,12 @@
-## chatty-assistant -> a configurable widget in plain JS for AI assistants
-Essentially a chat widget plus local demos and tooling. Flexible foundation to ship a custom assistant UI on a website.
+## 💻 Site Agent ✨ A configurable agent widget in plain JS for websites
+It's an AI chat SDK plus local demos and tooling. Flexible foundation to ship an always on custom assistant on a website.
 
-Travrse is the first AI platform adapter available out of the box, but the UI and proxy are written so that you can point them at any SSE-capable platform.
+Travrse is initial AI platform adapter available out of the box, but the UI and proxy are written so that you can point them at any SSE-capable platform.
 
-- `packages/widget` – the installable chat widget (`site-agent`, Travrse adapter included).
-- `packages/proxy` – the optional proxy server library (`site-agent-proxy`) for handling flow configuration.
+- `packages/widget` – the installable chat widget (`site-agent`).
+- `packages/proxy` – the optional proxy server library (`site-agent-proxy`) for handling flow configuration using Travrse.
 - `examples/embedded-app` – a Vite vanilla app showcasing runtime configuration (see `json.html` for the directive demo).
-- `examples/proxy` – a lightweight Hono server that proxies to your AI backend (Travrse by default) for local development.
+- `examples/proxy` – a lightweight Hono server that proxies to your AI engine for local development.
 
 ### Quick start
 
