@@ -1977,7 +1977,7 @@ function generateESMCode(config: any): string {
     "import { initChatWidget, markdownPostprocessor } from 'vanilla-agent';",
     "",
     "initChatWidget({",
-    "  target: '#chat-widget-root',",
+    "  target: 'body',",
     "  config: {"
   ];
 
