@@ -32,6 +32,26 @@ const widgetCssHref = (): string | null => {
 const mountStyles = (root: ShadowRoot | HTMLElement) => {
   const href = widgetCssHref();
 
+  const adoptExistingStylesheet = () => {
+    if (!(root instanceof ShadowRoot)) {
+      return;
+    }
+
+    if (root.querySelector('link[data-vanilla-agent]')) {
+      return;
+    }
+
+    const globalLink = document.head.querySelector<HTMLLinkElement>(
+      'link[data-vanilla-agent]'
+    );
+    if (!globalLink) {
+      return;
+    }
+
+    const clonedLink = globalLink.cloneNode(true) as HTMLLinkElement;
+    root.insertBefore(clonedLink, root.firstChild);
+  };
+
   if (root instanceof ShadowRoot) {
     // For shadow DOM, we need to load CSS into the shadow root
     if (href) {
@@ -40,6 +60,8 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
       link.href = href;
       link.setAttribute("data-vanilla-agent", "true");
       root.insertBefore(link, root.firstChild);
+    } else {
+      adoptExistingStylesheet();
     }
     // If href is null (IIFE build), CSS should already be loaded globally
   } else {
