@@ -9,6 +9,7 @@
     "typecheck": "pnpm --filter vanilla-agent typecheck && pnpm --filter vanilla-agent-proxy typecheck",
     "dev:widget": "pnpm --filter embedded-app dev",
     "dev:proxy": "pnpm --filter proxy dev",
+    "dev:cloudflare-proxy": "pnpm --filter cloudflare-proxy dev",
     "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\"",
     "changeset": "changeset",
     "version": "changeset version",
