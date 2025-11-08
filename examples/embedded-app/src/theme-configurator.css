@@ -48,9 +48,7 @@ body {
 }
 
 .config-section {
-  margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .config-section:last-child {
@@ -62,6 +60,125 @@ body {
   font-size: 16px;
   font-weight: 600;
   color: #374151;
+}
+
+/* Accordion Styles */
+.accordion {
+  padding-bottom: 0;
+}
+
+.accordion-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 24px;
+  margin-left: -24px;
+  margin-right: -24px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 0;
+}
+
+.accordion-header:hover {
+  background: #f9fafb;
+}
+
+.accordion-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accordion-header h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.accordion-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 0;
+}
+
+.accordion-presets .preset-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.accordion-presets .preset-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-right: 4px;
+}
+
+.accordion-presets button {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.accordion-presets button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.accordion-presets button:active {
+  transform: translateY(1px);
+}
+
+.accordion-toggle {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 12px;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accordion-toggle:hover {
+  color: #374151;
+}
+
+.accordion.collapsed .accordion-toggle {
+  transform: rotate(-90deg);
+}
+
+.accordion-content {
+  max-height: 10000px;
+  overflow: hidden;
+  opacity: 1;
+  padding-top: 16px;
+}
+
+.accordion.collapsed .accordion-content {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  overflow: hidden;
 }
 
 /* Form Groups */

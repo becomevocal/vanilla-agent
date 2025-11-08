@@ -56,6 +56,8 @@ export interface PanelElements {
   textarea: HTMLTextAreaElement;
   sendButton: HTMLButtonElement;
   sendButtonWrapper: HTMLElement;
+  micButton: HTMLButtonElement | null;
+  micButtonWrapper: HTMLElement | null;
   composerForm: HTMLFormElement;
   statusText: HTMLElement;
   introTitle: HTMLElement;
@@ -78,6 +80,9 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
   const launcher = config?.launcher ?? {};
   const headerIconSize = launcher.headerIconSize ?? "48px";
   const closeButtonSize = launcher.closeButtonSize ?? "32px";
+  const closeButtonPlacement = launcher.closeButtonPlacement ?? "inline";
+  const headerIconHidden = launcher.headerIconHidden ?? false;
+  const headerIconName = launcher.headerIconName;
 
   const iconHolder = createElement(
     "div",
@@ -85,16 +90,32 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
   );
   iconHolder.style.height = headerIconSize;
   iconHolder.style.width = headerIconSize;
-  iconHolder.textContent = config?.launcher?.iconUrl ? "" : (config?.launcher?.iconText ?? "💬");
-
-  if (config?.launcher?.iconUrl) {
-    const img = createElement("img") as HTMLImageElement;
-    img.src = config.launcher.iconUrl;
-    img.alt = "";
-    img.className = "tvw-rounded-xl tvw-object-cover";
-    img.style.height = headerIconSize;
-    img.style.width = headerIconSize;
-    iconHolder.replaceChildren(img);
+  
+  // Render icon based on priority: Lucide icon > iconUrl > agentIconText
+  if (!headerIconHidden) {
+    if (headerIconName) {
+      // Use Lucide icon
+      const iconSize = parseFloat(headerIconSize) || 24;
+      const iconSvg = renderLucideIcon(headerIconName, iconSize * 0.6, "#ffffff", 2);
+      if (iconSvg) {
+        iconHolder.replaceChildren(iconSvg);
+      } else {
+        // Fallback to agentIconText if Lucide icon fails
+        iconHolder.textContent = config?.launcher?.agentIconText ?? "💬";
+      }
+    } else if (config?.launcher?.iconUrl) {
+      // Use image URL
+      const img = createElement("img") as HTMLImageElement;
+      img.src = config.launcher.iconUrl;
+      img.alt = "";
+      img.className = "tvw-rounded-xl tvw-object-cover";
+      img.style.height = headerIconSize;
+      img.style.width = headerIconSize;
+      iconHolder.replaceChildren(img);
+    } else {
+      // Use text/emoji
+      iconHolder.textContent = config?.launcher?.agentIconText ?? "💬";
+    }
   }
 
   const headerCopy = createElement("div", "tvw-flex tvw-flex-col");
@@ -106,17 +127,26 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     config?.launcher?.title ?? "Chat Assistant";
   const subtitle = createElement(
     "span",
-    "tvw-text-sm tvw-text-cw-muted"
+    "tvw-text-xs tvw-text-cw-muted"
   );
   subtitle.textContent =
     config?.launcher?.subtitle ?? "Here to help you get answers fast";
 
   headerCopy.append(title, subtitle);
-  header.append(iconHolder, headerCopy);
+  
+  // Only append iconHolder if not hidden
+  if (!headerIconHidden) {
+    header.append(iconHolder, headerCopy);
+  } else {
+    header.append(headerCopy);
+  }
 
+  // Create close button with base classes
   const closeButton = createElement(
     "button",
-    "tvw-ml-auto tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
+    closeButtonPlacement === "top-right"
+      ? "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50 tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
+      : "tvw-ml-auto tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
   ) as HTMLButtonElement;
   closeButton.style.height = closeButtonSize;
   closeButton.style.width = closeButtonSize;
@@ -124,7 +154,52 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
   closeButton.setAttribute("aria-label", "Close chat");
   closeButton.textContent = "×";
   closeButton.style.display = showClose ? "" : "none";
-  header.appendChild(closeButton);
+  
+  // Apply close button styling from config
+  if (launcher.closeButtonColor) {
+    closeButton.style.color = launcher.closeButtonColor;
+    closeButton.classList.remove("tvw-text-cw-muted");
+  } else {
+    closeButton.style.color = "";
+    closeButton.classList.add("tvw-text-cw-muted");
+  }
+  
+  if (launcher.closeButtonBackgroundColor) {
+    closeButton.style.backgroundColor = launcher.closeButtonBackgroundColor;
+    closeButton.classList.remove("hover:tvw-bg-gray-100");
+  } else {
+    closeButton.style.backgroundColor = "";
+    closeButton.classList.add("hover:tvw-bg-gray-100");
+  }
+  
+  // Apply border if width and/or color are provided
+  if (launcher.closeButtonBorderWidth || launcher.closeButtonBorderColor) {
+    const borderWidth = launcher.closeButtonBorderWidth || "0px";
+    const borderColor = launcher.closeButtonBorderColor || "transparent";
+    closeButton.style.border = `${borderWidth} solid ${borderColor}`;
+    closeButton.classList.remove("tvw-border-none");
+  } else {
+    closeButton.style.border = "";
+    closeButton.classList.add("tvw-border-none");
+  }
+  
+  if (launcher.closeButtonBorderRadius) {
+    closeButton.style.borderRadius = launcher.closeButtonBorderRadius;
+    closeButton.classList.remove("tvw-rounded-full");
+  } else {
+    closeButton.style.borderRadius = "";
+    closeButton.classList.add("tvw-rounded-full");
+  }
+  
+  // Position close button based on placement
+  if (closeButtonPlacement === "top-right") {
+    // Make container position relative for absolute positioning
+    container.style.position = "relative";
+    container.appendChild(closeButton);
+  } else {
+    // Inline placement: append to header
+    header.appendChild(closeButton);
+  }
 
   const body = createElement(
     "div",
@@ -163,9 +238,18 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     "div",
     "tvw-mb-3 tvw-flex tvw-flex-wrap tvw-gap-2"
   );
+  // Determine gap based on voice recognition
+  const voiceRecognitionEnabledForGap = config?.voiceRecognition?.enabled === true;
+  const hasSpeechRecognitionForGap = 
+    typeof window !== 'undefined' && 
+    (typeof (window as any).webkitSpeechRecognition !== 'undefined' || 
+     typeof (window as any).SpeechRecognition !== 'undefined');
+  const shouldUseSmallGap = voiceRecognitionEnabledForGap && hasSpeechRecognitionForGap;
+  const gapClass = shouldUseSmallGap ? "tvw-gap-1" : "tvw-gap-3";
+  
   const composerForm = createElement(
     "form",
-    "tvw-flex tvw-items-end tvw-gap-3 tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3"
+    `tvw-flex tvw-items-end ${gapClass} tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3`
   ) as HTMLFormElement;
   // Prevent form from getting focus styles
   composerForm.style.outline = "none";
@@ -175,6 +259,26 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
   textarea.className =
     "tvw-min-h-[48px] tvw-flex-1 tvw-resize-none tvw-border-none tvw-bg-transparent tvw-text-sm tvw-text-cw-primary focus:tvw-outline-none focus:tvw-border-none";
   textarea.rows = 1;
+  
+  // Apply font family and weight from config
+  const fontFamily = config?.theme?.inputFontFamily ?? "sans-serif";
+  const fontWeight = config?.theme?.inputFontWeight ?? "400";
+  
+  const getFontFamilyValue = (family: "sans-serif" | "serif" | "mono"): string => {
+    switch (family) {
+      case "serif":
+        return 'Georgia, "Times New Roman", Times, serif';
+      case "mono":
+        return '"Courier New", Courier, "Lucida Console", Monaco, monospace';
+      case "sans-serif":
+      default:
+        return '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+    }
+  };
+  
+  textarea.style.fontFamily = getFontFamilyValue(fontFamily);
+  textarea.style.fontWeight = fontWeight;
+  
   // Explicitly remove border and outline on focus to prevent browser defaults
   textarea.style.border = "none";
   textarea.style.outline = "none";
@@ -303,15 +407,115 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
 
   sendButtonWrapper.appendChild(sendButton);
   
+  // Voice recognition mic button
+  const voiceRecognitionConfig = config?.voiceRecognition ?? {};
+  const voiceRecognitionEnabled = voiceRecognitionConfig.enabled === true;
+  let micButton: HTMLButtonElement | null = null;
+  let micButtonWrapper: HTMLElement | null = null;
+  
+  // Check browser support for speech recognition
+  const hasSpeechRecognition = 
+    typeof window !== 'undefined' && 
+    (typeof (window as any).webkitSpeechRecognition !== 'undefined' || 
+     typeof (window as any).SpeechRecognition !== 'undefined');
+  
+  if (voiceRecognitionEnabled && hasSpeechRecognition) {
+    micButtonWrapper = createElement("div", "tvw-send-button-wrapper");
+    micButton = createElement(
+      "button",
+      "tvw-rounded-button tvw-flex tvw-items-center tvw-justify-center disabled:tvw-opacity-50 tvw-cursor-pointer"
+    ) as HTMLButtonElement;
+    
+    micButton.type = "button";
+    micButton.setAttribute("aria-label", "Start voice recognition");
+    
+    const micIconName = voiceRecognitionConfig.iconName ?? "mic";
+    const micIconSize = voiceRecognitionConfig.iconSize ?? buttonSize;
+    const micIconSizeNum = parseFloat(micIconSize) || 24;
+    
+    // Use dedicated colors from voice recognition config, fallback to send button colors
+    const micBackgroundColor = voiceRecognitionConfig.backgroundColor ?? backgroundColor;
+    const micIconColor = voiceRecognitionConfig.iconColor ?? textColor;
+    
+    micButton.style.width = micIconSize;
+    micButton.style.height = micIconSize;
+    micButton.style.minWidth = micIconSize;
+    micButton.style.minHeight = micIconSize;
+    micButton.style.fontSize = "18px";
+    micButton.style.lineHeight = "1";
+    
+    // Use Lucide mic icon with configured color (stroke width 1.5 for minimalist outline style)
+    const iconColorValue = micIconColor || "currentColor";
+    const micIconSvg = renderLucideIcon(micIconName, micIconSizeNum, iconColorValue, 1.5);
+    if (micIconSvg) {
+      micButton.appendChild(micIconSvg);
+      micButton.style.color = iconColorValue;
+    } else {
+      // Fallback to text if icon fails
+      micButton.textContent = "🎤";
+      micButton.style.color = iconColorValue;
+    }
+    
+    // Apply background color
+    if (micBackgroundColor) {
+      micButton.style.backgroundColor = micBackgroundColor;
+    } else {
+      micButton.classList.add("tvw-bg-cw-primary");
+    }
+    
+    // Apply icon/text color
+    if (micIconColor) {
+      micButton.style.color = micIconColor;
+    } else if (!micIconColor && !textColor) {
+      micButton.classList.add("tvw-text-white");
+    }
+    
+    // Apply border styling
+    if (voiceRecognitionConfig.borderWidth) {
+      micButton.style.borderWidth = voiceRecognitionConfig.borderWidth;
+      micButton.style.borderStyle = "solid";
+    }
+    if (voiceRecognitionConfig.borderColor) {
+      micButton.style.borderColor = voiceRecognitionConfig.borderColor;
+    }
+    
+    // Apply padding styling
+    if (voiceRecognitionConfig.paddingX) {
+      micButton.style.paddingLeft = voiceRecognitionConfig.paddingX;
+      micButton.style.paddingRight = voiceRecognitionConfig.paddingX;
+    }
+    if (voiceRecognitionConfig.paddingY) {
+      micButton.style.paddingTop = voiceRecognitionConfig.paddingY;
+      micButton.style.paddingBottom = voiceRecognitionConfig.paddingY;
+    }
+    
+    micButtonWrapper.appendChild(micButton);
+    
+    // Add tooltip if enabled
+    const tooltipText = voiceRecognitionConfig.tooltipText ?? "Start voice recognition";
+    const showTooltip = voiceRecognitionConfig.showTooltip ?? false;
+    if (showTooltip && tooltipText) {
+      const tooltip = createElement("div", "tvw-send-button-tooltip");
+      tooltip.textContent = tooltipText;
+      micButtonWrapper.appendChild(tooltip);
+    }
+  }
+  
   // Focus textarea when composer form container is clicked
   composerForm.addEventListener("click", (e) => {
-    // Don't focus if clicking on the send button or wrapper
-    if (e.target !== sendButton && e.target !== sendButtonWrapper) {
+    // Don't focus if clicking on the send button, mic button, or their wrappers
+    if (e.target !== sendButton && e.target !== sendButtonWrapper && 
+        e.target !== micButton && e.target !== micButtonWrapper) {
       textarea.focus();
     }
   });
   
-  composerForm.append(textarea, sendButtonWrapper);
+  // Append elements: textarea, mic button (if exists), send button
+  composerForm.append(textarea);
+  if (micButtonWrapper) {
+    composerForm.append(micButtonWrapper);
+  }
+  composerForm.append(sendButtonWrapper);
 
   const statusText = createElement(
     "div",
@@ -336,6 +540,8 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     textarea,
     sendButton,
     sendButtonWrapper,
+    micButton,
+    micButtonWrapper,
     composerForm,
     statusText,
     introTitle,

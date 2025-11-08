@@ -17,6 +17,21 @@ export type ChatWidgetTheme = {
   messageBorder?: string;
   inputBackground?: string;
   callToAction?: string;
+  callToActionBackground?: string;
+  sendButtonBackgroundColor?: string;
+  sendButtonTextColor?: string;
+  sendButtonBorderColor?: string;
+  closeButtonColor?: string;
+  closeButtonBackgroundColor?: string;
+  closeButtonBorderColor?: string;
+  micIconColor?: string;
+  micBackgroundColor?: string;
+  micBorderColor?: string;
+  recordingIconColor?: string;
+  recordingBackgroundColor?: string;
+  recordingBorderColor?: string;
+  inputFontFamily?: "sans-serif" | "serif" | "mono";
+  inputFontWeight?: string;
   radiusSm?: string;
   radiusMd?: string;
   radiusLg?: string;
@@ -28,21 +43,32 @@ export type ChatWidgetLauncherConfig = {
   enabled?: boolean;
   title?: string;
   subtitle?: string;
+  textHidden?: boolean;
   iconUrl?: string;
-  iconText?: string;
+  agentIconText?: string;
+  agentIconName?: string;
+  agentIconHidden?: boolean;
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   autoExpand?: boolean;
   width?: string;
-  agentIconText?: string;
-  agentIconName?: string;
-  agentIconColor?: string;
-  agentIconBackgroundColor?: string;
-  agentIconHidden?: boolean;
-  agentIconPadding?: string;
-  iconSize?: string;
+  callToActionIconText?: string;
+  callToActionIconName?: string;
+  callToActionIconColor?: string;
+  callToActionIconBackgroundColor?: string;
+  callToActionIconHidden?: boolean;
+  callToActionIconPadding?: string;
   agentIconSize?: string;
+  callToActionIconSize?: string;
   headerIconSize?: string;
+  headerIconName?: string;
+  headerIconHidden?: boolean;
   closeButtonSize?: string;
+  closeButtonColor?: string;
+  closeButtonBackgroundColor?: string;
+  closeButtonBorderWidth?: string;
+  closeButtonBorderColor?: string;
+  closeButtonBorderRadius?: string;
+  closeButtonPlacement?: "inline" | "top-right";
 };
 
 export type ChatWidgetSendButtonConfig = {
@@ -68,6 +94,25 @@ export type ChatWidgetStatusIndicatorConfig = {
   errorText?: string;
 };
 
+export type ChatWidgetVoiceRecognitionConfig = {
+  enabled?: boolean;
+  pauseDuration?: number;
+  iconName?: string;
+  iconSize?: string;
+  iconColor?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  paddingX?: string;
+  paddingY?: string;
+  tooltipText?: string;
+  showTooltip?: boolean;
+  recordingIconColor?: string;
+  recordingBackgroundColor?: string;
+  recordingBorderColor?: string;
+  showRecordingIndicator?: boolean;
+};
+
 export type ChatWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -88,6 +133,7 @@ export type ChatWidgetConfig = {
   launcherWidth?: string;
   sendButton?: ChatWidgetSendButtonConfig;
   statusIndicator?: ChatWidgetStatusIndicatorConfig;
+  voiceRecognition?: ChatWidgetVoiceRecognitionConfig;
   postprocessMessage?: (context: {
     text: string;
     message: ChatWidgetMessage;

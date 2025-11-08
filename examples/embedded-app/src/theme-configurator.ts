@@ -12,6 +12,26 @@ const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
   import.meta.env.VITE_PROXY_URL ?? `http://localhost:${proxyPort}/api/chat/dispatch`;
 
+// Typography presets
+const TYPOGRAPHY_PRESETS = {
+  default: {
+    inputFontFamily: "sans-serif" as const,
+    inputFontWeight: "400"
+  },
+  bold: {
+    inputFontFamily: "sans-serif" as const,
+    inputFontWeight: "700"
+  },
+  serif: {
+    inputFontFamily: "serif" as const,
+    inputFontWeight: "400"
+  },
+  mono: {
+    inputFontFamily: "mono" as const,
+    inputFontWeight: "400"
+  }
+};
+
 // Theme presets
 const THEME_PRESETS = {
   default: {
@@ -24,8 +44,22 @@ const THEME_PRESETS = {
     divider: "#f1f5f9",
     messageBorder: "#f1f5f9",
     inputBackground: "#ffffff",
-    callToAction: "#ffffff",
-    callToActionBackground: "#000000"
+    callToAction: "#000000",
+    callToActionBackground: "#ffffff",
+    sendButtonBackgroundColor: "#111827",
+    sendButtonTextColor: "#ffffff",
+    sendButtonBorderColor: "#60a5fa",
+    closeButtonColor: "#9ca3af",
+    closeButtonBackgroundColor: "transparent",
+    closeButtonBorderColor: "",
+    micIconColor: "#111827",
+    micBackgroundColor: "transparent",
+    micBorderColor: "transparent",
+    recordingIconColor: "#ffffff",
+    recordingBackgroundColor: "#ef4444",
+    recordingBorderColor: "transparent",
+    inputFontFamily: TYPOGRAPHY_PRESETS.default.inputFontFamily,
+    inputFontWeight: TYPOGRAPHY_PRESETS.default.inputFontWeight
   },
   dark: {
     primary: "#f9fafb",
@@ -37,8 +71,22 @@ const THEME_PRESETS = {
     divider: "#374151",
     messageBorder: "#4b5563",
     inputBackground: "#1f2937",
-    callToAction: "#000000",
-    callToActionBackground: "#ffffff"
+    callToAction: "#ffffff",
+    callToActionBackground: "#1f2937",
+    sendButtonBackgroundColor: "#ffffff",
+    sendButtonTextColor: "#000000",
+    sendButtonBorderColor: "#60a5fa",
+    closeButtonColor: "#9ca3af",
+    closeButtonBackgroundColor: "transparent",
+    closeButtonBorderColor: "",
+    micIconColor: "#f9fafb",
+    micBackgroundColor: "transparent",
+    micBorderColor: "transparent",
+    recordingIconColor: "#ffffff",
+    recordingBackgroundColor: "#dc2626",
+    recordingBorderColor: "transparent",
+    inputFontFamily: TYPOGRAPHY_PRESETS.default.inputFontFamily,
+    inputFontWeight: TYPOGRAPHY_PRESETS.default.inputFontWeight
   },
   contrast: {
     primary: "#000000",
@@ -51,7 +99,21 @@ const THEME_PRESETS = {
     messageBorder: "#999999",
     inputBackground: "#ffffff",
     callToAction: "#ffffff",
-    callToActionBackground: "#0066cc"
+    callToActionBackground: "#000000",
+    sendButtonBackgroundColor: "#0066cc",
+    sendButtonTextColor: "#ffffff",
+    sendButtonBorderColor: "#0066cc",
+    closeButtonColor: "#666666",
+    closeButtonBackgroundColor: "",
+    closeButtonBorderColor: "",
+    micIconColor: "#000000",
+    micBackgroundColor: "transparent",
+    micBorderColor: "transparent",
+    recordingIconColor: "#ffffff",
+    recordingBackgroundColor: "#cc0000",
+    recordingBorderColor: "#cc0000",
+    inputFontFamily: TYPOGRAPHY_PRESETS.default.inputFontFamily,
+    inputFontWeight: TYPOGRAPHY_PRESETS.default.inputFontWeight
   }
 };
 
@@ -77,27 +139,18 @@ const RADIUS_PRESETS = {
     radiusLg: "2rem",
     launcherRadius: "0.5rem",
     buttonRadius: "0.5rem"
-  },
-  extraRounded: {
-    radiusSm: "1.5rem",
-    radiusMd: "2rem",
-    radiusLg: "2.5rem",
-    launcherRadius: "5rem",
-    buttonRadius: "5rem"
   }
 };
 
 // Send button presets
+// Note: Colors come from THEME_PRESETS (sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor)
 const SEND_BUTTON_PRESETS = {
   iconArrow: {
     useIcon: true,
     iconName: "arrow-up",
     iconText: "↑",
     size: "36px",
-    backgroundColor: "#000000",
-    textColor: "#ffffff",
     borderWidth: "0px",
-    borderColor: "#000000",
     paddingX: "10px",
     paddingY: "6px",
     showTooltip: true,
@@ -108,10 +161,7 @@ const SEND_BUTTON_PRESETS = {
     iconName: "send",
     iconText: "➤",
     size: "36px",
-    backgroundColor: "#000000",
-    textColor: "#ffffff",
     borderWidth: "0px",
-    borderColor: "#000000",
     paddingX: "10px",
     paddingY: "6px",
     showTooltip: true,
@@ -119,10 +169,7 @@ const SEND_BUTTON_PRESETS = {
   },
   text: {
     useIcon: false,
-    backgroundColor: "#3b82f6",
-    textColor: "#ffffff",
     borderWidth: "0px",
-    borderColor: "#000000",
     paddingX: "16px",
     paddingY: "8px",
     showTooltip: false,
@@ -130,59 +177,79 @@ const SEND_BUTTON_PRESETS = {
   }
 };
 
-// Call to action (launcher agent icon) presets
+// Call to action (launcher call to action icon) presets
+// Note: Colors come from THEME_PRESETS (callToAction and callToActionBackground)
 const CALL_TO_ACTION_PRESETS = {
-  arrow: {
-    agentIconName: "arrow-up-right",
-    agentIconText: "↗",
-    agentIconSize: "40px",
-    agentIconPadding: "12px",
-    agentIconBackgroundColor: "#3b82f6"
+  default: {
+    callToActionIconName: "arrow-up-right",
+    callToActionIconText: "",
+    callToActionIconSize: "32px",
+    callToActionIconPadding: "5px"
   },
   sparkles: {
-    agentIconName: "sparkles",
-    agentIconText: "✨",
-    agentIconSize: "40px",
-    agentIconPadding: "12px",
-    agentIconBackgroundColor: "#8b5cf6"
+    callToActionIconName: "sparkles",
+    callToActionIconText: "",
+    callToActionIconSize: "40px",
+    callToActionIconPadding: "12px"
   },
   send: {
-    agentIconName: "send",
-    agentIconText: "➤",
-    agentIconSize: "40px",
-    agentIconPadding: "12px",
-    agentIconBackgroundColor: "#3b82f6"
+    callToActionIconName: "send",
+    callToActionIconText: "➤",
+    callToActionIconSize: "40px",
+    callToActionIconPadding: "12px"
   },
   text: {
-    agentIconName: "",
-    agentIconText: "↗",
-    agentIconSize: "40px",
-    agentIconPadding: "12px",
-    agentIconBackgroundColor: "#3b82f6"
+    callToActionIconName: "",
+    callToActionIconText: "↗",
+    callToActionIconSize: "40px",
+    callToActionIconPadding: "12px"
+  }
+};
+
+// Close button presets
+// Note: Colors come from THEME_PRESETS (closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor)
+const CLOSE_BUTTON_PRESETS = {
+  default: {
+    closeButtonBorderWidth: "",
+    closeButtonBorderRadius: ""
+  },
+  minimal: {
+    closeButtonBorderWidth: "1px",
+    closeButtonBorderRadius: "6px"
+  },
+  bold: {
+    closeButtonBorderWidth: "",
+    closeButtonBorderRadius: "50%"
+  },
+  outlined: {
+    closeButtonBorderWidth: "1px",
+    closeButtonBorderRadius: "50%"
   }
 };
 
 // Default configuration
 const getDefaultConfig = (): ChatWidgetConfig => ({
   apiUrl: proxyUrl,
-  theme: { ...THEME_PRESETS.default, ...RADIUS_PRESETS.default },
+  theme: { ...THEME_PRESETS.default, ...RADIUS_PRESETS.default, ...TYPOGRAPHY_PRESETS.default },
   launcher: {
     enabled: true,
     title: "Chat Assistant",
     subtitle: "Here to help you get answers fast",
-    iconText: "💬",
+    agentIconText: "💬",
     position: "bottom-right",
     width: "min(360px, calc(100vw - 24px))",
     autoExpand: false,
-    agentIconText: "↗",
-    agentIconColor: "#ffffff",
-    agentIconBackgroundColor: "#3b82f6",
-    agentIconHidden: false,
-    agentIconPadding: "5px",
-    iconSize: "40px",
-    agentIconSize: "32px",
+    callToActionIconHidden: false,
+    agentIconSize: "40px",
     headerIconSize: "48px",
-    closeButtonSize: "32px"
+    closeButtonSize: "32px",
+    ...CALL_TO_ACTION_PRESETS.default,
+    // Colors come from theme presets
+    callToActionIconColor: THEME_PRESETS.default.callToAction,
+    callToActionIconBackgroundColor: THEME_PRESETS.default.callToActionBackground,
+    closeButtonColor: THEME_PRESETS.default.closeButtonColor || undefined,
+    closeButtonBackgroundColor: THEME_PRESETS.default.closeButtonBackgroundColor || undefined,
+    closeButtonBorderColor: THEME_PRESETS.default.closeButtonBorderColor || undefined
   },
   copy: {
     welcomeTitle: "Hello 👋",
@@ -192,9 +259,12 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
   },
   sendButton: {
     borderWidth: "0px",
-    borderColor: "#000000",
     paddingX: "16px",
-    paddingY: "8px"
+    paddingY: "8px",
+    // Colors come from theme presets
+    backgroundColor: THEME_PRESETS.default.sendButtonBackgroundColor,
+    textColor: THEME_PRESETS.default.sendButtonTextColor,
+    borderColor: THEME_PRESETS.default.sendButtonBorderColor
   },
   statusIndicator: {
     visible: true,
@@ -202,6 +272,22 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     connectingText: "Connecting…",
     connectedText: "Streaming…",
     errorText: "Offline"
+  },
+  voiceRecognition: {
+    enabled: false,
+    pauseDuration: 2000,
+    iconName: "mic",
+    iconSize: "37px",
+    borderWidth: "0px",
+    paddingX: "10px",
+    paddingY: "10px",
+    // Colors come from theme presets (background defaults to transparent)
+    iconColor: THEME_PRESETS.default.micIconColor,
+    backgroundColor: THEME_PRESETS.default.micBackgroundColor || "transparent",
+    borderColor: THEME_PRESETS.default.micBorderColor,
+    recordingIconColor: THEME_PRESETS.default.recordingIconColor,
+    recordingBackgroundColor: THEME_PRESETS.default.recordingBackgroundColor,
+    recordingBorderColor: THEME_PRESETS.default.recordingBorderColor
   },
   features: {
     showReasoning: true,
@@ -458,9 +544,56 @@ function setupSliderInput(config: SliderConfig) {
   });
 }
 
+// Helper function to setup color inputs with transparent support
+function setupColorInput(
+  colorInputId: string,
+  textInputId: string,
+  getValue: () => string,
+  setValue: (value: string) => void,
+  defaultValue: string = "transparent"
+) {
+  const colorInput = getInput<HTMLInputElement>(colorInputId);
+  const textInput = getInput<HTMLInputElement>(textInputId);
+  
+  // Initialize values
+  const currentValue = getValue() || defaultValue;
+  if (currentValue === "transparent") {
+    textInput.value = "transparent";
+    colorInput.value = "#000000"; // Placeholder value for color picker
+  } else {
+    textInput.value = currentValue;
+    colorInput.value = currentValue || "#000000";
+  }
+  
+  // Sync from color picker to text input
+  colorInput.addEventListener("input", () => {
+    textInput.value = colorInput.value;
+    setValue(colorInput.value);
+  });
+  
+  // Sync from text input to color picker
+  textInput.addEventListener("input", () => {
+    const value = textInput.value.trim().toLowerCase();
+    if (value === "transparent") {
+      colorInput.value = "#000000";
+      setValue("transparent");
+    } else if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+      colorInput.value = value;
+      setValue(value);
+    } else if (value === "") {
+      // Empty means use default (transparent)
+      colorInput.value = "#000000";
+      setValue("transparent");
+    } else {
+      // Allow other CSS color values (like rgba, etc.)
+      setValue(value);
+    }
+  });
+}
+
 // Theme controls
 function setupThemeControls() {
-  const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted"] as const;
+  const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted", "sendButtonBackgroundColor", "sendButtonTextColor", "sendButtonBorderColor", "closeButtonColor", "closeButtonBackgroundColor", "closeButtonBorderColor", "micIconColor", "micBackgroundColor", "micBorderColor", "recordingIconColor", "recordingBackgroundColor", "recordingBorderColor"] as const;
 
   themeKeys.forEach((key) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
@@ -539,6 +672,37 @@ function updateTheme(key: string, value: string) {
       [key]: value
     }
   };
+  
+  // If updating send button colors, also update sendButton config
+  if (key === "sendButtonBackgroundColor" || key === "sendButtonTextColor" || key === "sendButtonBorderColor") {
+    newConfig.sendButton = {
+      ...currentConfig.sendButton,
+      [key === "sendButtonBackgroundColor" ? "backgroundColor" : key === "sendButtonTextColor" ? "textColor" : "borderColor"]: value === "transparent" ? undefined : value
+    };
+  }
+  
+  // If updating close button colors, also update launcher config
+  if (key === "closeButtonColor" || key === "closeButtonBackgroundColor" || key === "closeButtonBorderColor") {
+    newConfig.launcher = {
+      ...currentConfig.launcher,
+      [key === "closeButtonColor" ? "closeButtonColor" : key === "closeButtonBackgroundColor" ? "closeButtonBackgroundColor" : "closeButtonBorderColor"]: (value === "" || value === "transparent") ? undefined : value
+    };
+  }
+  
+  // If updating mic button colors, also update voiceRecognition config
+  if (key === "micIconColor" || key === "micBackgroundColor" || key === "micBorderColor" || 
+      key === "recordingIconColor" || key === "recordingBackgroundColor" || key === "recordingBorderColor") {
+    newConfig.voiceRecognition = {
+      ...currentConfig.voiceRecognition,
+      [key === "micIconColor" ? "iconColor" : 
+       key === "micBackgroundColor" ? "backgroundColor" : 
+       key === "micBorderColor" ? "borderColor" :
+       key === "recordingIconColor" ? "recordingIconColor" :
+       key === "recordingBackgroundColor" ? "recordingBackgroundColor" :
+       "recordingBorderColor"]: (value === "" || value === "transparent") ? undefined : value
+    };
+  }
+  
   // Use immediate update for radius values to ensure instant visual feedback
   if (key.startsWith('radius')) {
     immediateUpdate(newConfig);
@@ -549,7 +713,7 @@ function updateTheme(key: string, value: string) {
 
 function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const themeValues = THEME_PRESETS[preset];
-  const { callToActionBackground, ...themeColors } = themeValues;
+  const { callToActionBackground, sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor, closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor, micIconColor, micBackgroundColor, micBorderColor, recordingIconColor, recordingBackgroundColor, recordingBorderColor, inputFontFamily, inputFontWeight, ...themeColors } = themeValues;
   
   Object.entries(themeColors).forEach(([key, value]) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
@@ -558,20 +722,161 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
     textInput.value = value;
   });
 
+  // Set send button colors
+  const sendButtonBgColorInput = getInput<HTMLInputElement>("color-sendButtonBackgroundColor");
+  const sendButtonBgColorTextInput = getInput<HTMLInputElement>("color-sendButtonBackgroundColor-text");
+  const sendButtonTextColorInput = getInput<HTMLInputElement>("color-sendButtonTextColor");
+  const sendButtonTextColorTextInput = getInput<HTMLInputElement>("color-sendButtonTextColor-text");
+  const sendButtonBorderColorInput = getInput<HTMLInputElement>("color-sendButtonBorderColor");
+  const sendButtonBorderColorTextInput = getInput<HTMLInputElement>("color-sendButtonBorderColor-text");
+  
+  if (sendButtonBgColorInput && sendButtonBgColorTextInput) {
+    sendButtonBgColorInput.value = sendButtonBackgroundColor;
+    sendButtonBgColorTextInput.value = sendButtonBackgroundColor;
+  }
+  if (sendButtonTextColorInput && sendButtonTextColorTextInput) {
+    sendButtonTextColorInput.value = sendButtonTextColor;
+    sendButtonTextColorTextInput.value = sendButtonTextColor;
+  }
+  if (sendButtonBorderColorInput && sendButtonBorderColorTextInput) {
+    sendButtonBorderColorInput.value = sendButtonBorderColor;
+    sendButtonBorderColorTextInput.value = sendButtonBorderColor;
+  }
+
+  // Set close button colors
+  const closeButtonColorInput = getInput<HTMLInputElement>("color-closeButtonColor");
+  const closeButtonColorTextInput = getInput<HTMLInputElement>("color-closeButtonColor-text");
+  const closeButtonBgColorInput = getInput<HTMLInputElement>("color-closeButtonBackgroundColor");
+  const closeButtonBgColorTextInput = getInput<HTMLInputElement>("color-closeButtonBackgroundColor-text");
+  const closeButtonBorderColorInput = getInput<HTMLInputElement>("color-closeButtonBorderColor");
+  const closeButtonBorderColorTextInput = getInput<HTMLInputElement>("color-closeButtonBorderColor-text");
+  
+  if (closeButtonColorInput && closeButtonColorTextInput) {
+    if (closeButtonColor) {
+      closeButtonColorInput.value = closeButtonColor;
+      closeButtonColorTextInput.value = closeButtonColor;
+    } else {
+      closeButtonColorInput.value = "";
+      closeButtonColorTextInput.value = "";
+    }
+  }
+  if (closeButtonBgColorInput && closeButtonBgColorTextInput) {
+    if (closeButtonBackgroundColor === "" || closeButtonBackgroundColor === "transparent") {
+      closeButtonBgColorTextInput.value = "transparent";
+      closeButtonBgColorInput.value = "#000000";
+    } else {
+      closeButtonBgColorTextInput.value = closeButtonBackgroundColor;
+      closeButtonBgColorInput.value = closeButtonBackgroundColor;
+    }
+  }
+  if (closeButtonBorderColorInput && closeButtonBorderColorTextInput) {
+    if (closeButtonBorderColor === "" || closeButtonBorderColor === "transparent") {
+      closeButtonBorderColorTextInput.value = "transparent";
+      closeButtonBorderColorInput.value = "#000000";
+    } else {
+      closeButtonBorderColorTextInput.value = closeButtonBorderColor;
+      closeButtonBorderColorInput.value = closeButtonBorderColor;
+    }
+  }
+
+  // Set mic button colors
+  const micIconColorInput = getInput<HTMLInputElement>("color-micIconColor");
+  const micIconColorTextInput = getInput<HTMLInputElement>("color-micIconColor-text");
+  const micBackgroundColorInput = getInput<HTMLInputElement>("color-micBackgroundColor");
+  const micBackgroundColorTextInput = getInput<HTMLInputElement>("color-micBackgroundColor-text");
+  const micBorderColorInput = getInput<HTMLInputElement>("color-micBorderColor");
+  const micBorderColorTextInput = getInput<HTMLInputElement>("color-micBorderColor-text");
+  
+  if (micIconColorInput && micIconColorTextInput) {
+    micIconColorInput.value = micIconColor;
+    micIconColorTextInput.value = micIconColor;
+  }
+  if (micBackgroundColorInput && micBackgroundColorTextInput) {
+    micBackgroundColorInput.value = micBackgroundColor;
+    micBackgroundColorTextInput.value = micBackgroundColor;
+  }
+  if (micBorderColorInput && micBorderColorTextInput) {
+    if (micBorderColor === "" || micBorderColor === "transparent") {
+      micBorderColorTextInput.value = "transparent";
+      micBorderColorInput.value = "#000000";
+    } else {
+      micBorderColorTextInput.value = micBorderColor;
+      micBorderColorInput.value = micBorderColor;
+    }
+  }
+
+  // Set recording state colors
+  const recordingIconColorInput = getInput<HTMLInputElement>("color-recordingIconColor");
+  const recordingIconColorTextInput = getInput<HTMLInputElement>("color-recordingIconColor-text");
+  const recordingBackgroundColorInput = getInput<HTMLInputElement>("color-recordingBackgroundColor");
+  const recordingBackgroundColorTextInput = getInput<HTMLInputElement>("color-recordingBackgroundColor-text");
+  const recordingBorderColorInput = getInput<HTMLInputElement>("color-recordingBorderColor");
+  const recordingBorderColorTextInput = getInput<HTMLInputElement>("color-recordingBorderColor-text");
+  
+  if (recordingIconColorInput && recordingIconColorTextInput) {
+    recordingIconColorInput.value = recordingIconColor;
+    recordingIconColorTextInput.value = recordingIconColor;
+  }
+  if (recordingBackgroundColorInput && recordingBackgroundColorTextInput) {
+    recordingBackgroundColorInput.value = recordingBackgroundColor;
+    recordingBackgroundColorTextInput.value = recordingBackgroundColor;
+  }
+  if (recordingBorderColorInput && recordingBorderColorTextInput) {
+    if (recordingBorderColor === "" || recordingBorderColor === "transparent") {
+      recordingBorderColorTextInput.value = "transparent";
+      recordingBorderColorInput.value = "#000000";
+    } else {
+      recordingBorderColorTextInput.value = recordingBorderColor;
+      recordingBorderColorInput.value = recordingBorderColor;
+    }
+  }
+
   // Also set the call to action background color
-  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
-  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
-  if (agentIconBackgroundColorInput && agentIconBackgroundColorTextInput) {
-    agentIconBackgroundColorInput.value = callToActionBackground;
-    agentIconBackgroundColorTextInput.value = callToActionBackground;
+  const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
+  const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
+  if (callToActionIconBackgroundColorInput && callToActionIconBackgroundColorTextInput) {
+    callToActionIconBackgroundColorInput.value = callToActionBackground;
+    callToActionIconBackgroundColorTextInput.value = callToActionBackground;
+  }
+
+  // Set typography controls
+  const fontFamilySelect = getInput<HTMLSelectElement>("input-font-family");
+  const fontWeightInput = getInput<HTMLInputElement>("input-font-weight");
+  const fontWeightSlider = getInput<HTMLInputElement>("input-font-weight-slider");
+  if (fontFamilySelect) {
+    fontFamilySelect.value = inputFontFamily;
+  }
+  if (fontWeightInput && fontWeightSlider) {
+    // Remove any units and use just the number
+    const fontWeightNum = parseInt(inputFontWeight.replace(/[^\d]/g, ''), 10) || 400;
+    fontWeightInput.value = String(fontWeightNum);
+    fontWeightSlider.value = String(fontWeightNum);
   }
 
   const newConfig = {
     ...currentConfig,
-    theme: { ...currentConfig.theme, ...themeColors },
+    theme: { ...currentConfig.theme, ...themeColors, sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor, closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor, micIconColor, micBackgroundColor, micBorderColor, recordingIconColor, recordingBackgroundColor, recordingBorderColor, inputFontFamily, inputFontWeight },
+    sendButton: {
+      ...currentConfig.sendButton,
+      backgroundColor: sendButtonBackgroundColor,
+      textColor: sendButtonTextColor,
+      borderColor: sendButtonBorderColor
+    },
     launcher: {
       ...currentConfig.launcher,
-      agentIconBackgroundColor: callToActionBackground
+      callToActionIconBackgroundColor: callToActionBackground,
+      closeButtonColor: closeButtonColor || undefined,
+      closeButtonBackgroundColor: closeButtonBackgroundColor || undefined,
+      closeButtonBorderColor: closeButtonBorderColor || undefined
+    },
+    voiceRecognition: {
+      ...currentConfig.voiceRecognition,
+      iconColor: micIconColor,
+      backgroundColor: micBackgroundColor,
+      borderColor: micBorderColor || undefined,
+      recordingIconColor: recordingIconColor,
+      recordingBackgroundColor: recordingBackgroundColor,
+      recordingBorderColor: recordingBorderColor || undefined
     }
   };
   immediateUpdate(newConfig);
@@ -611,12 +916,6 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
   const iconTextInput = getInput<HTMLInputElement>("send-button-icon-text");
   const iconNameInput = getInput<HTMLInputElement>("send-button-icon-name");
   const sizeInput = getInput<HTMLInputElement>("send-button-size");
-  const backgroundColorInput = getInput<HTMLInputElement>("send-button-background-color");
-  const backgroundColorTextInput = getInput<HTMLInputElement>("send-button-background-color-text");
-  const textColorInput = getInput<HTMLInputElement>("send-button-text-color");
-  const textColorTextInput = getInput<HTMLInputElement>("send-button-text-color-text");
-  const borderColorInput = getInput<HTMLInputElement>("send-button-border-color");
-  const borderColorTextInput = getInput<HTMLInputElement>("send-button-border-color-text");
   const borderWidthInput = getInput<HTMLInputElement>("send-button-border-width");
   const borderWidthSlider = getInput<HTMLInputElement>("send-button-border-width-slider");
   const paddingXInput = getInput<HTMLInputElement>("send-button-padding-x");
@@ -637,18 +936,7 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
     const pxValue = convertToPx(parsed.value, parsed.unit);
     sizeSlider.value = pxValue.toString();
   }
-  if (presetValues.backgroundColor) {
-    backgroundColorInput.value = presetValues.backgroundColor;
-    backgroundColorTextInput.value = presetValues.backgroundColor;
-  }
-  if (presetValues.textColor) {
-    textColorInput.value = presetValues.textColor;
-    textColorTextInput.value = presetValues.textColor;
-  }
-  if (presetValues.borderColor) {
-    borderColorInput.value = presetValues.borderColor;
-    borderColorTextInput.value = presetValues.borderColor;
-  }
+  // Note: Colors come from theme, not from presets - they are managed through theme controls
   if (presetValues.borderWidth) {
     borderWidthInput.value = presetValues.borderWidth;
     const parsed = parseCssValue(presetValues.borderWidth);
@@ -672,7 +960,11 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
   
   const newConfig = {
     ...currentConfig,
-    sendButton: { ...currentConfig.sendButton, ...presetValues }
+    sendButton: { 
+      ...currentConfig.sendButton, 
+      ...presetValues
+      // Note: Colors are preserved from current config (they come from theme, not from send button presets)
+    }
   };
   immediateUpdate(newConfig);
 }
@@ -681,44 +973,96 @@ function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
   const presetValues = CALL_TO_ACTION_PRESETS[preset];
   
   // Get input elements
-  const agentIconTextInput = getInput<HTMLInputElement>("launcher-agent-icon-text");
-  const agentIconNameInput = getInput<HTMLInputElement>("launcher-agent-icon-name");
-  const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
-  const agentIconSizeSlider = getInput<HTMLInputElement>("launcher-agent-icon-size-slider");
-  const agentIconPaddingInput = getInput<HTMLInputElement>("launcher-agent-icon-padding");
-  const agentIconPaddingSlider = getInput<HTMLInputElement>("launcher-agent-icon-padding-slider");
-  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
-  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
+  const callToActionIconTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-text");
+  const callToActionIconNameInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-name");
+  const callToActionIconSizeInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-size");
+  const callToActionIconSizeSlider = getInput<HTMLInputElement>("launcher-call-to-action-icon-size-slider");
+  const callToActionIconPaddingInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-padding");
+  const callToActionIconPaddingSlider = getInput<HTMLInputElement>("launcher-call-to-action-icon-padding-slider");
+  const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
+  const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
   
   // Update input fields with preset values
-  if (presetValues.agentIconText) agentIconTextInput.value = presetValues.agentIconText;
-  if (presetValues.agentIconName !== undefined) agentIconNameInput.value = presetValues.agentIconName || "";
-  if (presetValues.agentIconSize) {
-    agentIconSizeInput.value = presetValues.agentIconSize;
-    const parsed = parseCssValue(presetValues.agentIconSize);
+  if (presetValues.callToActionIconText) callToActionIconTextInput.value = presetValues.callToActionIconText;
+  if (presetValues.callToActionIconName !== undefined) callToActionIconNameInput.value = presetValues.callToActionIconName || "";
+  if (presetValues.callToActionIconSize) {
+    callToActionIconSizeInput.value = presetValues.callToActionIconSize;
+    const parsed = parseCssValue(presetValues.callToActionIconSize);
     const pxValue = convertToPx(parsed.value, parsed.unit);
-    agentIconSizeSlider.value = pxValue.toString();
+    callToActionIconSizeSlider.value = pxValue.toString();
   }
-  if (presetValues.agentIconPadding) {
-    agentIconPaddingInput.value = presetValues.agentIconPadding;
-    const parsed = parseCssValue(presetValues.agentIconPadding);
+  if (presetValues.callToActionIconPadding) {
+    callToActionIconPaddingInput.value = presetValues.callToActionIconPadding;
+    const parsed = parseCssValue(presetValues.callToActionIconPadding);
     const pxValue = convertToPx(parsed.value, parsed.unit);
-    agentIconPaddingSlider.value = pxValue.toString();
-  }
-  if (presetValues.agentIconBackgroundColor) {
-    agentIconBackgroundColorInput.value = presetValues.agentIconBackgroundColor;
-    agentIconBackgroundColorTextInput.value = presetValues.agentIconBackgroundColor;
+    callToActionIconPaddingSlider.value = pxValue.toString();
   }
   
   const newConfig = {
     ...currentConfig,
     launcher: { 
       ...currentConfig.launcher, 
-      agentIconText: presetValues.agentIconText,
-      agentIconName: presetValues.agentIconName || undefined,
-      agentIconSize: presetValues.agentIconSize,
-      agentIconPadding: presetValues.agentIconPadding || undefined,
-      agentIconBackgroundColor: presetValues.agentIconBackgroundColor
+      callToActionIconText: presetValues.callToActionIconText,
+      callToActionIconName: presetValues.callToActionIconName || undefined,
+      callToActionIconSize: presetValues.callToActionIconSize,
+      callToActionIconPadding: presetValues.callToActionIconPadding || undefined
+      // Note: callToActionIconColor and callToActionIconBackgroundColor are preserved from current config
+      // (they come from theme, not from call-to-action presets)
+    }
+  };
+  immediateUpdate(newConfig);
+  
+  // Sync background color inputs with current config value (from theme)
+  const currentBgColor = newConfig.launcher?.callToActionIconBackgroundColor ?? "transparent";
+  if (callToActionIconBackgroundColorInput && callToActionIconBackgroundColorTextInput) {
+    if (currentBgColor === "transparent") {
+      callToActionIconBackgroundColorTextInput.value = "transparent";
+      callToActionIconBackgroundColorInput.value = "#000000"; // Placeholder for color picker
+    } else {
+      callToActionIconBackgroundColorTextInput.value = currentBgColor;
+      callToActionIconBackgroundColorInput.value = currentBgColor;
+    }
+  }
+}
+
+function applyCloseButtonPreset(preset: keyof typeof CLOSE_BUTTON_PRESETS) {
+  const presetValues = CLOSE_BUTTON_PRESETS[preset];
+  
+  // Get input elements
+  const closeButtonBorderWidthInput = getInput<HTMLInputElement>("launcher-close-button-border-width");
+  const closeButtonBorderWidthSlider = getInput<HTMLInputElement>("launcher-close-button-border-width-slider");
+  const closeButtonBorderRadiusInput = getInput<HTMLInputElement>("launcher-close-button-border-radius");
+  const closeButtonBorderRadiusSlider = getInput<HTMLInputElement>("launcher-close-button-border-radius-slider");
+  
+  // Note: Colors come from theme, not from presets - they are managed through theme controls
+  if (presetValues.closeButtonBorderWidth) {
+    closeButtonBorderWidthInput.value = presetValues.closeButtonBorderWidth;
+    const parsed = parseCssValue(presetValues.closeButtonBorderWidth);
+    const pxValue = convertToPx(parsed.value, parsed.unit);
+    closeButtonBorderWidthSlider.value = pxValue.toString();
+  } else {
+    closeButtonBorderWidthInput.value = "";
+    closeButtonBorderWidthSlider.value = "0";
+  }
+  if (presetValues.closeButtonBorderRadius) {
+    closeButtonBorderRadiusInput.value = presetValues.closeButtonBorderRadius;
+    // Update slider if it's a percentage value (50%)
+    if (presetValues.closeButtonBorderRadius === "50%") {
+      closeButtonBorderRadiusSlider.value = "100";
+    } else {
+      const parsed = parseCssValue(presetValues.closeButtonBorderRadius);
+      const pxValue = convertToPx(parsed.value, parsed.unit);
+      closeButtonBorderRadiusSlider.value = pxValue.toString();
+    }
+  }
+  
+  const newConfig = {
+    ...currentConfig,
+    launcher: { 
+      ...currentConfig.launcher, 
+      closeButtonBorderWidth: presetValues.closeButtonBorderWidth || undefined,
+      closeButtonBorderRadius: presetValues.closeButtonBorderRadius || undefined
+      // Note: Colors are preserved from current config (they come from theme, not from close button presets)
     }
   };
   immediateUpdate(newConfig);
@@ -729,36 +1073,55 @@ function setupLauncherControls() {
   const enabledInput = getInput<HTMLInputElement>("launcher-enabled");
   const titleInput = getInput<HTMLInputElement>("launcher-title");
   const subtitleInput = getInput<HTMLInputElement>("launcher-subtitle");
-  const iconTextInput = getInput<HTMLInputElement>("launcher-icon-text");
-  const positionInput = getInput<HTMLSelectElement>("launcher-position");
-  const widthInput = getInput<HTMLInputElement>("launcher-width");
-  const autoExpandInput = getInput<HTMLInputElement>("launcher-auto-expand");
+  const textHiddenInput = getInput<HTMLInputElement>("launcher-text-hidden");
   const agentIconTextInput = getInput<HTMLInputElement>("launcher-agent-icon-text");
   const agentIconNameInput = getInput<HTMLInputElement>("launcher-agent-icon-name");
   const agentIconHiddenInput = getInput<HTMLInputElement>("launcher-agent-icon-hidden");
-  const agentIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color");
-  const agentIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-agent-icon-background-color-text");
+  const positionInput = getInput<HTMLSelectElement>("launcher-position");
+  const widthInput = getInput<HTMLInputElement>("launcher-width");
+  const autoExpandInput = getInput<HTMLInputElement>("launcher-auto-expand");
+  const callToActionIconTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-text");
+  const callToActionIconNameInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-name");
+  const callToActionIconHiddenInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-hidden");
+  const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
+  const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
   
   // Size inputs - these will be handled by sliders, but we still need references for the update function
-  const iconSizeInput = getInput<HTMLInputElement>("launcher-icon-size");
   const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
-  const agentIconPaddingInput = getInput<HTMLInputElement>("launcher-agent-icon-padding");
-  const headerIconSizeInput = getInput<HTMLInputElement>("launcher-header-icon-size");
-  const closeButtonSizeInput = getInput<HTMLInputElement>("launcher-close-button-size");
+  const callToActionIconSizeInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-size");
+  const callToActionIconPaddingInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-padding");
 
   // Set initial values
   enabledInput.checked = currentConfig.launcher?.enabled ?? true;
   titleInput.value = currentConfig.launcher?.title ?? "Chat Assistant";
   subtitleInput.value = currentConfig.launcher?.subtitle ?? "Here to help you get answers fast";
-  iconTextInput.value = currentConfig.launcher?.iconText ?? "💬";
+  textHiddenInput.checked = currentConfig.launcher?.textHidden ?? false;
+  agentIconTextInput.value = currentConfig.launcher?.agentIconText ?? "💬";
+  agentIconNameInput.value = currentConfig.launcher?.agentIconName ?? "";
+  agentIconHiddenInput.checked = currentConfig.launcher?.agentIconHidden ?? false;
   positionInput.value = currentConfig.launcher?.position ?? "bottom-right";
   widthInput.value = currentConfig.launcher?.width ?? "min(360px, calc(100vw - 24px))";
   autoExpandInput.checked = currentConfig.launcher?.autoExpand ?? false;
-  agentIconTextInput.value = currentConfig.launcher?.agentIconText ?? "↗";
-  agentIconNameInput.value = currentConfig.launcher?.agentIconName ?? "";
-  agentIconHiddenInput.checked = currentConfig.launcher?.agentIconHidden ?? false;
-  agentIconBackgroundColorInput.value = currentConfig.launcher?.agentIconBackgroundColor ?? "";
-  agentIconBackgroundColorTextInput.value = currentConfig.launcher?.agentIconBackgroundColor ?? "";
+  callToActionIconTextInput.value = currentConfig.launcher?.callToActionIconText ?? "↗";
+  callToActionIconNameInput.value = currentConfig.launcher?.callToActionIconName ?? "";
+  callToActionIconHiddenInput.checked = currentConfig.launcher?.callToActionIconHidden ?? false;
+  
+  // Setup color inputs with transparent support
+  setupColorInput(
+    "launcher-call-to-action-icon-background-color",
+    "launcher-call-to-action-icon-background-color-text",
+    () => currentConfig.launcher?.callToActionIconBackgroundColor ?? "transparent",
+    (value) => {
+      const newConfig = {
+        ...currentConfig,
+        launcher: {
+          ...currentConfig.launcher,
+          callToActionIconBackgroundColor: value === "transparent" ? undefined : value
+        }
+      };
+      debouncedUpdate(newConfig);
+    }
+  );
 
   const updateLauncher = () => {
     const newConfig = {
@@ -768,19 +1131,20 @@ function setupLauncherControls() {
         enabled: enabledInput.checked,
         title: titleInput.value,
         subtitle: subtitleInput.value,
-        iconText: iconTextInput.value,
-        position: positionInput.value as "bottom-right" | "bottom-left" | "top-right" | "top-left",
-        width: widthInput.value,
-        autoExpand: autoExpandInput.checked,
+        textHidden: textHiddenInput.checked,
         agentIconText: agentIconTextInput.value,
         agentIconName: agentIconNameInput.value || undefined,
         agentIconHidden: agentIconHiddenInput.checked,
-        agentIconBackgroundColor: agentIconBackgroundColorInput.value || undefined,
-        iconSize: iconSizeInput.value,
+        position: positionInput.value as "bottom-right" | "bottom-left" | "top-right" | "top-left",
+        width: widthInput.value,
+        autoExpand: autoExpandInput.checked,
+        callToActionIconText: callToActionIconTextInput.value,
+        callToActionIconName: callToActionIconNameInput.value || undefined,
+        callToActionIconHidden: callToActionIconHiddenInput.checked,
+        callToActionIconBackgroundColor: callToActionIconBackgroundColorTextInput.value === "transparent" ? undefined : (callToActionIconBackgroundColorTextInput.value || undefined),
         agentIconSize: agentIconSizeInput.value,
-        agentIconPadding: agentIconPaddingInput.value || undefined,
-        headerIconSize: headerIconSizeInput.value,
-        closeButtonSize: closeButtonSizeInput.value
+        callToActionIconSize: callToActionIconSizeInput.value,
+        callToActionIconPadding: callToActionIconPaddingInput.value || undefined
       }
     };
     debouncedUpdate(newConfig);
@@ -788,10 +1152,8 @@ function setupLauncherControls() {
 
   // Setup sliders for size inputs
   const sizeInputs = [
-    { key: "iconSize", inputId: "launcher-icon-size", sliderId: "launcher-icon-size-slider" },
     { key: "agentIconSize", inputId: "launcher-agent-icon-size", sliderId: "launcher-agent-icon-size-slider" },
-    { key: "headerIconSize", inputId: "launcher-header-icon-size", sliderId: "launcher-header-icon-size-slider" },
-    { key: "closeButtonSize", inputId: "launcher-close-button-size", sliderId: "launcher-close-button-size-slider" }
+    { key: "callToActionIconSize", inputId: "launcher-call-to-action-icon-size", sliderId: "launcher-call-to-action-icon-size-slider" }
   ];
 
   sizeInputs.forEach(({ key, inputId, sliderId }) => {
@@ -806,17 +1168,16 @@ function setupLauncherControls() {
       },
       getInitialValue: () => {
         return currentConfig.launcher?.[key as keyof typeof currentConfig.launcher] as string || 
-               (key === "iconSize" ? "40px" : 
-                key === "agentIconSize" ? "32px" : 
-                key === "headerIconSize" ? "48px" : "32px");
+               (key === "agentIconSize" ? "40px" : 
+                key === "callToActionIconSize" ? "32px" : "32px");
       }
     });
   });
 
-  // Setup slider for agent icon padding
+  // Setup slider for call to action icon padding
   setupSliderInput({
-    sliderId: "launcher-agent-icon-padding-slider",
-    textInputId: "launcher-agent-icon-padding",
+    sliderId: "launcher-call-to-action-icon-padding-slider",
+    textInputId: "launcher-call-to-action-icon-padding",
     min: 0,
     max: 32,
     step: 1,
@@ -824,21 +1185,11 @@ function setupLauncherControls() {
       updateLauncher();
     },
     getInitialValue: () => {
-      return currentConfig.launcher?.agentIconPadding ?? "5px";
+      return currentConfig.launcher?.callToActionIconPadding ?? "5px";
     }
   });
 
-  // Bidirectional sync for agent icon background color
-  agentIconBackgroundColorInput.addEventListener("input", () => {
-    agentIconBackgroundColorTextInput.value = agentIconBackgroundColorInput.value;
-    updateLauncher();
-  });
-  agentIconBackgroundColorTextInput.addEventListener("input", () => {
-    agentIconBackgroundColorInput.value = agentIconBackgroundColorTextInput.value;
-    updateLauncher();
-  });
-
-  [enabledInput, titleInput, subtitleInput, iconTextInput, positionInput, widthInput, autoExpandInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput]
+  [enabledInput, titleInput, subtitleInput, textHiddenInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput, positionInput, widthInput, autoExpandInput, callToActionIconTextInput, callToActionIconNameInput, callToActionIconHiddenInput]
     .forEach((input) => {
       input.addEventListener("input", updateLauncher);
       input.addEventListener("change", updateLauncher);
@@ -853,45 +1204,214 @@ function setupLauncherControls() {
   });
 }
 
+// Close Button controls
+function setupCloseButtonControls() {
+  const closeButtonSizeInput = getInput<HTMLInputElement>("launcher-close-button-size");
+  const closeButtonPlacementInput = getInput<HTMLSelectElement>("launcher-close-button-placement");
+  const closeButtonBorderWidthInput = getInput<HTMLInputElement>("launcher-close-button-border-width");
+  const closeButtonBorderRadiusInput = getInput<HTMLInputElement>("launcher-close-button-border-radius");
+
+  // Set initial values
+  closeButtonPlacementInput.value = currentConfig.launcher?.closeButtonPlacement ?? "inline";
+  closeButtonBorderWidthInput.value = currentConfig.launcher?.closeButtonBorderWidth ?? "";
+  closeButtonBorderRadiusInput.value = currentConfig.launcher?.closeButtonBorderRadius ?? "";
+
+  const updateCloseButton = () => {
+    const newConfig = {
+      ...currentConfig,
+      launcher: {
+        ...currentConfig.launcher,
+        closeButtonSize: closeButtonSizeInput.value,
+        closeButtonPlacement: closeButtonPlacementInput.value as "inline" | "top-right",
+        // Note: Colors come from theme, not from these controls
+        closeButtonBorderWidth: closeButtonBorderWidthInput.value || undefined,
+        closeButtonBorderRadius: closeButtonBorderRadiusInput.value || undefined
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  // Setup slider for close button size
+  setupSliderInput({
+    sliderId: "launcher-close-button-size-slider",
+    textInputId: "launcher-close-button-size",
+    min: 16,
+    max: 128,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCloseButton();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.closeButtonSize ?? "32px";
+    }
+  });
+
+  // Setup slider for close button border radius
+  setupSliderInput({
+    sliderId: "launcher-close-button-border-radius-slider",
+    textInputId: "launcher-close-button-border-radius",
+    min: 0,
+    max: 100,
+    step: 1,
+    isRadiusFull: true,
+    onUpdate: (value: string) => {
+      updateCloseButton();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.closeButtonBorderRadius ?? "50%";
+    }
+  });
+
+  // Setup slider for close button border width
+  setupSliderInput({
+    sliderId: "launcher-close-button-border-width-slider",
+    textInputId: "launcher-close-button-border-width",
+    min: 0,
+    max: 8,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCloseButton();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.closeButtonBorderWidth ?? "";
+    }
+  });
+
+  closeButtonPlacementInput.addEventListener("change", updateCloseButton);
+
+  // Close button preset buttons
+  document.querySelectorAll("[data-close-button-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = (button as HTMLElement).dataset.closeButtonPreset as keyof typeof CLOSE_BUTTON_PRESETS;
+      applyCloseButtonPreset(preset);
+    });
+  });
+}
+
+// Typography controls
+function setupTypographyControls() {
+  const fontFamilySelect = getInput<HTMLSelectElement>("input-font-family");
+  const fontWeightSlider = getInput<HTMLInputElement>("input-font-weight-slider");
+  const fontWeightInput = getInput<HTMLInputElement>("input-font-weight");
+  
+  // Set initial values from config or preset defaults
+  fontFamilySelect.value = currentConfig.theme?.inputFontFamily ?? TYPOGRAPHY_PRESETS.default.inputFontFamily;
+  const initialFontWeight = currentConfig.theme?.inputFontWeight ?? TYPOGRAPHY_PRESETS.default.inputFontWeight;
+  const fontWeightNum = parseInt(initialFontWeight, 10) || 400;
+  fontWeightSlider.value = String(fontWeightNum);
+  fontWeightInput.value = String(fontWeightNum);
+  
+  // Flag to prevent update loops
+  let isUpdating = false;
+  
+  // Update from slider to text input (number only, no units)
+  fontWeightSlider.addEventListener("input", () => {
+    if (isUpdating) return;
+    isUpdating = true;
+    const value = fontWeightSlider.value;
+    fontWeightInput.value = value;
+    updateTypography();
+    isUpdating = false;
+  });
+  
+  // Update from text input to slider (number only, no units)
+  fontWeightInput.addEventListener("input", () => {
+    if (isUpdating) return;
+    const value = fontWeightInput.value.trim();
+    if (!value) return;
+    
+    // Parse number, removing any units
+    const numValue = parseInt(value.replace(/[^\d]/g, ''), 10);
+    if (isNaN(numValue)) return;
+    
+    // Clamp to valid range
+    const clampedValue = Math.max(100, Math.min(900, numValue));
+    fontWeightSlider.value = String(clampedValue);
+    fontWeightInput.value = String(clampedValue);
+    updateTypography();
+  });
+  
+  const updateTypography = () => {
+    const fontWeightValue = fontWeightInput.value.trim();
+    const fontWeightNum = parseInt(fontWeightValue, 10);
+    
+    const newConfig = {
+      ...currentConfig,
+      theme: {
+        ...currentConfig.theme,
+        inputFontFamily: fontFamilySelect.value as "sans-serif" | "serif" | "mono",
+        inputFontWeight: isNaN(fontWeightNum) ? undefined : String(fontWeightNum)
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+  
+  fontFamilySelect.addEventListener("change", updateTypography);
+  
+  // Typography preset buttons
+  document.querySelectorAll("[data-typography-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = (button as HTMLElement).dataset.typographyPreset as keyof typeof TYPOGRAPHY_PRESETS;
+      applyTypographyPreset(preset);
+    });
+  });
+}
+
+function applyTypographyPreset(preset: keyof typeof TYPOGRAPHY_PRESETS) {
+  const presetValues = TYPOGRAPHY_PRESETS[preset];
+  const fontFamilySelect = getInput<HTMLSelectElement>("input-font-family");
+  const fontWeightInput = getInput<HTMLInputElement>("input-font-weight");
+  const fontWeightSlider = getInput<HTMLInputElement>("input-font-weight-slider");
+  
+  if (fontFamilySelect) {
+    fontFamilySelect.value = presetValues.inputFontFamily;
+  }
+  if (fontWeightInput && fontWeightSlider) {
+    const fontWeightNum = parseInt(presetValues.inputFontWeight, 10) || 400;
+    fontWeightInput.value = String(fontWeightNum);
+    fontWeightSlider.value = String(fontWeightNum);
+  }
+  
+  const newConfig = {
+    ...currentConfig,
+    theme: {
+      ...currentConfig.theme,
+      inputFontFamily: presetValues.inputFontFamily,
+      inputFontWeight: presetValues.inputFontWeight
+    }
+  };
+  immediateUpdate(newConfig);
+}
+
 // Copy/Text controls
 function setupCopyControls() {
   const welcomeTitleInput = getInput<HTMLInputElement>("copy-welcome-title");
   const welcomeSubtitleInput = getInput<HTMLInputElement>("copy-welcome-subtitle");
   const placeholderInput = getInput<HTMLInputElement>("copy-placeholder");
   const sendButtonInput = getInput<HTMLInputElement>("copy-send-button");
-  const borderColorInput = getInput<HTMLInputElement>("send-button-border-color");
-  const borderColorTextInput = getInput<HTMLInputElement>("send-button-border-color-text");
   const useIconInput = getInput<HTMLInputElement>("send-button-use-icon");
   const iconTextInput = getInput<HTMLInputElement>("send-button-icon-text");
   const iconNameInput = getInput<HTMLInputElement>("send-button-icon-name");
   const sizeInput = getInput<HTMLInputElement>("send-button-size");
-  const backgroundColorInput = getInput<HTMLInputElement>("send-button-background-color");
-  const backgroundColorTextInput = getInput<HTMLInputElement>("send-button-background-color-text");
-  const textColorInput = getInput<HTMLInputElement>("send-button-text-color");
-  const textColorTextInput = getInput<HTMLInputElement>("send-button-text-color-text");
   const showTooltipInput = getInput<HTMLInputElement>("send-button-show-tooltip");
   const tooltipTextInput = getInput<HTMLInputElement>("send-button-tooltip-text");
+  const headerIconSizeInput = getInput<HTMLInputElement>("launcher-header-icon-size");
+  const headerIconNameInput = getInput<HTMLInputElement>("launcher-header-icon-name");
+  const headerIconHiddenInput = getInput<HTMLInputElement>("launcher-header-icon-hidden");
 
   // Set initial values
   welcomeTitleInput.value = currentConfig.copy?.welcomeTitle ?? "Hello 👋";
   welcomeSubtitleInput.value = currentConfig.copy?.welcomeSubtitle ?? "Ask anything about your account or products.";
   placeholderInput.value = currentConfig.copy?.inputPlaceholder ?? "Type your message…";
   sendButtonInput.value = currentConfig.copy?.sendButtonLabel ?? "Send";
-  const borderColor = currentConfig.sendButton?.borderColor ?? "#000000";
-  borderColorInput.value = borderColor;
-  borderColorTextInput.value = borderColor;
   useIconInput.checked = currentConfig.sendButton?.useIcon ?? false;
   iconTextInput.value = currentConfig.sendButton?.iconText ?? "↑";
   iconNameInput.value = currentConfig.sendButton?.iconName ?? "";
   sizeInput.value = currentConfig.sendButton?.size ?? "40px";
-  const bgColor = currentConfig.sendButton?.backgroundColor ?? "";
-  backgroundColorInput.value = bgColor || "#111827";
-  backgroundColorTextInput.value = bgColor || "#111827";
-  const txtColor = currentConfig.sendButton?.textColor ?? "";
-  textColorInput.value = txtColor || "#ffffff";
-  textColorTextInput.value = txtColor || "#ffffff";
   showTooltipInput.checked = currentConfig.sendButton?.showTooltip ?? false;
   tooltipTextInput.value = currentConfig.sendButton?.tooltipText ?? "Send message";
+  headerIconNameInput.value = currentConfig.launcher?.headerIconName ?? "";
+  headerIconHiddenInput.checked = currentConfig.launcher?.headerIconHidden ?? false;
 
   // Setup slider inputs for border width and padding
   setupSliderInput({
@@ -978,6 +1498,21 @@ function setupCopyControls() {
     }
   });
 
+  // Setup slider for header icon size
+  setupSliderInput({
+    sliderId: "launcher-header-icon-size-slider",
+    textInputId: "launcher-header-icon-size",
+    min: 16,
+    max: 128,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.headerIconSize ?? "48px";
+    }
+  });
+
   const updateCopy = () => {
     const newConfig = {
       ...currentConfig,
@@ -989,60 +1524,25 @@ function setupCopyControls() {
       },
       sendButton: {
         ...currentConfig.sendButton,
-        borderColor: borderColorTextInput.value.trim() || undefined,
+        // Note: Colors come from theme, not from these controls
         useIcon: useIconInput.checked,
         iconText: iconTextInput.value.trim() || undefined,
         iconName: iconNameInput.value.trim() || undefined,
         size: sizeInput.value.trim() || undefined,
-        backgroundColor: backgroundColorTextInput.value.trim() || undefined,
-        textColor: textColorTextInput.value.trim() || undefined,
         showTooltip: showTooltipInput.checked,
         tooltipText: tooltipTextInput.value.trim() || undefined
+      },
+      launcher: {
+        ...currentConfig.launcher,
+        headerIconSize: headerIconSizeInput.value,
+        headerIconName: headerIconNameInput.value || undefined,
+        headerIconHidden: headerIconHiddenInput.checked
       }
     };
     debouncedUpdate(newConfig);
   };
 
-  // Sync border color picker and text input
-  borderColorInput.addEventListener("input", () => {
-    borderColorTextInput.value = borderColorInput.value;
-    updateCopy();
-  });
-
-  borderColorTextInput.addEventListener("input", () => {
-    if (/^#[0-9A-Fa-f]{6}$/.test(borderColorTextInput.value)) {
-      borderColorInput.value = borderColorTextInput.value;
-      updateCopy();
-    }
-  });
-
-  // Sync background color picker and text input
-  backgroundColorInput.addEventListener("input", () => {
-    backgroundColorTextInput.value = backgroundColorInput.value;
-    updateCopy();
-  });
-
-  backgroundColorTextInput.addEventListener("input", () => {
-    if (/^#[0-9A-Fa-f]{6}$/.test(backgroundColorTextInput.value)) {
-      backgroundColorInput.value = backgroundColorTextInput.value;
-      updateCopy();
-    }
-  });
-
-  // Sync text color picker and text input
-  textColorInput.addEventListener("input", () => {
-    textColorTextInput.value = textColorInput.value;
-    updateCopy();
-  });
-
-  textColorTextInput.addEventListener("input", () => {
-    if (/^#[0-9A-Fa-f]{6}$/.test(textColorTextInput.value)) {
-      textColorInput.value = textColorTextInput.value;
-      updateCopy();
-    }
-  });
-
-  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput]
+  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput, headerIconNameInput, headerIconHiddenInput]
     .forEach((input) => input.addEventListener("input", updateCopy));
 
   // Send button preset buttons
@@ -1093,25 +1593,176 @@ function setupFeatureControls() {
   const reasoningInput = getInput<HTMLInputElement>("feature-reasoning");
   const toolCallsInput = getInput<HTMLInputElement>("feature-tool-calls");
   const debugInput = getInput<HTMLInputElement>("debug-mode");
+  const voiceRecognitionInput = getInput<HTMLInputElement>("voice-recognition-enabled");
+  const pauseDurationSlider = getInput<HTMLInputElement>("voice-recognition-pause-duration-slider");
+  const pauseDurationInput = getInput<HTMLInputElement>("voice-recognition-pause-duration");
+  const iconNameInput = getInput<HTMLInputElement>("voice-recognition-icon-name");
+  const showTooltipInput = getInput<HTMLInputElement>("voice-recognition-show-tooltip");
+  const tooltipTextInput = getInput<HTMLInputElement>("voice-recognition-tooltip-text");
 
   // Set initial values
   reasoningInput.checked = currentConfig.features?.showReasoning ?? true;
   toolCallsInput.checked = currentConfig.features?.showToolCalls ?? true;
   debugInput.checked = currentConfig.debug ?? false;
+  voiceRecognitionInput.checked = currentConfig.voiceRecognition?.enabled ?? false;
+  
+  const initialPauseDuration = currentConfig.voiceRecognition?.pauseDuration ?? 2000;
+  pauseDurationSlider.value = String(initialPauseDuration);
+  pauseDurationInput.value = String(initialPauseDuration);
+  
+  iconNameInput.value = currentConfig.voiceRecognition?.iconName ?? "";
+  showTooltipInput.checked = currentConfig.voiceRecognition?.showTooltip ?? false;
+  tooltipTextInput.value = currentConfig.voiceRecognition?.tooltipText ?? "Start voice recognition";
+
+  // Setup icon size slider
+  setupSliderInput({
+    sliderId: "voice-recognition-icon-size-slider",
+    textInputId: "voice-recognition-icon-size",
+    min: 24,
+    max: 64,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateVoiceRecognition();
+    },
+    getInitialValue: () => {
+      return currentConfig.voiceRecognition?.iconSize ?? "";
+    }
+  });
+
+  // Setup border width slider
+  setupSliderInput({
+    sliderId: "voice-recognition-border-width-slider",
+    textInputId: "voice-recognition-border-width",
+    min: 0,
+    max: 10,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateVoiceRecognition();
+    },
+    getInitialValue: () => {
+      return currentConfig.voiceRecognition?.borderWidth ?? "0px";
+    }
+  });
+
+  // Setup padding X slider
+  setupSliderInput({
+    sliderId: "voice-recognition-padding-x-slider",
+    textInputId: "voice-recognition-padding-x",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateVoiceRecognition();
+    },
+    getInitialValue: () => {
+      return currentConfig.voiceRecognition?.paddingX ?? "10px";
+    }
+  });
+
+  // Setup padding Y slider
+  setupSliderInput({
+    sliderId: "voice-recognition-padding-y-slider",
+    textInputId: "voice-recognition-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateVoiceRecognition();
+    },
+    getInitialValue: () => {
+      return currentConfig.voiceRecognition?.paddingY ?? "10px";
+    }
+  });
+
+  const updateVoiceRecognition = () => {
+    const iconSizeInput = getInput<HTMLInputElement>("voice-recognition-icon-size");
+    const borderWidthInput = getInput<HTMLInputElement>("voice-recognition-border-width");
+    const paddingXInput = getInput<HTMLInputElement>("voice-recognition-padding-x");
+    const paddingYInput = getInput<HTMLInputElement>("voice-recognition-padding-y");
+    
+    const newConfig = {
+      ...currentConfig,
+      voiceRecognition: {
+        ...currentConfig.voiceRecognition,
+        enabled: voiceRecognitionInput.checked,
+        pauseDuration: parseInt(pauseDurationInput.value, 10) || 2000,
+        iconName: iconNameInput.value.trim() || undefined,
+        iconSize: iconSizeInput.value.trim() || undefined,
+        borderWidth: borderWidthInput.value.trim() || undefined,
+        paddingX: paddingXInput.value.trim() || undefined,
+        paddingY: paddingYInput.value.trim() || undefined,
+        showTooltip: showTooltipInput.checked,
+        tooltipText: tooltipTextInput.value.trim() || undefined,
+        // Colors are now managed by theme
+        iconColor: currentConfig.theme?.micIconColor,
+        backgroundColor: currentConfig.theme?.micBackgroundColor,
+        borderColor: currentConfig.theme?.micBorderColor,
+        recordingIconColor: currentConfig.theme?.recordingIconColor,
+        recordingBackgroundColor: currentConfig.theme?.recordingBackgroundColor,
+        recordingBorderColor: currentConfig.theme?.recordingBorderColor
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
 
   const updateFeatures = () => {
+    const iconSizeInput = getInput<HTMLInputElement>("voice-recognition-icon-size");
+    const borderWidthInput = getInput<HTMLInputElement>("voice-recognition-border-width");
+    const paddingXInput = getInput<HTMLInputElement>("voice-recognition-padding-x");
+    const paddingYInput = getInput<HTMLInputElement>("voice-recognition-padding-y");
+    
     const newConfig = {
       ...currentConfig,
       features: {
         showReasoning: reasoningInput.checked,
         showToolCalls: toolCallsInput.checked
       },
-      debug: debugInput.checked
+      debug: debugInput.checked,
+      voiceRecognition: {
+        ...currentConfig.voiceRecognition,
+        enabled: voiceRecognitionInput.checked,
+        pauseDuration: parseInt(pauseDurationInput.value, 10) || 2000,
+        iconName: iconNameInput.value.trim() || undefined,
+        iconSize: iconSizeInput.value.trim() || undefined,
+        borderWidth: borderWidthInput.value.trim() || undefined,
+        paddingX: paddingXInput.value.trim() || undefined,
+        paddingY: paddingYInput.value.trim() || undefined,
+        showTooltip: showTooltipInput.checked,
+        tooltipText: tooltipTextInput.value.trim() || undefined,
+        // Colors are now managed by theme
+        iconColor: currentConfig.theme?.micIconColor,
+        backgroundColor: currentConfig.theme?.micBackgroundColor,
+        borderColor: currentConfig.theme?.micBorderColor,
+        recordingIconColor: currentConfig.theme?.recordingIconColor,
+        recordingBackgroundColor: currentConfig.theme?.recordingBackgroundColor,
+        recordingBorderColor: currentConfig.theme?.recordingBorderColor
+      }
     };
     debouncedUpdate(newConfig);
   };
 
-  [reasoningInput, toolCallsInput, debugInput].forEach((input) =>
+  // Sync pause duration slider and input
+  pauseDurationSlider.addEventListener("input", () => {
+    pauseDurationInput.value = pauseDurationSlider.value;
+    updateFeatures();
+  });
+
+  pauseDurationInput.addEventListener("input", () => {
+    const value = parseInt(pauseDurationInput.value, 10);
+    if (!isNaN(value) && value >= 500 && value <= 5000) {
+      pauseDurationSlider.value = String(value);
+      updateFeatures();
+    }
+  });
+
+  // Update on icon name change
+  iconNameInput.addEventListener("input", updateFeatures);
+  
+  // Update on tooltip changes
+  showTooltipInput.addEventListener("change", updateFeatures);
+  tooltipTextInput.addEventListener("input", updateFeatures);
+
+  [reasoningInput, toolCallsInput, debugInput, voiceRecognitionInput].forEach((input) =>
     input.addEventListener("change", updateFeatures)
   );
 }
@@ -1348,6 +1999,9 @@ function setupResetControls() {
       currentConfig = getDefaultConfig();
       widgetController.update(currentConfig);
       saveConfigToLocalStorage(currentConfig);
+      
+      // Clear accordion state so all accordions are collapsed on reload
+      clearAccordionState();
 
       // Reset all form inputs
       location.reload();
@@ -1357,15 +2011,101 @@ function setupResetControls() {
 
 // Initialize all controls
 function init() {
+  setupAccordions();
   setupThemeControls();
+  setupTypographyControls();
   setupLauncherControls();
   setupCopyControls();
+  setupCloseButtonControls();
   setupStatusIndicatorControls();
   setupFeatureControls();
   setupSuggestionChipsControls();
   setupOtherOptionsControls();
   setupExportControls();
   setupResetControls();
+}
+
+// Accordion state management
+const ACCORDION_STATE_KEY = "chaty-assistant-accordion-state";
+
+function getAccordionState(): Record<string, boolean> {
+  try {
+    const saved = localStorage.getItem(ACCORDION_STATE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAccordionState(state: Record<string, boolean>) {
+  try {
+    localStorage.setItem(ACCORDION_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+function clearAccordionState() {
+  try {
+    localStorage.removeItem(ACCORDION_STATE_KEY);
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+// Initialize accordions
+function setupAccordions() {
+  const accordions = document.querySelectorAll(".accordion");
+  const savedState = getAccordionState();
+  let accordionState: Record<string, boolean> = { ...savedState };
+  
+  accordions.forEach((accordion, index) => {
+    const header = accordion.querySelector(".accordion-header");
+    const toggle = accordion.querySelector(".accordion-toggle");
+    const title = accordion.querySelector("h2");
+    
+    if (!header || !toggle) return;
+    
+    // Create unique identifier for this accordion
+    const accordionId = title?.textContent?.toLowerCase().replace(/\s+/g, "-") || `accordion-${index}`;
+    
+    // Get saved state or default to collapsed (true = collapsed)
+    const isCollapsed = accordionState[accordionId] !== undefined ? accordionState[accordionId] : true;
+    
+    // Set initial state
+    if (isCollapsed) {
+      accordion.classList.add("collapsed");
+    }
+    
+    // Ensure state is tracked
+    accordionState[accordionId] = isCollapsed;
+    
+    // Click handler for header or toggle button
+    const handleToggle = (e: Event) => {
+      // Don't toggle if clicking on preset buttons
+      const target = e.target as HTMLElement;
+      if (target.tagName === "BUTTON" && target.closest(".accordion-presets")) {
+        return;
+      }
+      
+      accordion.classList.toggle("collapsed");
+      const isNowCollapsed = accordion.classList.contains("collapsed");
+      accordionState[accordionId] = isNowCollapsed;
+      saveAccordionState(accordionState);
+    };
+    
+    header.addEventListener("click", handleToggle);
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      accordion.classList.toggle("collapsed");
+      const isNowCollapsed = accordion.classList.contains("collapsed");
+      accordionState[accordionId] = isNowCollapsed;
+      saveAccordionState(accordionState);
+    });
+  });
+  
+  // Save initial state
+  saveAccordionState(accordionState);
 }
 
 // Start the configurator

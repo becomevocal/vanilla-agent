@@ -64,26 +64,25 @@ function createSvgFromIconData(
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
   
-  // Render paths from icon data
-  // IconNode format: [["path", {"d": "..."}], ["path", {"d": "..."}]]
-  iconData.forEach((pathData) => {
-    if (Array.isArray(pathData) && pathData.length >= 2) {
-      const tagName = pathData[0] as string;
-      const attrs = pathData[1] as Record<string, string>;
+  // Render elements from icon data
+  // IconNode format: [["path", {"d": "..."}], ["rect", {"x": "...", "y": "..."}], ...]
+  iconData.forEach((elementData) => {
+    if (Array.isArray(elementData) && elementData.length >= 2) {
+      const tagName = elementData[0] as string;
+      const attrs = elementData[1] as Record<string, string>;
       
-      if (tagName === "path" && attrs && attrs.d) {
-        const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        pathElement.setAttribute("d", attrs.d);
+      if (attrs) {
+        // Create the appropriate SVG element (path, rect, circle, ellipse, line, etc.)
+        const element = document.createElementNS("http://www.w3.org/2000/svg", tagName);
         
-        // Apply other attributes if provided, but skip 'd' and 'stroke' 
-        // (we want to use the parent SVG's stroke for consistent coloring)
+        // Apply all attributes, but skip 'stroke' (we want to use the parent SVG's stroke for consistent coloring)
         Object.entries(attrs).forEach(([key, value]) => {
-          if (key !== "d" && key !== "stroke") {
-            pathElement.setAttribute(key, String(value));
+          if (key !== "stroke") {
+            element.setAttribute(key, String(value));
           }
         });
         
-        svg.appendChild(pathElement);
+        svg.appendChild(element);
       }
     }
   });
