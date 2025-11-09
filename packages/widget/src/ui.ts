@@ -259,9 +259,28 @@ export const createChatExperience = (
     // Add typing indicator if streaming and there's at least one user message
     if (isStreaming && messages.some((msg) => msg.role === "user")) {
       const typingIndicator = createTypingIndicator();
+      
+      // Create a bubble wrapper for the typing indicator (similar to assistant messages)
+      const typingBubble = document.createElement("div");
+      typingBubble.className = [
+        "tvw-max-w-[85%]",
+        "tvw-rounded-2xl",
+        "tvw-text-sm",
+        "tvw-leading-relaxed",
+        "tvw-shadow-sm",
+        "tvw-bg-cw-surface",
+        "tvw-border",
+        "tvw-border-cw-message-border",
+        "tvw-text-cw-primary",
+        "tvw-px-5",
+        "tvw-py-3"
+      ].join(" ");
+      
+      typingBubble.appendChild(typingIndicator);
+      
       const typingWrapper = document.createElement("div");
-      typingWrapper.className = "tvw-flex tvw-justify-end";
-      typingWrapper.appendChild(typingIndicator);
+      typingWrapper.className = "tvw-flex";
+      typingWrapper.appendChild(typingBubble);
       fragment.appendChild(typingWrapper);
     }
 
