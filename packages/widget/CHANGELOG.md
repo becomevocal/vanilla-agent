@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.1.0
+
+### Minor Changes
+
+- b7124ae: update proxy examples for vercel and cloudflare
+
 ## 1.0.0
 
 ### Major Changes
