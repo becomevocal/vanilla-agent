@@ -12,14 +12,14 @@ const preferredPort = Number(process.env.PORT ?? 43111);
 // Default chat proxy - basic conversational assistant
 const app = createChatProxyApp({
   path: "/api/chat/dispatch",
-  allowedOrigins: ["http://localhost:5173"]
+  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"]
 });
 
 // Directive-enabled proxy for interactive form demo
 // This flow includes instructions to output form directives
 const directiveApp = createChatProxyApp({
   path: "/api/chat/dispatch-directive",
-  allowedOrigins: ["http://localhost:5173"],
+  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
   flowId: process.env.TRAVRSE_FLOW_ID,
 });
 
@@ -27,7 +27,7 @@ const directiveApp = createChatProxyApp({
 // Uses the shared shopping assistant flow from vanilla-agent-proxy
 const actionApp = createChatProxyApp({
   path: "/api/chat/dispatch-action",
-  allowedOrigins: ["http://localhost:5173"],
+  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
   flowConfig: SHOPPING_ASSISTANT_FLOW
 });
 
@@ -40,8 +40,11 @@ app.route("/", actionApp);
 app.post("/api/checkout", async (c) => {
   // Handle CORS
   if (c.req.method === "OPTIONS") {
+    const origin = c.req.header("origin");
+    const allowedOrigins = ["http://localhost:5173", "http://localhost:4173"];
+    const corsOrigin = allowedOrigins.includes(origin || "") ? origin : allowedOrigins[0];
     return c.json({}, 200, {
-      "Access-Control-Allow-Origin": "http://localhost:5173",
+      "Access-Control-Allow-Origin": corsOrigin,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     });
@@ -51,13 +54,18 @@ app.post("/api/checkout", async (c) => {
     const body = await c.req.json();
     const { items } = body;
 
+    // Get origin for CORS
+    const origin = c.req.header("origin");
+    const allowedOrigins = ["http://localhost:5173", "http://localhost:4173"];
+    const corsOrigin = allowedOrigins.includes(origin || "") ? origin : allowedOrigins[0];
+
     // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
       return c.json(
         { success: false, error: "Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable." },
         500,
         {
-          "Access-Control-Allow-Origin": "http://localhost:5173",
+          "Access-Control-Allow-Origin": corsOrigin,
         }
       );
     }
@@ -71,15 +79,18 @@ app.post("/api/checkout", async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400, {
-      "Access-Control-Allow-Origin": "http://localhost:5173",
+      "Access-Control-Allow-Origin": corsOrigin,
     });
   } catch (error) {
     console.error("Stripe checkout error:", error);
+    const origin = c.req.header("origin");
+    const allowedOrigins = ["http://localhost:5173", "http://localhost:4173"];
+    const corsOrigin = allowedOrigins.includes(origin || "") ? origin : allowedOrigins[0];
     return c.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to create checkout session" },
       500,
       {
-        "Access-Control-Allow-Origin": "http://localhost:5173",
+        "Access-Control-Allow-Origin": corsOrigin,
       }
     );
   }
