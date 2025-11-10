@@ -4,6 +4,7 @@ import path from "node:path";
 const proxyPort = Number(process.env.PROXY_PORT ?? 43111);
 
 export default defineConfig({
+  base: './',
   resolve: {
     alias: {
       "vanilla-agent": path.resolve(
@@ -12,7 +13,7 @@ export default defineConfig({
       ),
       "vanilla-agent/widget.css": path.resolve(
         __dirname,
-        "../../packages/widget/widget.css"
+        "../../packages/widget/src/styles/widget.css"
       )
     }
   },
