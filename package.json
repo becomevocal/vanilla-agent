@@ -12,7 +12,6 @@
     "dev:cloudflare": "pnpm --filter cloudflare-workers dev",
     "dev": "concurrently \"pnpm dev:vercel\" \"pnpm dev:widget\"",
     "changeset": "changeset",
-    "version": "changeset version",
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {

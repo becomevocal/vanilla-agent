@@ -1,5 +1,13 @@
 # vanilla-agent-proxy
 
+## 1.0.0
+
+### Major Changes
+
+- e64d029: Initial version 😎
+
+  Updated core interface and unified default style definitions, while adding much more configurability of elements.
+
 ## 0.2.0
 
 ### Minor Changes

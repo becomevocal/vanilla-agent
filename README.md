@@ -58,7 +58,7 @@ This monorepo uses [Changesets](https://github.com/changesets/changesets) for ve
 
 2. **Version packages**:
    ```bash
-   pnpm version
+   pnpm changeset version
    ```
    This reads all changesets, updates package versions, generates changelogs, and removes used changesets.
 
