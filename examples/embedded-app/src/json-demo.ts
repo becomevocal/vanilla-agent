@@ -12,8 +12,9 @@ import {
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
-  import.meta.env.VITE_PROXY_URL ??
-  `http://localhost:${proxyPort}/api/chat/dispatch-directive`;
+  import.meta.env.VITE_PROXY_URL ?
+    `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch-directive` :
+    `http://localhost:${proxyPort}/api/chat/dispatch-directive`;
 
 const inlineMount = document.getElementById("json-inline");
 if (!inlineMount) {

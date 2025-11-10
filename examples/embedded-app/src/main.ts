@@ -11,8 +11,9 @@ import {
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
-  import.meta.env.VITE_PROXY_URL ??
-  `http://localhost:${proxyPort}/api/chat/dispatch`;
+  import.meta.env.VITE_PROXY_URL ?
+    `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch` :
+    `http://localhost:${proxyPort}/api/chat/dispatch`;
 
 const inlineMount = document.getElementById("inline-widget");
 if (!inlineMount) {

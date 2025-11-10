@@ -11,7 +11,9 @@ import type { AgentWidgetConfig } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
-  import.meta.env.VITE_PROXY_URL ?? `http://localhost:${proxyPort}/api/chat/dispatch`;
+  import.meta.env.VITE_PROXY_URL ?
+    `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch` :
+    `http://localhost:${proxyPort}/api/chat/dispatch`;
 
 // Typography presets
 const TYPOGRAPHY_PRESETS = {
@@ -142,7 +144,7 @@ const RADIUS_PRESETS = {
     radiusLg: "2px",
     launcherRadius: "3px",
     buttonRadius: "3px"
-  },  
+  },
   rounded: {
     radiusSm: "1rem",
     radiusMd: "1.25rem",
@@ -351,12 +353,12 @@ interface ParsedCssValue {
 
 function parseCssValue(cssValue: string): ParsedCssValue {
   const trimmed = cssValue.trim();
-  
+
   // Handle special case: "9999px" maps to max slider value
   if (trimmed === "9999px") {
     return { value: 100, unit: "px" };
   }
-  
+
   // Match number followed by unit (px or rem)
   const match = trimmed.match(/^([\d.]+)(px|rem)$/);
   if (!match) {
@@ -364,10 +366,10 @@ function parseCssValue(cssValue: string): ParsedCssValue {
     const numValue = parseFloat(trimmed);
     return { value: isNaN(numValue) ? 0 : numValue, unit: "px" };
   }
-  
+
   const value = parseFloat(match[1]);
   const unit = match[2] as "px" | "rem";
-  
+
   return { value: isNaN(value) ? 0 : value, unit };
 }
 
@@ -405,36 +407,36 @@ interface SliderConfig {
 function setupSliderInput(config: SliderConfig) {
   const slider = getInput<HTMLInputElement>(config.sliderId);
   const textInput = getInput<HTMLInputElement>(config.textInputId);
-  
+
   // Track preferred unit to preserve user preference
   let preferredUnit: "px" | "rem" = "px";
-  
+
   // Initialize from current config
   const initialValue = config.getInitialValue();
   const parsed = parseCssValue(initialValue);
   preferredUnit = parsed.unit;
-  
+
   // Convert to px for slider
   const pxValue = convertToPx(parsed.value, parsed.unit);
   slider.value = pxValue.toString();
   textInput.value = initialValue;
-  
+
   // Handle special case: radiusFull "9999px"
   if (config.isRadiusFull && initialValue === "9999px") {
     slider.value = config.max.toString();
   }
-  
+
   // Flag to prevent update loops
   let isUpdating = false;
-  
+
   // Update from slider to text input
   slider.addEventListener("input", () => {
     if (isUpdating) return;
     isUpdating = true;
-    
+
     const sliderValue = parseFloat(slider.value);
     const converted = convertFromPx(sliderValue, preferredUnit);
-    
+
     // Handle special case: radiusFull max value
     let cssValue: string;
     if (config.isRadiusFull && sliderValue >= config.max) {
@@ -443,37 +445,37 @@ function setupSliderInput(config: SliderConfig) {
     } else {
       cssValue = formatCssValue(converted);
     }
-    
+
     textInput.value = cssValue;
     config.onUpdate(cssValue);
     isUpdating = false;
   });
-  
+
   // Update from text input to slider
   textInput.addEventListener("input", () => {
     if (isUpdating) return;
-    
+
     const value = textInput.value.trim();
     if (!value) return;
-    
+
     const parsed = parseCssValue(value);
-    
+
     // Update preferred unit
     preferredUnit = parsed.unit;
-    
+
     // Convert to px for slider
     const pxValue = convertToPx(parsed.value, parsed.unit);
-    
+
     // Clamp to slider range
     const clampedValue = Math.max(config.min, Math.min(config.max, pxValue));
-    
+
     // Handle special case: radiusFull "9999px"
     if (config.isRadiusFull && value === "9999px") {
       slider.value = config.max.toString();
     } else {
       slider.value = clampedValue.toString();
     }
-    
+
     // Update config if value is valid
     if (value === parsed.value + parsed.unit || (config.isRadiusFull && value === "9999px")) {
       isUpdating = true;
@@ -493,7 +495,7 @@ function setupColorInput(
 ) {
   const colorInput = getInput<HTMLInputElement>(colorInputId);
   const textInput = getInput<HTMLInputElement>(textInputId);
-  
+
   // Initialize values
   const currentValue = getValue() || defaultValue;
   if (currentValue === "transparent") {
@@ -503,13 +505,13 @@ function setupColorInput(
     textInput.value = currentValue;
     colorInput.value = currentValue || "#000000";
   }
-  
+
   // Sync from color picker to text input
   colorInput.addEventListener("input", () => {
     textInput.value = colorInput.value;
     setValue(colorInput.value);
   });
-  
+
   // Sync from text input to color picker
   textInput.addEventListener("input", () => {
     const value = textInput.value.trim().toLowerCase();
@@ -559,7 +561,7 @@ function setupThemeControls() {
 
   // Radius controls
   const radiusKeys = ["radiusSm", "radiusMd", "radiusLg", "launcherRadius", "buttonRadius"] as const;
-  
+
   const radiusConfigs = {
     radiusSm: { min: 0, max: 32, step: 1 },
     radiusMd: { min: 0, max: 48, step: 1 },
@@ -611,7 +613,7 @@ function updateTheme(key: string, value: string) {
       [key]: value
     }
   };
-  
+
   // If updating send button colors, also update sendButton config
   if (key === "sendButtonBackgroundColor" || key === "sendButtonTextColor" || key === "sendButtonBorderColor") {
     newConfig.sendButton = {
@@ -619,7 +621,7 @@ function updateTheme(key: string, value: string) {
       [key === "sendButtonBackgroundColor" ? "backgroundColor" : key === "sendButtonTextColor" ? "textColor" : "borderColor"]: value === "transparent" ? undefined : value
     };
   }
-  
+
   // If updating close button colors, also update launcher config
   if (key === "closeButtonColor" || key === "closeButtonBackgroundColor" || key === "closeButtonBorderColor") {
     newConfig.launcher = {
@@ -640,19 +642,19 @@ function updateTheme(key: string, value: string) {
   }
 
   // If updating mic button colors, also update voiceRecognition config
-  if (key === "micIconColor" || key === "micBackgroundColor" || key === "micBorderColor" || 
-      key === "recordingIconColor" || key === "recordingBackgroundColor" || key === "recordingBorderColor") {
+  if (key === "micIconColor" || key === "micBackgroundColor" || key === "micBorderColor" ||
+    key === "recordingIconColor" || key === "recordingBackgroundColor" || key === "recordingBorderColor") {
     newConfig.voiceRecognition = {
       ...currentConfig.voiceRecognition,
-      [key === "micIconColor" ? "iconColor" : 
-       key === "micBackgroundColor" ? "backgroundColor" : 
-       key === "micBorderColor" ? "borderColor" :
-       key === "recordingIconColor" ? "recordingIconColor" :
-       key === "recordingBackgroundColor" ? "recordingBackgroundColor" :
-       "recordingBorderColor"]: (value === "" || value === "transparent") ? undefined : value
+      [key === "micIconColor" ? "iconColor" :
+        key === "micBackgroundColor" ? "backgroundColor" :
+          key === "micBorderColor" ? "borderColor" :
+            key === "recordingIconColor" ? "recordingIconColor" :
+              key === "recordingBackgroundColor" ? "recordingBackgroundColor" :
+                "recordingBorderColor"]: (value === "" || value === "transparent") ? undefined : value
     };
   }
-  
+
   // Use immediate update for radius values to ensure instant visual feedback
   if (key.startsWith('radius')) {
     immediateUpdate(newConfig);
@@ -664,7 +666,7 @@ function updateTheme(key: string, value: string) {
 function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const themeValues = THEME_PRESETS[preset];
   const { callToActionBackground, sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor, closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor, clearChatIconColor, clearChatBackgroundColor, clearChatBorderColor, micIconColor, micBackgroundColor, micBorderColor, recordingIconColor, recordingBackgroundColor, recordingBorderColor, inputFontFamily, inputFontWeight, ...themeColors } = themeValues;
-  
+
   Object.entries(themeColors).forEach(([key, value]) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
     const textInput = getInput<HTMLInputElement>(`color-${key}-text`);
@@ -679,7 +681,7 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const sendButtonTextColorTextInput = getInput<HTMLInputElement>("color-sendButtonTextColor-text");
   const sendButtonBorderColorInput = getInput<HTMLInputElement>("color-sendButtonBorderColor");
   const sendButtonBorderColorTextInput = getInput<HTMLInputElement>("color-sendButtonBorderColor-text");
-  
+
   if (sendButtonBgColorInput && sendButtonBgColorTextInput) {
     sendButtonBgColorInput.value = sendButtonBackgroundColor;
     sendButtonBgColorTextInput.value = sendButtonBackgroundColor;
@@ -700,7 +702,7 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const closeButtonBgColorTextInput = getInput<HTMLInputElement>("color-closeButtonBackgroundColor-text");
   const closeButtonBorderColorInput = getInput<HTMLInputElement>("color-closeButtonBorderColor");
   const closeButtonBorderColorTextInput = getInput<HTMLInputElement>("color-closeButtonBorderColor-text");
-  
+
   if (closeButtonColorInput && closeButtonColorTextInput) {
     if (closeButtonColor) {
       closeButtonColorInput.value = closeButtonColor;
@@ -772,7 +774,7 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const micBackgroundColorTextInput = getInput<HTMLInputElement>("color-micBackgroundColor-text");
   const micBorderColorInput = getInput<HTMLInputElement>("color-micBorderColor");
   const micBorderColorTextInput = getInput<HTMLInputElement>("color-micBorderColor-text");
-  
+
   if (micIconColorInput && micIconColorTextInput) {
     micIconColorInput.value = micIconColor;
     micIconColorTextInput.value = micIconColor;
@@ -798,7 +800,7 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const recordingBackgroundColorTextInput = getInput<HTMLInputElement>("color-recordingBackgroundColor-text");
   const recordingBorderColorInput = getInput<HTMLInputElement>("color-recordingBorderColor");
   const recordingBorderColorTextInput = getInput<HTMLInputElement>("color-recordingBorderColor-text");
-  
+
   if (recordingIconColorInput && recordingIconColorTextInput) {
     recordingIconColorInput.value = recordingIconColor;
     recordingIconColorTextInput.value = recordingIconColor;
@@ -880,11 +882,11 @@ function applyRadiusPreset(preset: keyof typeof RADIUS_PRESETS) {
     const textInput = getInput<HTMLInputElement>(key);
     const slider = getInput<HTMLInputElement>(`${key}-slider`);
     textInput.value = value;
-    
+
     // Update slider value
     const parsed = parseCssValue(value);
     const pxValue = convertToPx(parsed.value, parsed.unit);
-    
+
     // Handle special case: radiusFull "9999px"
     if (key === "radiusFull" && value === "9999px") {
       slider.value = "100";
@@ -902,7 +904,7 @@ function applyRadiusPreset(preset: keyof typeof RADIUS_PRESETS) {
 
 function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
   const presetValues = SEND_BUTTON_PRESETS[preset];
-  
+
   // Get all the input elements
   const useIconInput = getInput<HTMLInputElement>("send-button-use-icon");
   const iconTextInput = getInput<HTMLInputElement>("send-button-icon-text");
@@ -917,7 +919,7 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
   const sizeSlider = getInput<HTMLInputElement>("send-button-size-slider");
   const showTooltipInput = getInput<HTMLInputElement>("send-button-show-tooltip");
   const tooltipTextInput = getInput<HTMLInputElement>("send-button-tooltip-text");
-  
+
   // Update all input fields with preset values
   if (presetValues.useIcon !== undefined) useIconInput.checked = presetValues.useIcon;
   if ("iconText" in presetValues && presetValues.iconText) iconTextInput.value = presetValues.iconText;
@@ -949,11 +951,11 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
   }
   if (presetValues.showTooltip !== undefined) showTooltipInput.checked = presetValues.showTooltip;
   if (presetValues.tooltipText) tooltipTextInput.value = presetValues.tooltipText;
-  
+
   const newConfig = {
     ...currentConfig,
-    sendButton: { 
-      ...currentConfig.sendButton, 
+    sendButton: {
+      ...currentConfig.sendButton,
       ...presetValues
       // Note: Colors are preserved from current config (they come from theme, not from send button presets)
     }
@@ -963,7 +965,7 @@ function applySendButtonPreset(preset: keyof typeof SEND_BUTTON_PRESETS) {
 
 function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
   const presetValues = CALL_TO_ACTION_PRESETS[preset];
-  
+
   // Get input elements
   const callToActionIconTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-text");
   const callToActionIconNameInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-name");
@@ -973,7 +975,7 @@ function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
   const callToActionIconPaddingSlider = getInput<HTMLInputElement>("launcher-call-to-action-icon-padding-slider");
   const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
   const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
-  
+
   // Update input fields with preset values
   if (presetValues.callToActionIconText) callToActionIconTextInput.value = presetValues.callToActionIconText;
   if (presetValues.callToActionIconName !== undefined) callToActionIconNameInput.value = presetValues.callToActionIconName || "";
@@ -989,11 +991,11 @@ function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
     const pxValue = convertToPx(parsed.value, parsed.unit);
     callToActionIconPaddingSlider.value = pxValue.toString();
   }
-  
+
   const newConfig = {
     ...currentConfig,
-    launcher: { 
-      ...currentConfig.launcher, 
+    launcher: {
+      ...currentConfig.launcher,
       callToActionIconText: presetValues.callToActionIconText,
       callToActionIconName: presetValues.callToActionIconName || undefined,
       callToActionIconSize: presetValues.callToActionIconSize,
@@ -1003,7 +1005,7 @@ function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
     }
   };
   immediateUpdate(newConfig);
-  
+
   // Sync background color inputs with current config value (from theme)
   const currentBgColor = newConfig.launcher?.callToActionIconBackgroundColor ?? "transparent";
   if (callToActionIconBackgroundColorInput && callToActionIconBackgroundColorTextInput) {
@@ -1019,13 +1021,13 @@ function applyCallToActionPreset(preset: keyof typeof CALL_TO_ACTION_PRESETS) {
 
 function applyCloseButtonPreset(preset: keyof typeof CLOSE_BUTTON_PRESETS) {
   const presetValues = CLOSE_BUTTON_PRESETS[preset];
-  
+
   // Get input elements
   const closeButtonBorderWidthInput = getInput<HTMLInputElement>("launcher-close-button-border-width");
   const closeButtonBorderWidthSlider = getInput<HTMLInputElement>("launcher-close-button-border-width-slider");
   const closeButtonBorderRadiusInput = getInput<HTMLInputElement>("launcher-close-button-border-radius");
   const closeButtonBorderRadiusSlider = getInput<HTMLInputElement>("launcher-close-button-border-radius-slider");
-  
+
   // Note: Colors come from theme, not from presets - they are managed through theme controls
   if (presetValues.closeButtonBorderWidth) {
     closeButtonBorderWidthInput.value = presetValues.closeButtonBorderWidth;
@@ -1047,11 +1049,11 @@ function applyCloseButtonPreset(preset: keyof typeof CLOSE_BUTTON_PRESETS) {
       closeButtonBorderRadiusSlider.value = pxValue.toString();
     }
   }
-  
+
   const newConfig = {
     ...currentConfig,
-    launcher: { 
-      ...currentConfig.launcher, 
+    launcher: {
+      ...currentConfig.launcher,
       closeButtonBorderWidth: presetValues.closeButtonBorderWidth || undefined,
       closeButtonBorderRadius: presetValues.closeButtonBorderRadius || undefined
       // Note: Colors are preserved from current config (they come from theme, not from close button presets)
@@ -1077,7 +1079,7 @@ function setupLauncherControls() {
   const callToActionIconHiddenInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-hidden");
   const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
   const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
-  
+
   // Size inputs - these will be handled by sliders, but we still need references for the update function
   const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
   const callToActionIconSizeInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-size");
@@ -1097,7 +1099,7 @@ function setupLauncherControls() {
   callToActionIconTextInput.value = currentConfig.launcher?.callToActionIconText ?? "↗";
   callToActionIconNameInput.value = currentConfig.launcher?.callToActionIconName ?? "";
   callToActionIconHiddenInput.checked = currentConfig.launcher?.callToActionIconHidden ?? false;
-  
+
   // Setup color inputs with transparent support
   setupColorInput(
     "launcher-call-to-action-icon-background-color",
@@ -1159,9 +1161,9 @@ function setupLauncherControls() {
         updateLauncher();
       },
       getInitialValue: () => {
-        return currentConfig.launcher?.[key as keyof typeof currentConfig.launcher] as string || 
-               (key === "agentIconSize" ? "40px" : 
-                key === "callToActionIconSize" ? "32px" : "32px");
+        return currentConfig.launcher?.[key as keyof typeof currentConfig.launcher] as string ||
+          (key === "agentIconSize" ? "40px" :
+            key === "callToActionIconSize" ? "32px" : "32px");
       }
     });
   });
@@ -1335,17 +1337,17 @@ function setupTypographyControls() {
   const fontFamilySelect = getInput<HTMLSelectElement>("input-font-family");
   const fontWeightSlider = getInput<HTMLInputElement>("input-font-weight-slider");
   const fontWeightInput = getInput<HTMLInputElement>("input-font-weight");
-  
+
   // Set initial values from config or preset defaults
   fontFamilySelect.value = currentConfig.theme?.inputFontFamily ?? TYPOGRAPHY_PRESETS.default.inputFontFamily;
   const initialFontWeight = currentConfig.theme?.inputFontWeight ?? TYPOGRAPHY_PRESETS.default.inputFontWeight;
   const fontWeightNum = parseInt(initialFontWeight, 10) || 400;
   fontWeightSlider.value = String(fontWeightNum);
   fontWeightInput.value = String(fontWeightNum);
-  
+
   // Flag to prevent update loops
   let isUpdating = false;
-  
+
   // Update from slider to text input (number only, no units)
   fontWeightSlider.addEventListener("input", () => {
     if (isUpdating) return;
@@ -1355,28 +1357,28 @@ function setupTypographyControls() {
     updateTypography();
     isUpdating = false;
   });
-  
+
   // Update from text input to slider (number only, no units)
   fontWeightInput.addEventListener("input", () => {
     if (isUpdating) return;
     const value = fontWeightInput.value.trim();
     if (!value) return;
-    
+
     // Parse number, removing any units
     const numValue = parseInt(value.replace(/[^\d]/g, ''), 10);
     if (isNaN(numValue)) return;
-    
+
     // Clamp to valid range
     const clampedValue = Math.max(100, Math.min(900, numValue));
     fontWeightSlider.value = String(clampedValue);
     fontWeightInput.value = String(clampedValue);
     updateTypography();
   });
-  
+
   const updateTypography = () => {
     const fontWeightValue = fontWeightInput.value.trim();
     const fontWeightNum = parseInt(fontWeightValue, 10);
-    
+
     const newConfig = {
       ...currentConfig,
       theme: {
@@ -1387,9 +1389,9 @@ function setupTypographyControls() {
     };
     debouncedUpdate(newConfig);
   };
-  
+
   fontFamilySelect.addEventListener("change", updateTypography);
-  
+
   // Typography preset buttons
   document.querySelectorAll("[data-typography-preset]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1404,7 +1406,7 @@ function applyTypographyPreset(preset: keyof typeof TYPOGRAPHY_PRESETS) {
   const fontFamilySelect = getInput<HTMLSelectElement>("input-font-family");
   const fontWeightInput = getInput<HTMLInputElement>("input-font-weight");
   const fontWeightSlider = getInput<HTMLInputElement>("input-font-weight-slider");
-  
+
   if (fontFamilySelect) {
     fontFamilySelect.value = presetValues.inputFontFamily;
   }
@@ -1413,7 +1415,7 @@ function applyTypographyPreset(preset: keyof typeof TYPOGRAPHY_PRESETS) {
     fontWeightInput.value = String(fontWeightNum);
     fontWeightSlider.value = String(fontWeightNum);
   }
-  
+
   const newConfig = {
     ...currentConfig,
     theme: {
@@ -1750,11 +1752,11 @@ function setupFeatureControls() {
   toolCallsInput.checked = currentConfig.features?.showToolCalls ?? true;
   debugInput.checked = currentConfig.debug ?? false;
   voiceRecognitionInput.checked = currentConfig.voiceRecognition?.enabled ?? false;
-  
+
   const initialPauseDuration = currentConfig.voiceRecognition?.pauseDuration ?? 2000;
   pauseDurationSlider.value = String(initialPauseDuration);
   pauseDurationInput.value = String(initialPauseDuration);
-  
+
   iconNameInput.value = currentConfig.voiceRecognition?.iconName ?? "";
   showTooltipInput.checked = currentConfig.voiceRecognition?.showTooltip ?? false;
   tooltipTextInput.value = currentConfig.voiceRecognition?.tooltipText ?? "Start voice recognition";
@@ -1824,7 +1826,7 @@ function setupFeatureControls() {
     const borderWidthInput = getInput<HTMLInputElement>("voice-recognition-border-width");
     const paddingXInput = getInput<HTMLInputElement>("voice-recognition-padding-x");
     const paddingYInput = getInput<HTMLInputElement>("voice-recognition-padding-y");
-    
+
     const newConfig = {
       ...currentConfig,
       voiceRecognition: {
@@ -1855,7 +1857,7 @@ function setupFeatureControls() {
     const borderWidthInput = getInput<HTMLInputElement>("voice-recognition-border-width");
     const paddingXInput = getInput<HTMLInputElement>("voice-recognition-padding-x");
     const paddingYInput = getInput<HTMLInputElement>("voice-recognition-padding-y");
-    
+
     const newConfig = {
       ...currentConfig,
       features: {
@@ -1902,7 +1904,7 @@ function setupFeatureControls() {
 
   // Update on icon name change
   iconNameInput.addEventListener("input", updateFeatures);
-  
+
   // Update on tooltip changes
   showTooltipInput.addEventListener("change", updateFeatures);
   tooltipTextInput.addEventListener("input", updateFeatures);
@@ -1920,10 +1922,10 @@ function setupSuggestionChipsControls() {
   const renderChips = (chipsToRender?: string[]) => {
     // Use provided chips or fall back to currentConfig
     const chips = chipsToRender ?? currentConfig.suggestionChips ?? [];
-    
+
     // Clear the list
     chipsList.innerHTML = "";
-    
+
     // If no chips, we're done
     if (chips.length === 0) return;
 
@@ -1973,33 +1975,33 @@ function setupSuggestionChipsControls() {
   addButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Ensure currentConfig exists
     if (!currentConfig) {
       currentConfig = getDefaultConfig();
     }
-    
+
     const chips = currentConfig.suggestionChips || [];
     const newChips = [...chips, "New suggestion"];
-    
+
     // Update currentConfig immediately
     currentConfig = {
       ...currentConfig,
       suggestionChips: newChips
     };
-    
+
     // Render immediately with the new chips array
     renderChips(newChips);
-    
+
     // Verify the chips were rendered
     const renderedCount = chipsList.children.length;
     if (renderedCount !== newChips.length) {
       console.error(`Expected ${newChips.length} chips but rendered ${renderedCount}`);
     }
-    
+
     // Then trigger debounced update for widget
     debouncedUpdate(currentConfig);
-    
+
     return false;
   });
 
@@ -2333,7 +2335,7 @@ function setupResetControls() {
       currentConfig = getDefaultConfig();
       widgetController.update(currentConfig);
       saveConfigToLocalStorage(currentConfig);
-      
+
       // Clear accordion state so all accordions are collapsed on reload
       clearAccordionState();
 
@@ -2392,28 +2394,28 @@ function setupAccordions() {
   const accordions = document.querySelectorAll(".accordion");
   const savedState = getAccordionState();
   let accordionState: Record<string, boolean> = { ...savedState };
-  
+
   accordions.forEach((accordion, index) => {
     const header = accordion.querySelector(".accordion-header");
     const toggle = accordion.querySelector(".accordion-toggle");
     const title = accordion.querySelector("h2");
-    
+
     if (!header || !toggle) return;
-    
+
     // Create unique identifier for this accordion
     const accordionId = title?.textContent?.toLowerCase().replace(/\s+/g, "-") || `accordion-${index}`;
-    
+
     // Get saved state or default to collapsed (true = collapsed)
     const isCollapsed = accordionState[accordionId] !== undefined ? accordionState[accordionId] : true;
-    
+
     // Set initial state
     if (isCollapsed) {
       accordion.classList.add("collapsed");
     }
-    
+
     // Ensure state is tracked
     accordionState[accordionId] = isCollapsed;
-    
+
     // Click handler for header or toggle button
     const handleToggle = (e: Event) => {
       // Don't toggle if clicking on preset buttons
@@ -2421,13 +2423,13 @@ function setupAccordions() {
       if (target.tagName === "BUTTON" && target.closest(".accordion-presets")) {
         return;
       }
-      
+
       accordion.classList.toggle("collapsed");
       const isNowCollapsed = accordion.classList.contains("collapsed");
       accordionState[accordionId] = isNowCollapsed;
       saveAccordionState(accordionState);
     };
-    
+
     header.addEventListener("click", handleToggle);
     toggle.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -2437,7 +2439,7 @@ function setupAccordions() {
       saveAccordionState(accordionState);
     });
   });
-  
+
   // Save initial state
   saveAccordionState(accordionState);
 }
