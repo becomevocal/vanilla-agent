@@ -783,3 +783,43 @@ form:focus-within textarea {
 .tvw-voice-recording svg {
   animation: voice-recording-pulse 1.5s ease-in-out infinite;
 }
+
+/* Markdown content overflow handling */
+#vanilla-agent-root pre {
+  overflow-x: auto;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid #e5e7eb;
+}
+
+#vanilla-agent-root code {
+  word-break: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.875em;
+}
+
+#vanilla-agent-root pre code {
+  font-size: inherit;
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+#vanilla-agent-root img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.5rem 0;
+  border-radius: 0.375rem;
+}

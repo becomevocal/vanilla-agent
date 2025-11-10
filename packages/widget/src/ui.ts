@@ -8,7 +8,7 @@ import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel } from "./components/panel";
 import { MessageTransform } from "./components/message-bubble";
-import { createStandardBubble } from "./components/message-bubble";
+import { createStandardBubble, createTypingIndicator } from "./components/message-bubble";
 import { createReasoningBubble } from "./components/reasoning-bubble";
 import { createToolBubble } from "./components/tool-bubble";
 import { createSuggestions } from "./components/suggestions";
@@ -148,34 +148,6 @@ export const createAgentExperience = (
     });
   };
 
-  // Create typing indicator element
-  const createTypingIndicator = (): HTMLElement => {
-    const container = document.createElement("div");
-    container.className = "tvw-flex tvw-items-center tvw-space-x-1 tvw-h-5";
-
-    const dot1 = document.createElement("div");
-    dot1.className = "tvw-bg-cw-primary tvw-animate-typing tvw-rounded-full tvw-h-1.5 tvw-w-1.5";
-    dot1.style.animationDelay = "0ms";
-
-    const dot2 = document.createElement("div");
-    dot2.className = "tvw-bg-cw-primary tvw-animate-typing tvw-rounded-full tvw-h-1.5 tvw-w-1.5";
-    dot2.style.animationDelay = "250ms";
-
-    const dot3 = document.createElement("div");
-    dot3.className = "tvw-bg-cw-primary tvw-animate-typing tvw-rounded-full tvw-h-1.5 tvw-w-1.5";
-    dot3.style.animationDelay = "500ms";
-
-    const srOnly = document.createElement("span");
-    srOnly.className = "tvw-sr-only";
-    srOnly.textContent = "Loading";
-
-    container.appendChild(dot1);
-    container.appendChild(dot2);
-    container.appendChild(dot3);
-    container.appendChild(srOnly);
-
-    return container;
-  };
 
   // Message rendering with plugin support
   const renderMessagesWithPlugins = (
@@ -258,10 +230,15 @@ export const createAgentExperience = (
       fragment.appendChild(wrapper);
     });
 
-    // Add typing indicator if streaming and there's at least one user message
-    if (isStreaming && messages.some((msg) => msg.role === "user")) {
+    // Add standalone typing indicator only if streaming but no assistant message is streaming yet
+    // (This shows while waiting for the stream to start)
+    const hasStreamingAssistantMessage = messages.some(
+      (msg) => msg.role === "assistant" && msg.streaming && msg.content && msg.content.trim()
+    );
+
+    if (isStreaming && messages.some((msg) => msg.role === "user") && !hasStreamingAssistantMessage) {
       const typingIndicator = createTypingIndicator();
-      
+
       // Create a bubble wrapper for the typing indicator (similar to assistant messages)
       const typingBubble = document.createElement("div");
       typingBubble.className = [
@@ -277,9 +254,9 @@ export const createAgentExperience = (
         "tvw-px-5",
         "tvw-py-3"
       ].join(" ");
-      
+
       typingBubble.appendChild(typingIndicator);
-      
+
       const typingWrapper = document.createElement("div");
       typingWrapper.className = "tvw-flex";
       typingWrapper.appendChild(typingBubble);
