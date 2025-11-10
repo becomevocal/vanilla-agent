@@ -2,10 +2,11 @@ import "vanilla-agent/widget.css";
 import "./index.css";
 
 import {
-  initChatWidget,
-  type ChatWidgetMessage,
-  type ChatWidgetConfig,
-  markdownPostprocessor
+  initAgentWidget,
+  type AgentWidgetMessage,
+  type AgentWidgetConfig,
+  markdownPostprocessor,
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import {
   collectPageContext,
@@ -71,7 +72,7 @@ if (navMessage) {
   );
   
   if (!navMessageExists) {
-    const navMessageObj: ChatWidgetMessage = {
+    const navMessageObj: AgentWidgetMessage = {
       id: `nav-${Date.now()}`,
       role: "assistant",
       content: navMessage,
@@ -83,15 +84,17 @@ if (navMessage) {
 }
 
 // Track messages for saving and action execution
-let allMessages: ChatWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
+let allMessages: AgentWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
 // Load previously executed action IDs from localStorage
 let processedActionIds = new Set<string>(loadExecutedActionIds());
 
 // Create a custom config with middleware hooks
-const config: ChatWidgetConfig = {
+const config: AgentWidgetConfig = {
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
   launcher: {
+    ...DEFAULT_WIDGET_CONFIG.launcher,
     enabled: true,
     autoExpand: shouldAutoOpen,
     width: "min(920px, 95vw)",
@@ -100,12 +103,14 @@ const config: ChatWidgetConfig = {
     iconText: "🛍️"
   },
   theme: {
+    ...DEFAULT_WIDGET_CONFIG.theme,
     primary: "#111827",
     accent: "#0ea5e9",
     surface: "#ffffff",
     muted: "#64748b"
   },
   copy: {
+    ...DEFAULT_WIDGET_CONFIG.copy,
     welcomeTitle: "Hi, what can I help you with?",
     welcomeSubtitle: "Try asking for products or adding items to your cart",
     inputPlaceholder: "Type your message…",
@@ -247,7 +252,7 @@ const config: ChatWidgetConfig = {
 };
 
 // Initialize widget
-const widgetController = initChatWidget({
+const widgetController = initAgentWidget({
   target: "#launcher-root",
   config,
   onReady: () => {

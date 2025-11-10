@@ -1,11 +1,11 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetMessage } from "../types";
+import { AgentWidgetMessage } from "../types";
 import { describeReasonStatus } from "../utils/formatting";
 
 // Expansion state per widget instance
 const reasoningExpansionState = new Set<string>();
 
-export const createReasoningBubble = (message: ChatWidgetMessage): HTMLElement => {
+export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement => {
   const reasoning = message.reasoning;
   const bubble = createElement(
     "div",

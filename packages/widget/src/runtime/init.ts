@@ -1,5 +1,5 @@
-import { createChatExperience, ChatWidgetController } from "../ui";
-import { ChatWidgetConfig, ChatWidgetInitOptions } from "../types";
+import { createAgentExperience, AgentWidgetController } from "../ui";
+import { AgentWidgetConfig, AgentWidgetInitOptions } from "../types";
 
 const ensureTarget = (target: string | HTMLElement): HTMLElement => {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -84,11 +84,11 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
   }
 };
 
-export type ChatWidgetInitHandle = ChatWidgetController & { host: HTMLElement };
+export type AgentWidgetInitHandle = AgentWidgetController & { host: HTMLElement };
 
-export const initChatWidget = (
-  options: ChatWidgetInitOptions
-): ChatWidgetInitHandle => {
+export const initAgentWidget = (
+  options: AgentWidgetInitOptions
+): AgentWidgetInitHandle => {
   const target = ensureTarget(options.target);
   const host = document.createElement("div");
   host.className = "vanilla-agent-host";
@@ -113,12 +113,12 @@ export const initChatWidget = (
     mountStyles(host);
   }
 
-  let controller = createChatExperience(mount, options.config);
+  let controller = createAgentExperience(mount, options.config);
   options.onReady?.();
 
   return {
     host,
-    update(nextConfig: ChatWidgetConfig) {
+    update(nextConfig: AgentWidgetConfig) {
       controller.update(nextConfig);
     },
     open() {

@@ -1,4 +1,4 @@
-import { icons } from "lucide";
+import * as icons from "lucide";
 import type { IconNode } from "lucide";
 
 /**

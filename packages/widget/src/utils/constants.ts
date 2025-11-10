@@ -1,11 +1,12 @@
-import { ChatWidgetSessionStatus } from "../session";
+import { AgentWidgetSessionStatus } from "../session";
 
-export const statusCopy: Record<ChatWidgetSessionStatus, string> = {
+export const statusCopy: Record<AgentWidgetSessionStatus, string> = {
   idle: "Online",
   connecting: "Connecting…",
   connected: "Streaming…",
   error: "Offline"
 };
+
 
 
 

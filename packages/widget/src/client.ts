@@ -1,20 +1,20 @@
-import { ChatWidgetConfig, ChatWidgetMessage, ChatWidgetEvent } from "./types";
+import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "./types";
 
 type DispatchOptions = {
-  messages: ChatWidgetMessage[];
+  messages: AgentWidgetMessage[];
   signal?: AbortSignal;
 };
 
-type SSEHandler = (event: ChatWidgetEvent) => void;
+type SSEHandler = (event: AgentWidgetEvent) => void;
 
 const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
 
-export class ChatWidgetClient {
+export class AgentWidgetClient {
   private readonly apiUrl: string;
   private readonly headers: Record<string, string>;
   private readonly debug: boolean;
 
-  constructor(private config: ChatWidgetConfig = {}) {
+  constructor(private config: AgentWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
     this.headers = {
       "Content-Type": "application/json",
@@ -51,7 +51,7 @@ export class ChatWidgetClient {
 
     if (this.debug) {
       // eslint-disable-next-line no-console
-      console.debug("[ChatWidgetClient] dispatch body", body);
+      console.debug("[AgentWidgetClient] dispatch body", body);
     }
 
     const response = await fetch(this.apiUrl, {
@@ -89,7 +89,7 @@ export class ChatWidgetClient {
     let sequenceCounter = 0;
     const nextSequence = () => baseSequence + sequenceCounter++;
 
-    const cloneMessage = (msg: ChatWidgetMessage): ChatWidgetMessage => {
+    const cloneMessage = (msg: AgentWidgetMessage): AgentWidgetMessage => {
       const reasoning = msg.reasoning
         ? {
             ...msg.reasoning,
@@ -117,16 +117,16 @@ export class ChatWidgetClient {
       };
     };
 
-    const emitMessage = (msg: ChatWidgetMessage) => {
+    const emitMessage = (msg: AgentWidgetMessage) => {
       onEvent({
         type: "message",
         message: cloneMessage(msg)
       });
     };
 
-    let assistantMessage: ChatWidgetMessage | null = null;
-    const reasoningMessages = new Map<string, ChatWidgetMessage>();
-    const toolMessages = new Map<string, ChatWidgetMessage>();
+    let assistantMessage: AgentWidgetMessage | null = null;
+    const reasoningMessages = new Map<string, AgentWidgetMessage>();
+    const toolMessages = new Map<string, AgentWidgetMessage>();
     const reasoningContext = {
       lastId: null as string | null,
       byStep: new Map<string, string>()
@@ -224,7 +224,7 @@ export class ChatWidgetClient {
         return existing;
       }
 
-      const message: ChatWidgetMessage = {
+      const message: AgentWidgetMessage = {
         id: `reason-${reasoningId}`,
         role: "assistant",
         content: "",
@@ -286,7 +286,7 @@ export class ChatWidgetClient {
         return existing;
       }
 
-      const message: ChatWidgetMessage = {
+      const message: AgentWidgetMessage = {
         id: `tool-${toolId}`,
         role: "assistant",
         content: "",
@@ -556,7 +556,7 @@ export class ChatWidgetClient {
           } else {
             const existingAssistant = assistantMessage;
             if (existingAssistant) {
-              const assistantFinal = existingAssistant as ChatWidgetMessage;
+              const assistantFinal = existingAssistant as AgentWidgetMessage;
               assistantFinal.streaming = false;
               emitMessage(assistantFinal);
             }

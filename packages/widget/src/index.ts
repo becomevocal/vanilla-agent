@@ -1,40 +1,40 @@
 import {
-  initChatWidget as initChatWidgetFn,
-  type ChatWidgetInitHandle
+  initAgentWidget as initAgentWidgetFn,
+  type AgentWidgetInitHandle
 } from "./runtime/init";
 
 export type {
-  ChatWidgetConfig,
-  ChatWidgetTheme,
-  ChatWidgetFeatureFlags,
-  ChatWidgetInitOptions,
-  ChatWidgetMessage,
-  ChatWidgetLauncherConfig,
-  ChatWidgetEvent
+  AgentWidgetConfig,
+  AgentWidgetTheme,
+  AgentWidgetFeatureFlags,
+  AgentWidgetInitOptions,
+  AgentWidgetMessage,
+  AgentWidgetLauncherConfig,
+  AgentWidgetEvent
 } from "./types";
 
-export { initChatWidgetFn as initChatWidget };
+export { initAgentWidgetFn as initAgentWidget };
 export {
-  createChatExperience,
-  type ChatWidgetController
+  createAgentExperience,
+  type AgentWidgetController
 } from "./ui";
 export {
-  ChatWidgetSession,
-  type ChatWidgetSessionStatus
+  AgentWidgetSession,
+  type AgentWidgetSessionStatus
 } from "./session";
-export { ChatWidgetClient } from "./client";
+export { AgentWidgetClient } from "./client";
 export {
   markdownPostprocessor,
   escapeHtml,
   directivePostprocessor
 } from "./postprocessors";
-export type { ChatWidgetInitHandle };
+export type { AgentWidgetInitHandle };
 
 // Plugin system exports
-export type { ChatWidgetPlugin } from "./plugins/types";
+export type { AgentWidgetPlugin } from "./plugins/types";
 export { pluginRegistry } from "./plugins/registry";
 
 // Default configuration exports
 export { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from "./defaults";
 
-export default initChatWidgetFn;
+export default initAgentWidgetFn;

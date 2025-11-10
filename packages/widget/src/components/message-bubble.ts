@@ -1,14 +1,14 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetMessage } from "../types";
+import { AgentWidgetMessage } from "../types";
 
 export type MessageTransform = (context: {
   text: string;
-  message: ChatWidgetMessage;
+  message: AgentWidgetMessage;
   streaming: boolean;
 }) => string;
 
 export const createStandardBubble = (
-  message: ChatWidgetMessage,
+  message: AgentWidgetMessage,
   transform: MessageTransform
 ): HTMLElement => {
   const classes = [

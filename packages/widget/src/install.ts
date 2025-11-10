@@ -17,7 +17,7 @@ interface SiteAgentInstallConfig {
 declare global {
   interface Window {
     siteAgentConfig?: SiteAgentInstallConfig;
-    ChatWidget?: any;
+    AgentWidget?: any;
   }
 }
 
@@ -67,7 +67,7 @@ declare global {
 
   // Check if JS is already loaded
   const isJsLoaded = () => {
-    return !!(window as any).ChatWidget;
+    return !!(window as any).AgentWidget;
   };
 
   // Load CSS
@@ -107,8 +107,8 @@ declare global {
 
   // Initialize widget
   const initWidget = () => {
-    if (!window.ChatWidget || !window.ChatWidget.initChatWidget) {
-      console.warn("ChatWidget not available. Make sure the script loaded successfully.");
+    if (!window.AgentWidget || !window.AgentWidget.initAgentWidget) {
+      console.warn("AgentWidget not available. Make sure the script loaded successfully.");
       return;
     }
 
@@ -125,12 +125,12 @@ declare global {
     }
 
     try {
-      window.ChatWidget.initChatWidget({
+      window.AgentWidget.initAgentWidget({
         target,
         config: widgetConfig
       });
     } catch (error) {
-      console.error("Failed to initialize ChatWidget:", error);
+      console.error("Failed to initialize AgentWidget:", error);
     }
   };
 
@@ -141,11 +141,11 @@ declare global {
       await loadJS();
       
       if (autoInit && (config.config || (config as any).apiUrl)) {
-        // Wait a tick to ensure ChatWidget is fully initialized
+        // Wait a tick to ensure AgentWidget is fully initialized
         setTimeout(initWidget, 0);
       }
     } catch (error) {
-      console.error("Failed to install ChatWidget:", error);
+      console.error("Failed to install AgentWidget:", error);
     }
   };
 

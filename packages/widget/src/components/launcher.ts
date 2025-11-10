@@ -1,16 +1,16 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetConfig } from "../types";
+import { AgentWidgetConfig } from "../types";
 import { positionMap } from "../utils/positioning";
 import { renderLucideIcon } from "../utils/icons";
 
 export interface LauncherButton {
   element: HTMLButtonElement;
-  update: (config: ChatWidgetConfig) => void;
+  update: (config: AgentWidgetConfig) => void;
   destroy: () => void;
 }
 
 export const createLauncherButton = (
-  config: ChatWidgetConfig | undefined,
+  config: AgentWidgetConfig | undefined,
   onToggle: () => void
 ): LauncherButton => {
   const button = createElement("button") as HTMLButtonElement;
@@ -26,7 +26,7 @@ export const createLauncherButton = (
   `;
   button.addEventListener("click", onToggle);
 
-  const update = (newConfig: ChatWidgetConfig) => {
+  const update = (newConfig: AgentWidgetConfig) => {
     const launcher = newConfig.launcher ?? {};
 
     const titleEl = button.querySelector("[data-role='launcher-title']");

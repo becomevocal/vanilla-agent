@@ -23,8 +23,8 @@ pnpm build
 ```ts
 import 'vanilla-agent/widget.css';
 import {
-  initChatWidget,
-  createChatExperience,
+  initAgentWidget,
+  createAgentExperience,
   markdownPostprocessor,
   directivePostprocessor,
   DEFAULT_WIDGET_CONFIG
@@ -34,7 +34,7 @@ const proxyUrl = '/api/chat/dispatch';
 
 // Inline embed
 const inlineHost = document.querySelector('#inline-widget')!;
-createChatExperience(inlineHost, {
+createAgentExperience(inlineHost, {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   launcher: { enabled: false },
@@ -47,7 +47,7 @@ createChatExperience(inlineHost, {
 });
 
 // Floating launcher with runtime updates
-const controller = initChatWidget({
+const controller = initAgentWidget({
   target: '#launcher-root',
   config: {
     ...DEFAULT_WIDGET_CONFIG,
@@ -74,10 +74,10 @@ controller.update({
 
 ### Programmatic control
 
-`initChatWidget` (and `createChatExperience`) return a controller with `open()`, `close()`, and `toggle()` helpers so you can launch the widget from your own UI elements.
+`initAgentWidget` (and `createAgentExperience`) return a controller with `open()`, `close()`, and `toggle()` helpers so you can launch the widget from your own UI elements.
 
 ```ts
-const chat = initChatWidget({
+const chat = initAgentWidget({
   target: '#launcher-root',
   config: { /* ... */ }
 })
@@ -175,7 +175,7 @@ For more control, manually load CSS and JavaScript:
 
 <!-- Initialize widget -->
 <script>
-  window.ChatWidget.initChatWidget({
+  window.AgentWidget.initAgentWidget({
     target: '#vanilla-agent-anchor', // or 'body' for floating launcher
     config: {
       apiUrl: '/api/chat/dispatch',
@@ -206,7 +206,7 @@ Replace `VERSION` with `latest` for auto-updates, or a specific version like `0.
 - `index.global.js` - Widget JavaScript (IIFE format)
 - `install.global.js` - Automatic installer script
 
-The script build exposes a `window.ChatWidget` global with `initChatWidget()` and other exports.
+The script build exposes a `window.AgentWidget` global with `initAgentWidget()` and other exports.
 
 ### Using default configuration
 
@@ -216,7 +216,7 @@ The package exports a complete default configuration that you can use as a base:
 import { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from 'vanilla-agent';
 
 // Option 1: Use defaults with selective overrides
-const controller = initChatWidget({
+const controller = initAgentWidget({
   target: '#app',
   config: {
     ...DEFAULT_WIDGET_CONFIG,
@@ -229,7 +229,7 @@ const controller = initChatWidget({
 });
 
 // Option 2: Use the merge helper
-const controller = initChatWidget({
+const controller = initAgentWidget({
   target: '#app',
   config: mergeWithDefaults({
     apiUrl: '/api/chat/dispatch',
@@ -249,16 +249,16 @@ This ensures all configuration values are set to sensible defaults while allowin
 | `headers` | `Record<string, string>` | Extra headers forwarded to your proxy. |
 | `copy` | `{ welcomeTitle?, welcomeSubtitle?, inputPlaceholder?, sendButtonLabel? }` | Customize user-facing text. |
 | `theme` | `{ primary?, secondary?, surface?, muted?, accent?, radiusSm?, radiusMd?, radiusLg?, radiusFull? }` | Override CSS variables for the widget. Colors: `primary` (text/UI), `secondary` (unused), `surface` (backgrounds), `muted` (secondary text), `accent` (buttons/links). Border radius: `radiusSm` (0.75rem, inputs), `radiusMd` (1rem, cards), `radiusLg` (1.5rem, panels/bubbles), `radiusFull` (9999px, pills/buttons). |
-| `features` | `ChatWidgetFeatureFlags` | Toggle UI features: `showReasoning?` (show thinking bubbles, default: `true`), `showToolCalls?` (show tool usage bubbles, default: `true`). |
+| `features` | `AgentWidgetFeatureFlags` | Toggle UI features: `showReasoning?` (show thinking bubbles, default: `true`), `showToolCalls?` (show tool usage bubbles, default: `true`). |
 | `launcher` | `{ enabled?, autoExpand?, title?, subtitle?, iconUrl?, position? }` | Controls the floating launcher button. |
-| `initialMessages` | `ChatWidgetMessage[]` | Seed the conversation transcript. |
+| `initialMessages` | `AgentWidgetMessage[]` | Seed the conversation transcript. |
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |
 | `postprocessMessage` | `(ctx) => string` | Transform message text before it renders (return HTML). Combine with `markdownPostprocessor` for rich output. |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
 | `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(400px, calc(100vw - 24px))`. |
 | `debug` | `boolean` | Emits verbose logs to `console`. |
 
-All options are safe to mutate via `initChatWidget(...).update(newConfig)`.
+All options are safe to mutate via `initAgentWidget(...).update(newConfig)`.
 
 ### Optional proxy server
 

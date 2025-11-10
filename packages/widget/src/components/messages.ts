@@ -1,5 +1,5 @@
 import { createElement, createFragment } from "../utils/dom";
-import { ChatWidgetMessage } from "../types";
+import { AgentWidgetMessage } from "../types";
 import { MessageTransform } from "./message-bubble";
 import { createStandardBubble } from "./message-bubble";
 import { createReasoningBubble } from "./reasoning-bubble";
@@ -7,7 +7,7 @@ import { createToolBubble } from "./tool-bubble";
 
 export const renderMessages = (
   container: HTMLElement,
-  messages: ChatWidgetMessage[],
+  messages: AgentWidgetMessage[],
   transform: MessageTransform,
   showReasoning: boolean,
   showToolCalls: boolean
@@ -38,6 +38,7 @@ export const renderMessages = (
   container.appendChild(fragment);
   container.scrollTop = container.scrollHeight;
 };
+
 
 
 

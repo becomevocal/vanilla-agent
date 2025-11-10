@@ -2,9 +2,9 @@ import "vanilla-agent/widget.css";
 import "./index.css";
 
 import {
-  initChatWidget,
-  type ChatWidgetMessage,
-  type ChatWidgetConfig,
+  initAgentWidget,
+  type AgentWidgetMessage,
+  type AgentWidgetConfig,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import {
@@ -63,7 +63,7 @@ const shouldAutoOpen = navMessage !== null;
 
 // If we have a navigation message, add it as an initial assistant message
 if (navMessage) {
-  const navMessageObj: ChatWidgetMessage = {
+  const navMessageObj: AgentWidgetMessage = {
     id: `nav-${Date.now()}`,
     role: "assistant",
     content: navMessage,
@@ -74,11 +74,11 @@ if (navMessage) {
 }
 
 // Track messages for saving and action execution
-let allMessages: ChatWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
+let allMessages: AgentWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
 let processedActionIds = new Set<string>();
 
 // Create a custom config with middleware hooks
-const config: ChatWidgetConfig = {
+const config: AgentWidgetConfig = {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
@@ -154,7 +154,7 @@ const config: ChatWidgetConfig = {
 };
 
 // Initialize widget
-const widgetController = initChatWidget({
+const widgetController = initAgentWidget({
   target: "#launcher-root",
   config,
   onReady: () => {

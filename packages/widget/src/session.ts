@@ -1,33 +1,33 @@
-import { ChatWidgetClient } from "./client";
+import { AgentWidgetClient } from "./client";
 import {
-  ChatWidgetConfig,
-  ChatWidgetEvent,
-  ChatWidgetMessage
+  AgentWidgetConfig,
+  AgentWidgetEvent,
+  AgentWidgetMessage
 } from "./types";
 
-export type ChatWidgetSessionStatus =
+export type AgentWidgetSessionStatus =
   | "idle"
   | "connecting"
   | "connected"
   | "error";
 
 type SessionCallbacks = {
-  onMessagesChanged: (messages: ChatWidgetMessage[]) => void;
-  onStatusChanged: (status: ChatWidgetSessionStatus) => void;
+  onMessagesChanged: (messages: AgentWidgetMessage[]) => void;
+  onStatusChanged: (status: AgentWidgetSessionStatus) => void;
   onStreamingChanged: (streaming: boolean) => void;
   onError?: (error: Error) => void;
 };
 
-export class ChatWidgetSession {
-  private client: ChatWidgetClient;
-  private messages: ChatWidgetMessage[];
-  private status: ChatWidgetSessionStatus = "idle";
+export class AgentWidgetSession {
+  private client: AgentWidgetClient;
+  private messages: AgentWidgetMessage[];
+  private status: AgentWidgetSessionStatus = "idle";
   private streaming = false;
   private abortController: AbortController | null = null;
   private sequenceCounter = Date.now();
 
   constructor(
-    private config: ChatWidgetConfig = {},
+    private config: AgentWidgetConfig = {},
     private callbacks: SessionCallbacks
   ) {
     this.messages = [...(config.initialMessages ?? [])].map((message) => ({
@@ -35,7 +35,7 @@ export class ChatWidgetSession {
       sequence: message.sequence ?? this.nextSequence()
     }));
     this.messages = this.sortMessages(this.messages);
-    this.client = new ChatWidgetClient(config);
+    this.client = new AgentWidgetClient(config);
 
     if (this.messages.length) {
       this.callbacks.onMessagesChanged([...this.messages]);
@@ -43,9 +43,9 @@ export class ChatWidgetSession {
     this.callbacks.onStatusChanged(this.status);
   }
 
-  public updateConfig(next: ChatWidgetConfig) {
+  public updateConfig(next: AgentWidgetConfig) {
     this.config = { ...this.config, ...next };
-    this.client = new ChatWidgetClient(this.config);
+    this.client = new AgentWidgetClient(this.config);
   }
 
   public getMessages() {
@@ -66,7 +66,7 @@ export class ChatWidgetSession {
 
     this.abortController?.abort();
 
-    const userMessage: ChatWidgetMessage = {
+    const userMessage: AgentWidgetMessage = {
       id: `user-${Date.now()}`,
       role: "user",
       content: input,
@@ -91,7 +91,7 @@ export class ChatWidgetSession {
         this.handleEvent
       );
     } catch (error) {
-      const fallback: ChatWidgetMessage = {
+      const fallback: AgentWidgetMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
         createdAt: new Date().toISOString(),
@@ -128,7 +128,7 @@ export class ChatWidgetSession {
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
-  private handleEvent = (event: ChatWidgetEvent) => {
+  private handleEvent = (event: AgentWidgetEvent) => {
     if (event.type === "message") {
       this.upsertMessage(event.message);
     } else if (event.type === "status") {
@@ -147,7 +147,7 @@ export class ChatWidgetSession {
     }
   };
 
-  private setStatus(status: ChatWidgetSessionStatus) {
+  private setStatus(status: AgentWidgetSessionStatus) {
     if (this.status === status) return;
     this.status = status;
     this.callbacks.onStatusChanged(status);
@@ -159,13 +159,13 @@ export class ChatWidgetSession {
     this.callbacks.onStreamingChanged(streaming);
   }
 
-  private appendMessage(message: ChatWidgetMessage) {
+  private appendMessage(message: AgentWidgetMessage) {
     const withSequence = this.ensureSequence(message);
     this.messages = this.sortMessages([...this.messages, withSequence]);
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
-  private upsertMessage(message: ChatWidgetMessage) {
+  private upsertMessage(message: AgentWidgetMessage) {
     const withSequence = this.ensureSequence(message);
     const index = this.messages.findIndex((m) => m.id === withSequence.id);
     if (index === -1) {
@@ -180,7 +180,7 @@ export class ChatWidgetSession {
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
-  private ensureSequence(message: ChatWidgetMessage): ChatWidgetMessage {
+  private ensureSequence(message: AgentWidgetMessage): AgentWidgetMessage {
     if (message.sequence !== undefined) {
       return { ...message };
     }
@@ -194,7 +194,7 @@ export class ChatWidgetSession {
     return this.sequenceCounter++;
   }
 
-  private sortMessages(messages: ChatWidgetMessage[]) {
+  private sortMessages(messages: AgentWidgetMessage[]) {
     return [...messages].sort((a, b) => {
       // Sort by createdAt timestamp first (chronological order)
       const timeA = new Date(a.createdAt).getTime();

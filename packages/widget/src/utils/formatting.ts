@@ -1,4 +1,4 @@
-import { ChatWidgetReasoning, ChatWidgetToolCall } from "../types";
+import { AgentWidgetReasoning, AgentWidgetToolCall } from "../types";
 
 export const formatUnknownValue = (value: unknown): string => {
   if (value === null) return "null";
@@ -14,7 +14,7 @@ export const formatUnknownValue = (value: unknown): string => {
   }
 };
 
-export const formatReasoningDuration = (reasoning: ChatWidgetReasoning) => {
+export const formatReasoningDuration = (reasoning: AgentWidgetReasoning) => {
   const end = reasoning.completedAt ?? Date.now();
   const start = reasoning.startedAt ?? end;
   const durationMs =
@@ -32,13 +32,13 @@ export const formatReasoningDuration = (reasoning: ChatWidgetReasoning) => {
   return `Thought for ${formatted} seconds`;
 };
 
-export const describeReasonStatus = (reasoning: ChatWidgetReasoning) => {
+export const describeReasonStatus = (reasoning: AgentWidgetReasoning) => {
   if (reasoning.status === "complete") return formatReasoningDuration(reasoning);
   if (reasoning.status === "pending") return "Waiting";
   return "";
 };
 
-export const formatToolDuration = (tool: ChatWidgetToolCall) => {
+export const formatToolDuration = (tool: AgentWidgetToolCall) => {
   const durationMs =
     typeof tool.duration === "number"
       ? tool.duration
@@ -60,18 +60,19 @@ export const formatToolDuration = (tool: ChatWidgetToolCall) => {
   return `Used tool for ${formatted} seconds`;
 };
 
-export const describeToolStatus = (status: ChatWidgetToolCall["status"]) => {
+export const describeToolStatus = (status: AgentWidgetToolCall["status"]) => {
   if (status === "complete") return "";
   if (status === "pending") return "Starting";
   return "Running";
 };
 
-export const describeToolTitle = (tool: ChatWidgetToolCall) => {
+export const describeToolTitle = (tool: AgentWidgetToolCall) => {
   if (tool.status === "complete") {
     return formatToolDuration(tool);
   }
   return "Using tool...";
 };
+
 
 
 

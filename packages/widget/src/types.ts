@@ -1,11 +1,11 @@
-import type { ChatWidgetPlugin } from "./plugins/types";
+import type { AgentWidgetPlugin } from "./plugins/types";
 
-export type ChatWidgetFeatureFlags = {
+export type AgentWidgetFeatureFlags = {
   showReasoning?: boolean;
   showToolCalls?: boolean;
 };
 
-export type ChatWidgetTheme = {
+export type AgentWidgetTheme = {
   primary?: string;
   secondary?: string;
   surface?: string;
@@ -42,7 +42,7 @@ export type ChatWidgetTheme = {
   buttonRadius?: string;
 };
 
-export type ChatWidgetLauncherConfig = {
+export type AgentWidgetLauncherConfig = {
   enabled?: boolean;
   title?: string;
   subtitle?: string;
@@ -78,10 +78,10 @@ export type ChatWidgetLauncherConfig = {
   closeButtonIconText?: string;
   closeButtonTooltipText?: string;
   closeButtonShowTooltip?: boolean;
-  clearChat?: ChatWidgetClearChatConfig;
+  clearChat?: AgentWidgetClearChatConfig;
 };
 
-export type ChatWidgetSendButtonConfig = {
+export type AgentWidgetSendButtonConfig = {
   borderWidth?: string;
   borderColor?: string;
   paddingX?: string;
@@ -96,7 +96,7 @@ export type ChatWidgetSendButtonConfig = {
   size?: string;
 };
 
-export type ChatWidgetClearChatConfig = {
+export type AgentWidgetClearChatConfig = {
   enabled?: boolean;
   iconName?: string;
   iconColor?: string;
@@ -111,7 +111,7 @@ export type ChatWidgetClearChatConfig = {
   showTooltip?: boolean;
 };
 
-export type ChatWidgetStatusIndicatorConfig = {
+export type AgentWidgetStatusIndicatorConfig = {
   visible?: boolean;
   idleText?: string;
   connectingText?: string;
@@ -119,7 +119,7 @@ export type ChatWidgetStatusIndicatorConfig = {
   errorText?: string;
 };
 
-export type ChatWidgetVoiceRecognitionConfig = {
+export type AgentWidgetVoiceRecognitionConfig = {
   enabled?: boolean;
   pauseDuration?: number;
   iconName?: string;
@@ -138,7 +138,7 @@ export type ChatWidgetVoiceRecognitionConfig = {
   showRecordingIndicator?: boolean;
 };
 
-export type ChatWidgetConfig = {
+export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
   headers?: Record<string, string>;
@@ -148,28 +148,28 @@ export type ChatWidgetConfig = {
     inputPlaceholder?: string;
     sendButtonLabel?: string;
   };
-  theme?: ChatWidgetTheme;
-  features?: ChatWidgetFeatureFlags;
-  launcher?: ChatWidgetLauncherConfig;
-  initialMessages?: ChatWidgetMessage[];
+  theme?: AgentWidgetTheme;
+  features?: AgentWidgetFeatureFlags;
+  launcher?: AgentWidgetLauncherConfig;
+  initialMessages?: AgentWidgetMessage[];
   suggestionChips?: string[];
   debug?: boolean;
   formEndpoint?: string;
   launcherWidth?: string;
-  sendButton?: ChatWidgetSendButtonConfig;
-  statusIndicator?: ChatWidgetStatusIndicatorConfig;
-  voiceRecognition?: ChatWidgetVoiceRecognitionConfig;
+  sendButton?: AgentWidgetSendButtonConfig;
+  statusIndicator?: AgentWidgetStatusIndicatorConfig;
+  voiceRecognition?: AgentWidgetVoiceRecognitionConfig;
   postprocessMessage?: (context: {
     text: string;
-    message: ChatWidgetMessage;
+    message: AgentWidgetMessage;
     streaming: boolean;
   }) => string;
-  plugins?: ChatWidgetPlugin[];
+  plugins?: AgentWidgetPlugin[];
 };
 
-export type ChatWidgetMessageRole = "user" | "assistant" | "system";
+export type AgentWidgetMessageRole = "user" | "assistant" | "system";
 
-export type ChatWidgetReasoning = {
+export type AgentWidgetReasoning = {
   id: string;
   status: "pending" | "streaming" | "complete";
   chunks: string[];
@@ -178,7 +178,7 @@ export type ChatWidgetReasoning = {
   durationMs?: number;
 };
 
-export type ChatWidgetToolCall = {
+export type AgentWidgetToolCall = {
   id: string;
   name?: string;
   status: "pending" | "running" | "complete";
@@ -191,29 +191,29 @@ export type ChatWidgetToolCall = {
   durationMs?: number;
 };
 
-export type ChatWidgetMessageVariant = "assistant" | "reasoning" | "tool";
+export type AgentWidgetMessageVariant = "assistant" | "reasoning" | "tool";
 
-export type ChatWidgetMessage = {
+export type AgentWidgetMessage = {
   id: string;
-  role: ChatWidgetMessageRole;
+  role: AgentWidgetMessageRole;
   content: string;
   createdAt: string;
   streaming?: boolean;
-  variant?: ChatWidgetMessageVariant;
+  variant?: AgentWidgetMessageVariant;
   sequence?: number;
-  reasoning?: ChatWidgetReasoning;
-  toolCall?: ChatWidgetToolCall;
-  tools?: ChatWidgetToolCall[];
+  reasoning?: AgentWidgetReasoning;
+  toolCall?: AgentWidgetToolCall;
+  tools?: AgentWidgetToolCall[];
 };
 
-export type ChatWidgetEvent =
-  | { type: "message"; message: ChatWidgetMessage }
+export type AgentWidgetEvent =
+  | { type: "message"; message: AgentWidgetMessage }
   | { type: "status"; status: "connecting" | "connected" | "error" | "idle" }
   | { type: "error"; error: Error };
 
-export type ChatWidgetInitOptions = {
+export type AgentWidgetInitOptions = {
   target: string | HTMLElement;
-  config?: ChatWidgetConfig;
+  config?: AgentWidgetConfig;
   useShadowDom?: boolean;
   onReady?: () => void;
 };

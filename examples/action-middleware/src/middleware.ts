@@ -1,4 +1,4 @@
-import type { ChatWidgetMessage } from "vanilla-agent/types";
+import type { AgentWidgetMessage } from "vanilla-agent/types";
 
 export type ActionResponse =
   | {
@@ -26,7 +26,7 @@ const STORAGE_KEY = "vanilla-agent-action-middleware";
 const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
 
 export interface StorageData {
-  chatHistory: ChatWidgetMessage[];
+  chatHistory: AgentWidgetMessage[];
   navFlag?: {
     onLoadText: string;
     timestamp: number;
@@ -195,7 +195,7 @@ export function executeAction(
 /**
  * Saves chat history to localStorage
  */
-export function saveChatHistory(messages: ChatWidgetMessage[]): void {
+export function saveChatHistory(messages: AgentWidgetMessage[]): void {
   try {
     const data: StorageData = {
       chatHistory: messages.map((msg) => ({
@@ -213,7 +213,7 @@ export function saveChatHistory(messages: ChatWidgetMessage[]): void {
 /**
  * Loads chat history from localStorage
  */
-export function loadChatHistory(): ChatWidgetMessage[] {
+export function loadChatHistory(): AgentWidgetMessage[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {

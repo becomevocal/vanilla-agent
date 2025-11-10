@@ -1,12 +1,12 @@
-import { ChatWidgetPlugin } from "./types";
+import { AgentWidgetPlugin } from "./types";
 
 class PluginRegistry {
-  private plugins: Map<string, ChatWidgetPlugin> = new Map();
+  private plugins: Map<string, AgentWidgetPlugin> = new Map();
 
   /**
    * Register a plugin
    */
-  register(plugin: ChatWidgetPlugin): void {
+  register(plugin: AgentWidgetPlugin): void {
     if (this.plugins.has(plugin.id)) {
       console.warn(`Plugin "${plugin.id}" is already registered. Overwriting.`);
     }
@@ -29,7 +29,7 @@ class PluginRegistry {
   /**
    * Get all plugins sorted by priority
    */
-  getAll(): ChatWidgetPlugin[] {
+  getAll(): AgentWidgetPlugin[] {
     return Array.from(this.plugins.values()).sort(
       (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
     );
@@ -39,7 +39,7 @@ class PluginRegistry {
    * Get plugins for a specific instance (from config)
    * Merges instance plugins with globally registered plugins
    */
-  getForInstance(instancePlugins?: ChatWidgetPlugin[]): ChatWidgetPlugin[] {
+  getForInstance(instancePlugins?: AgentWidgetPlugin[]): AgentWidgetPlugin[] {
     const allPlugins = this.getAll();
 
     if (!instancePlugins || instancePlugins.length === 0) {
@@ -67,6 +67,7 @@ class PluginRegistry {
 }
 
 export const pluginRegistry = new PluginRegistry();
+
 
 
 

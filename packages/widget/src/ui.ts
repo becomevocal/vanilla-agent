@@ -1,6 +1,6 @@
 import { escapeHtml } from "./postprocessors";
-import { ChatWidgetSession, ChatWidgetSessionStatus } from "./session";
-import { ChatWidgetConfig, ChatWidgetMessage } from "./types";
+import { AgentWidgetSession, AgentWidgetSessionStatus } from "./session";
+import { AgentWidgetConfig, AgentWidgetMessage } from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
@@ -14,9 +14,10 @@ import { createToolBubble } from "./components/tool-bubble";
 import { createSuggestions } from "./components/suggestions";
 import { enhanceWithForms } from "./components/forms";
 import { pluginRegistry } from "./plugins/registry";
+import { mergeWithDefaults } from "./defaults";
 
 type Controller = {
-  update: (config: ChatWidgetConfig) => void;
+  update: (config: AgentWidgetConfig) => void;
   destroy: () => void;
   open: () => void;
   close: () => void;
@@ -24,7 +25,7 @@ type Controller = {
   clearChat: () => void;
 };
 
-const buildPostprocessor = (cfg?: ChatWidgetConfig): MessageTransform => {
+const buildPostprocessor = (cfg?: AgentWidgetConfig): MessageTransform => {
   if (cfg?.postprocessMessage) {
     return (context) =>
       cfg.postprocessMessage!({
@@ -36,16 +37,16 @@ const buildPostprocessor = (cfg?: ChatWidgetConfig): MessageTransform => {
   return ({ text }) => escapeHtml(text);
 };
 
-export const createChatExperience = (
+export const createAgentExperience = (
   mount: HTMLElement,
-  initialConfig?: ChatWidgetConfig
+  initialConfig?: AgentWidgetConfig
 ): Controller => {
   // Tailwind config uses important: "#vanilla-agent-root", so ensure mount has this ID
   if (!mount.id || mount.id !== "vanilla-agent-root") {
     mount.id = "vanilla-agent-root";
   }
 
-  let config = { ...initialConfig };
+  let config = mergeWithDefaults(initialConfig) as AgentWidgetConfig;
   applyThemeVariables(mount, config);
 
   // Get plugins for this instance
@@ -62,7 +63,7 @@ export const createChatExperience = (
   
   // Get status indicator config
   const statusConfig = config.statusIndicator ?? {};
-  const getStatusText = (status: ChatWidgetSessionStatus): string => {
+  const getStatusText = (status: AgentWidgetSessionStatus): string => {
     if (status === "idle") return statusConfig.idleText ?? statusCopy.idle;
     if (status === "connecting") return statusConfig.connectingText ?? statusCopy.connecting;
     if (status === "connected") return statusConfig.connectedText ?? statusCopy.connected;
@@ -98,7 +99,7 @@ export const createChatExperience = (
   const destroyCallbacks: Array<() => void> = [];
   const suggestionsManager = createSuggestions(suggestions);
   let closeHandler: (() => void) | null = null;
-  let session: ChatWidgetSession;
+  let session: AgentWidgetSession;
   let isStreaming = false;
   let shouldAutoScroll = true;
   let lastScrollTop = 0;
@@ -179,7 +180,7 @@ export const createChatExperience = (
   // Message rendering with plugin support
   const renderMessagesWithPlugins = (
     container: HTMLElement,
-    messages: ChatWidgetMessage[],
+    messages: AgentWidgetMessage[],
     transform: MessageTransform
   ) => {
     container.innerHTML = "";
@@ -365,7 +366,7 @@ export const createChatExperience = (
     textarea.style.fontWeight = fontWeight;
   };
 
-  session = new ChatWidgetSession(config, {
+  session = new AgentWidgetSession(config, {
     onMessagesChanged(messages) {
       renderMessagesWithPlugins(messagesWrapper, messages, postprocess);
       // Re-render suggestions to hide them after first user message
@@ -384,7 +385,7 @@ export const createChatExperience = (
     },
     onStatusChanged(status) {
       const currentStatusConfig = config.statusIndicator ?? {};
-      const getCurrentStatusText = (status: ChatWidgetSessionStatus): string => {
+      const getCurrentStatusText = (status: AgentWidgetSessionStatus): string => {
         if (status === "idle") return currentStatusConfig.idleText ?? statusCopy.idle;
         if (status === "connecting") return currentStatusConfig.connectingText ?? statusCopy.connecting;
         if (status === "connected") return currentStatusConfig.connectedText ?? statusCopy.connected;
@@ -593,7 +594,7 @@ export const createChatExperience = (
   };
 
   // Function to create mic button dynamically
-  const createMicButton = (voiceConfig: ChatWidgetConfig['voiceRecognition'], sendButtonConfig: ChatWidgetConfig['sendButton']): { micButton: HTMLButtonElement; micButtonWrapper: HTMLElement } | null => {
+  const createMicButton = (voiceConfig: AgentWidgetConfig['voiceRecognition'], sendButtonConfig: AgentWidgetConfig['sendButton']): { micButton: HTMLButtonElement; micButtonWrapper: HTMLElement } | null => {
     const hasSpeechRecognition = 
       typeof window !== 'undefined' && 
       (typeof (window as any).webkitSpeechRecognition !== 'undefined' || 
@@ -840,7 +841,7 @@ export const createChatExperience = (
   }
 
   return {
-    update(nextConfig: ChatWidgetConfig) {
+    update(nextConfig: AgentWidgetConfig) {
       config = { ...config, ...nextConfig };
       applyThemeVariables(mount, config);
 
@@ -1586,7 +1587,7 @@ export const createChatExperience = (
       // Update status text if status is currently set
       if (session) {
         const currentStatus = session.getStatus();
-        const getCurrentStatusText = (status: ChatWidgetSessionStatus): string => {
+        const getCurrentStatusText = (status: AgentWidgetSessionStatus): string => {
           if (status === "idle") return statusIndicatorConfig.idleText ?? statusCopy.idle;
           if (status === "connecting") return statusIndicatorConfig.connectingText ?? statusCopy.connecting;
           if (status === "connected") return statusIndicatorConfig.connectedText ?? statusCopy.connected;
@@ -1629,4 +1630,4 @@ export const createChatExperience = (
   };
 };
 
-export type ChatWidgetController = Controller;
+export type AgentWidgetController = Controller;

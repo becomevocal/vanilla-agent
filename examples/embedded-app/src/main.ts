@@ -3,8 +3,8 @@ import "./index.css";
 import "./App.css";
 
 import {
-  initChatWidget,
-  createChatExperience,
+  initAgentWidget,
+  createAgentExperience,
   markdownPostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
@@ -19,10 +19,11 @@ if (!inlineMount) {
   throw new Error("Inline widget mount node missing");
 }
 
-createChatExperience(inlineMount, {
+createAgentExperience(inlineMount, {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   launcher: {
+    ...DEFAULT_WIDGET_CONFIG.launcher,
     enabled: false
   },
   theme: {
@@ -36,7 +37,7 @@ createChatExperience(inlineMount, {
     ...DEFAULT_WIDGET_CONFIG.copy,
     welcomeTitle: "Inline Demo",
     welcomeSubtitle:
-      "This instance is rendered via createChatExperience with a neutral theme.",
+      "This instance is rendered via createAgentExperience with a neutral theme.",
     inputPlaceholder: "Ask about embedding, styling, or integrations…"
   },
   suggestionChips: [
@@ -47,7 +48,7 @@ createChatExperience(inlineMount, {
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
 });
 
-const launcherController = initChatWidget({
+const launcherController = initAgentWidget({
   target: "#launcher-root",
   config: {
     ...DEFAULT_WIDGET_CONFIG,

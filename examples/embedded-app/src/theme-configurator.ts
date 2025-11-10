@@ -3,11 +3,11 @@ import "./index.css";
 import "./theme-configurator.css";
 
 import {
-  createChatExperience,
+  createAgentExperience,
   markdownPostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
-import type { ChatWidgetConfig } from "vanilla-agent";
+import type { AgentWidgetConfig } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -234,7 +234,7 @@ const CLOSE_BUTTON_PRESETS = {
 };
 
 // Default configuration - uses shared defaults from vanilla-agent package
-const getDefaultConfig = (): ChatWidgetConfig => ({
+const getDefaultConfig = (): AgentWidgetConfig => ({
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   // Add theme editor specific properties
@@ -247,10 +247,10 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     }
   ],
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
-} as ChatWidgetConfig);
+} as AgentWidgetConfig);
 
 // Current configuration state
-let currentConfig: ChatWidgetConfig = getDefaultConfig();
+let currentConfig: AgentWidgetConfig = getDefaultConfig();
 
 // Widget instance
 const previewMount = document.getElementById("widget-preview");
@@ -258,11 +258,11 @@ if (!previewMount) {
   throw new Error("Preview mount element not found");
 }
 
-const widgetController = createChatExperience(previewMount, currentConfig);
+const widgetController = createAgentExperience(previewMount, currentConfig);
 
 // Update debounce
 let updateTimeout: number | null = null;
-const debouncedUpdate = (config: ChatWidgetConfig) => {
+const debouncedUpdate = (config: AgentWidgetConfig) => {
   if (updateTimeout !== null) {
     clearTimeout(updateTimeout);
   }
@@ -274,7 +274,7 @@ const debouncedUpdate = (config: ChatWidgetConfig) => {
 };
 
 // Immediate update (for presets and explicit actions)
-const immediateUpdate = (config: ChatWidgetConfig) => {
+const immediateUpdate = (config: AgentWidgetConfig) => {
   if (updateTimeout !== null) {
     clearTimeout(updateTimeout);
     updateTimeout = null;
@@ -287,7 +287,7 @@ const immediateUpdate = (config: ChatWidgetConfig) => {
 // Local storage
 const STORAGE_KEY = "vanilla-agent-widget-config";
 
-function saveConfigToLocalStorage(config: ChatWidgetConfig) {
+function saveConfigToLocalStorage(config: AgentWidgetConfig) {
   try {
     const configToSave = {
       ...config,
@@ -300,7 +300,7 @@ function saveConfigToLocalStorage(config: ChatWidgetConfig) {
   }
 }
 
-function loadConfigFromLocalStorage(): ChatWidgetConfig | null {
+function loadConfigFromLocalStorage(): AgentWidgetConfig | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -2119,9 +2119,9 @@ function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual
 function generateESMCode(config: any): string {
   const lines: string[] = [
     "import 'vanilla-agent/widget.css';",
-    "import { initChatWidget, markdownPostprocessor } from 'vanilla-agent';",
+    "import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';",
     "",
-    "initChatWidget({",
+    "initAgentWidget({",
     "  target: 'body',",
     "  config: {"
   ];
@@ -2261,7 +2261,7 @@ function generateScriptManualCode(config: any): string {
     "",
     "<!-- Initialize widget -->",
     "<script>",
-    "  window.ChatWidget.initChatWidget({",
+    "  window.AgentWidget.initAgentWidget({",
     "    target: '#chat-widget-root',",
     "    config: {"
   ];

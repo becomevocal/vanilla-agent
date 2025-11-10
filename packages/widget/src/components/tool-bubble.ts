@@ -1,11 +1,11 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetMessage } from "../types";
+import { AgentWidgetMessage } from "../types";
 import { formatUnknownValue, describeToolTitle } from "../utils/formatting";
 
 // Expansion state per widget instance
 const toolExpansionState = new Set<string>();
 
-export const createToolBubble = (message: ChatWidgetMessage): HTMLElement => {
+export const createToolBubble = (message: AgentWidgetMessage): HTMLElement => {
   const tool = message.toolCall;
   const bubble = createElement(
     "div",

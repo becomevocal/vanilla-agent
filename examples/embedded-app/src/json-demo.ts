@@ -3,10 +3,11 @@ import "./index.css";
 import "./App.css";
 
 import {
-  createChatExperience,
-  initChatWidget,
+  createAgentExperience,
+  initAgentWidget,
   directivePostprocessor,
-  markdownPostprocessor
+  markdownPostprocessor,
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
@@ -19,21 +20,25 @@ if (!inlineMount) {
   throw new Error("JSON demo mount node missing");
 }
 
-createChatExperience(inlineMount, {
+createAgentExperience(inlineMount, {
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   launcher: { enabled: false },
   formEndpoint: "/form",
   theme: {
+    ...DEFAULT_WIDGET_CONFIG.theme,
     primary: "#111827",
     accent: "#0ea5e9",
     surface: "#ffffff",
     muted: "#64748b"
   },
   features: {
+    ...DEFAULT_WIDGET_CONFIG.features,
     showReasoning: true,
     showToolCalls: true
   },
   copy: {
+    ...DEFAULT_WIDGET_CONFIG.copy,
     welcomeTitle: "Directive-aware demo",
     welcomeSubtitle:
       "Ask about scheduling or try the suggested prompts to see the form directive in action."
@@ -52,12 +57,14 @@ createChatExperience(inlineMount, {
   }
 });
 
-initChatWidget({
+initAgentWidget({
   target: "#json-launcher",
   config: {
+    ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
     formEndpoint: "/form",
     launcher: {
+      ...DEFAULT_WIDGET_CONFIG.launcher,
       enabled: true,
       title: "Directive Demo",
       subtitle: "Opens the interactive form example",
@@ -66,10 +73,12 @@ initChatWidget({
       width: 'min(420px, 95vw)'
     },
     features: {
+      ...DEFAULT_WIDGET_CONFIG.features,
       showReasoning: true,
       showToolCalls: true
     },
     theme: {
+      ...DEFAULT_WIDGET_CONFIG.theme,
       primary: "#020617",
       accent: "#6366f1",
       surface: "#ffffff",

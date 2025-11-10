@@ -1,6 +1,6 @@
 import { createElement } from "../utils/dom";
 import { renderLucideIcon } from "../utils/icons";
-import { ChatWidgetConfig } from "../types";
+import { AgentWidgetConfig } from "../types";
 import { positionMap } from "../utils/positioning";
 
 export interface PanelWrapper {
@@ -8,7 +8,7 @@ export interface PanelWrapper {
   panel: HTMLElement;
 }
 
-export const createWrapper = (config?: ChatWidgetConfig): PanelWrapper => {
+export const createWrapper = (config?: AgentWidgetConfig): PanelWrapper => {
   const launcherEnabled = config?.launcher?.enabled ?? true;
 
   if (!launcherEnabled) {
@@ -69,7 +69,7 @@ export interface PanelElements {
   iconHolder: HTMLElement;
 }
 
-export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelElements => {
+export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelElements => {
   const container = createElement(
     "div",
     "tvw-flex tvw-h-full tvw-w-full tvw-flex-col tvw-bg-cw-surface tvw-text-cw-primary tvw-rounded-2xl tvw-overflow-hidden tvw-shadow-2xl tvw-border tvw-border-cw-border"

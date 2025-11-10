@@ -1,8 +1,8 @@
-import { ChatWidgetConfig } from "../types";
+import { AgentWidgetConfig } from "../types";
 
 export const applyThemeVariables = (
   element: HTMLElement,
-  config?: ChatWidgetConfig
+  config?: AgentWidgetConfig
 ) => {
   const theme = config?.theme ?? {};
   Object.entries(theme).forEach(([key, value]) => {
@@ -15,6 +15,7 @@ export const applyThemeVariables = (
     element.style.setProperty(`--cw-${kebabKey}`, String(value));
   });
 };
+
 
 
 

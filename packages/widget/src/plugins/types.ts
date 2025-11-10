@@ -1,9 +1,9 @@
-import { ChatWidgetMessage, ChatWidgetConfig } from "../types";
+import { AgentWidgetMessage, AgentWidgetConfig } from "../types";
 
 /**
  * Plugin interface for customizing widget components
  */
-export interface ChatWidgetPlugin {
+export interface AgentWidgetPlugin {
   /**
    * Unique identifier for the plugin
    */
@@ -19,9 +19,9 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderMessage?: (context: {
-    message: ChatWidgetMessage;
+    message: AgentWidgetMessage;
     defaultRenderer: () => HTMLElement;
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
   }) => HTMLElement | null;
 
   /**
@@ -29,7 +29,7 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderLauncher?: (context: {
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
     defaultRenderer: () => HTMLElement;
     onToggle: () => void;
   }) => HTMLElement | null;
@@ -39,7 +39,7 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderHeader?: (context: {
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
     defaultRenderer: () => HTMLElement;
     onClose?: () => void;
   }) => HTMLElement | null;
@@ -49,7 +49,7 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderComposer?: (context: {
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
     defaultRenderer: () => HTMLElement;
     onSubmit: (text: string) => void;
     disabled: boolean;
@@ -60,9 +60,9 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderReasoning?: (context: {
-    message: ChatWidgetMessage;
+    message: AgentWidgetMessage;
     defaultRenderer: () => HTMLElement;
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
   }) => HTMLElement | null;
 
   /**
@@ -70,9 +70,9 @@ export interface ChatWidgetPlugin {
    * Return null to use default renderer
    */
   renderToolCall?: (context: {
-    message: ChatWidgetMessage;
+    message: AgentWidgetMessage;
     defaultRenderer: () => HTMLElement;
-    config: ChatWidgetConfig;
+    config: AgentWidgetConfig;
   }) => HTMLElement | null;
 
   /**
@@ -85,6 +85,7 @@ export interface ChatWidgetPlugin {
    */
   onUnregister?: () => void;
 }
+
 
 
 

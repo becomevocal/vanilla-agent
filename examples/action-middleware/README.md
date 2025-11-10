@@ -79,7 +79,7 @@ The example uses a custom endpoint `/api/chat/dispatch-action` configured in `ex
 
 ```typescript
 {
-  chatHistory: ChatWidgetMessage[],
+  chatHistory: AgentWidgetMessage[],
   navFlag?: {
     onLoadText: string,
     timestamp: number

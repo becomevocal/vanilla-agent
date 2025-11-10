@@ -1,6 +1,6 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetMessage, ChatWidgetConfig } from "../types";
-import { ChatWidgetSession } from "../session";
+import { AgentWidgetMessage, AgentWidgetConfig } from "../types";
+import { AgentWidgetSession } from "../session";
 
 export const formDefinitions: Record<
   string,
@@ -40,9 +40,9 @@ export const formDefinitions: Record<
 
 export const enhanceWithForms = (
   bubble: HTMLElement,
-  message: ChatWidgetMessage,
-  config: ChatWidgetConfig,
-  session: ChatWidgetSession
+  message: AgentWidgetMessage,
+  config: AgentWidgetConfig,
+  session: AgentWidgetSession
 ) => {
   const placeholders = bubble.querySelectorAll<HTMLElement>("[data-tv-form]");
   if (placeholders.length) {
@@ -160,6 +160,7 @@ export const enhanceWithForms = (
     });
   }
 };
+
 
 
 

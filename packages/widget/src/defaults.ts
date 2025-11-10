@@ -1,10 +1,10 @@
-import type { ChatWidgetConfig } from "./types";
+import type { AgentWidgetConfig } from "./types";
 
 /**
  * Default widget configuration
  * Single source of truth for all default values
  */
-export const DEFAULT_WIDGET_CONFIG: Partial<ChatWidgetConfig> = {
+export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
   apiUrl: "http://localhost:43111/api/chat/dispatch",
   theme: {
     primary: "#111827",
@@ -21,10 +21,10 @@ export const DEFAULT_WIDGET_CONFIG: Partial<ChatWidgetConfig> = {
     sendButtonBackgroundColor: "#111827",
     sendButtonTextColor: "#ffffff",
     sendButtonBorderColor: "#60a5fa",
-    closeButtonColor: "#9ca3af",
+    closeButtonColor: "#6b7280",
     closeButtonBackgroundColor: "transparent",
     closeButtonBorderColor: "",
-    clearChatIconColor: "#9ca3af",
+    clearChatIconColor: "#6b7280",
     clearChatBackgroundColor: "transparent",
     clearChatBorderColor: "transparent",
     micIconColor: "#111827",
@@ -59,10 +59,10 @@ export const DEFAULT_WIDGET_CONFIG: Partial<ChatWidgetConfig> = {
     callToActionIconPadding: "5px",
     callToActionIconColor: "#000000",
     callToActionIconBackgroundColor: "#ffffff",
-    closeButtonColor: "#9ca3af",
+    closeButtonColor: "#6b7280",
     closeButtonBackgroundColor: "transparent",
     clearChat: {
-      iconColor: "#9ca3af",
+      iconColor: "#6b7280",
       backgroundColor: "transparent",
       borderColor: "transparent",
       enabled: true,
@@ -136,8 +136,8 @@ export const DEFAULT_WIDGET_CONFIG: Partial<ChatWidgetConfig> = {
  * This ensures all default values are present while allowing selective overrides
  */
 export function mergeWithDefaults(
-  config?: Partial<ChatWidgetConfig>
-): Partial<ChatWidgetConfig> {
+  config?: Partial<AgentWidgetConfig>
+): Partial<AgentWidgetConfig> {
   if (!config) return DEFAULT_WIDGET_CONFIG;
 
   return {

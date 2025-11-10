@@ -1,4 +1,4 @@
-import type { ChatWidgetMessage } from "vanilla-agent";
+import type { AgentWidgetMessage } from "vanilla-agent";
 
 export type ActionResponse =
   | {
@@ -36,7 +36,7 @@ const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
 const EXECUTED_ACTIONS_KEY = "vanilla-agent-executed-actions"; // Track which message IDs have had actions executed
 
 export interface StorageData {
-  chatHistory: ChatWidgetMessage[];
+  chatHistory: AgentWidgetMessage[];
   navFlag?: {
     onLoadText: string;
     timestamp: number;
@@ -317,7 +317,7 @@ export function executeAction(
 /**
  * Saves chat history to localStorage
  */
-export function saveChatHistory(messages: ChatWidgetMessage[]): void {
+export function saveChatHistory(messages: AgentWidgetMessage[]): void {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const existingData: StorageData = stored ? JSON.parse(stored) : { chatHistory: [] };
@@ -339,7 +339,7 @@ export function saveChatHistory(messages: ChatWidgetMessage[]): void {
 /**
  * Loads chat history from localStorage
  */
-export function loadChatHistory(): ChatWidgetMessage[] {
+export function loadChatHistory(): AgentWidgetMessage[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {

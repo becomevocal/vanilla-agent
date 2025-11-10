@@ -16,6 +16,9 @@ export default defineConfig({
       )
     }
   },
+  optimizeDeps: {
+    include: ["lucide"]
+  },
   server: {
     port: 5173,
     proxy: {

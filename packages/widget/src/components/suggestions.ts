@@ -1,16 +1,16 @@
 import { createElement } from "../utils/dom";
-import { ChatWidgetSession } from "../session";
-import { ChatWidgetMessage } from "../types";
+import { AgentWidgetSession } from "../session";
+import { AgentWidgetMessage } from "../types";
 
 export interface SuggestionButtons {
   buttons: HTMLButtonElement[];
-  render: (chips: string[] | undefined, session: ChatWidgetSession, textarea: HTMLTextAreaElement, messages?: ChatWidgetMessage[]) => void;
+  render: (chips: string[] | undefined, session: AgentWidgetSession, textarea: HTMLTextAreaElement, messages?: AgentWidgetMessage[]) => void;
 }
 
 export const createSuggestions = (container: HTMLElement): SuggestionButtons => {
   const suggestionButtons: HTMLButtonElement[] = [];
 
-  const render = (chips: string[] | undefined, session: ChatWidgetSession, textarea: HTMLTextAreaElement, messages?: ChatWidgetMessage[]) => {
+  const render = (chips: string[] | undefined, session: AgentWidgetSession, textarea: HTMLTextAreaElement, messages?: AgentWidgetMessage[]) => {
     container.innerHTML = "";
     suggestionButtons.length = 0;
     if (!chips || !chips.length) return;
