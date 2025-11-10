@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["cloudflare-workers", "standalone-widget-example", "vercel-edge", "action-middleware"]
 }
