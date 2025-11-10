@@ -34,4 +34,7 @@ export type { ChatWidgetInitHandle };
 export type { ChatWidgetPlugin } from "./plugins/types";
 export { pluginRegistry } from "./plugins/registry";
 
+// Default configuration exports
+export { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from "./defaults";
+
 export default initChatWidgetFn;

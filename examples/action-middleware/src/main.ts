@@ -4,7 +4,8 @@ import "./index.css";
 import {
   initChatWidget,
   type ChatWidgetMessage,
-  type ChatWidgetConfig
+  type ChatWidgetConfig,
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import {
   collectPageContext,
@@ -78,10 +79,11 @@ let processedActionIds = new Set<string>();
 
 // Create a custom config with middleware hooks
 const config: ChatWidgetConfig = {
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
   launcher: {
-    enabled: true,
+    ...DEFAULT_WIDGET_CONFIG.launcher,
     autoExpand: shouldAutoOpen,
     width: "min(920px, 95vw)",
     title: "Shopping Assistant",
@@ -89,16 +91,13 @@ const config: ChatWidgetConfig = {
     iconText: "🛍️"
   },
   theme: {
-    primary: "#111827",
-    accent: "#0ea5e9",
-    surface: "#ffffff",
-    muted: "#64748b"
+    ...DEFAULT_WIDGET_CONFIG.theme,
+    accent: "#0ea5e9"
   },
   copy: {
+    ...DEFAULT_WIDGET_CONFIG.copy,
     welcomeTitle: "Hi, what can I help you with?",
-    welcomeSubtitle: "Try asking for products or adding items to your cart",
-    inputPlaceholder: "Type your message…",
-    sendButtonLabel: "Send"
+    welcomeSubtitle: "Try asking for products or adding items to your cart"
   },
   suggestionChips: [
     "I am looking for a black shirt in medium",

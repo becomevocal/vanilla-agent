@@ -5,7 +5,8 @@ import "./App.css";
 import {
   initChatWidget,
   createChatExperience,
-  markdownPostprocessor
+  markdownPostprocessor,
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
@@ -19,22 +20,24 @@ if (!inlineMount) {
 }
 
 createChatExperience(inlineMount, {
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   launcher: {
     enabled: false
   },
   theme: {
+    ...DEFAULT_WIDGET_CONFIG.theme,
     primary: "#0f172a",
     accent: "#ea580c",
     surface: "#f8fafc",
     muted: "#64748b"
   },
   copy: {
+    ...DEFAULT_WIDGET_CONFIG.copy,
     welcomeTitle: "Inline Demo",
     welcomeSubtitle:
       "This instance is rendered via createChatExperience with a neutral theme.",
-    inputPlaceholder: "Ask about embedding, styling, or integrations…",
-    sendButtonLabel: "Send"
+    inputPlaceholder: "Ask about embedding, styling, or integrations…"
   },
   suggestionChips: [
     "Do you support streaming?",
@@ -47,27 +50,23 @@ createChatExperience(inlineMount, {
 const launcherController = initChatWidget({
   target: "#launcher-root",
   config: {
+    ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
     launcher: {
-      enabled: true,
-      autoExpand: false,
+      ...DEFAULT_WIDGET_CONFIG.launcher,
       width: 'min(920px, 95vw)',
-      title: "AI Assistant",
-      subtitle: "Here to help you get answers fast",
       iconUrl: "https://dummyimage.com/96x96/111827/ffffff&text=AI"
     },
     theme: {
+      ...DEFAULT_WIDGET_CONFIG.theme,
       primary: "#101828",
-      accent: "#1d4ed8",
-      surface: "#ffffff",
       muted: "#475467"
     },
     copy: {
+      ...DEFAULT_WIDGET_CONFIG.copy,
       welcomeTitle: "Chat with the team",
       welcomeSubtitle:
-        "This workspace demo shows how you can configure features and launcher styling.",
-      inputPlaceholder: "Type your message…",
-      sendButtonLabel: "Send"
+        "This workspace demo shows how you can configure features and launcher styling."
     },
     suggestionChips: [
       "How do I embed the widget?",

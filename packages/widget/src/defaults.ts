@@ -1,0 +1,180 @@
+import type { ChatWidgetConfig } from "./types";
+
+/**
+ * Default widget configuration
+ * Single source of truth for all default values
+ */
+export const DEFAULT_WIDGET_CONFIG: Partial<ChatWidgetConfig> = {
+  apiUrl: "http://localhost:43111/api/chat/dispatch",
+  theme: {
+    primary: "#111827",
+    accent: "#1d4ed8",
+    surface: "#ffffff",
+    muted: "#6b7280",
+    container: "#f8fafc",
+    border: "#f1f5f9",
+    divider: "#f1f5f9",
+    messageBorder: "#f1f5f9",
+    inputBackground: "#ffffff",
+    callToAction: "#000000",
+    callToActionBackground: "#ffffff",
+    sendButtonBackgroundColor: "#111827",
+    sendButtonTextColor: "#ffffff",
+    sendButtonBorderColor: "#60a5fa",
+    closeButtonColor: "#9ca3af",
+    closeButtonBackgroundColor: "transparent",
+    closeButtonBorderColor: "",
+    clearChatIconColor: "#9ca3af",
+    clearChatBackgroundColor: "transparent",
+    clearChatBorderColor: "transparent",
+    micIconColor: "#111827",
+    micBackgroundColor: "transparent",
+    micBorderColor: "transparent",
+    recordingIconColor: "#ffffff",
+    recordingBackgroundColor: "#ef4444",
+    recordingBorderColor: "transparent",
+    inputFontFamily: "sans-serif",
+    inputFontWeight: "400",
+    radiusSm: "0.75rem",
+    radiusMd: "1rem",
+    radiusLg: "1.5rem",
+    launcherRadius: "9999px",
+    buttonRadius: "9999px",
+  },
+  launcher: {
+    enabled: true,
+    title: "Chat Assistant",
+    subtitle: "Here to help you get answers fast",
+    agentIconText: "💬",
+    position: "bottom-right",
+    width: "min(400px, calc(100vw - 24px))",
+    autoExpand: false,
+    callToActionIconHidden: false,
+    agentIconSize: "40px",
+    headerIconSize: "40px",
+    closeButtonSize: "32px",
+    callToActionIconName: "arrow-up-right",
+    callToActionIconText: "",
+    callToActionIconSize: "32px",
+    callToActionIconPadding: "5px",
+    callToActionIconColor: "#000000",
+    callToActionIconBackgroundColor: "#ffffff",
+    closeButtonColor: "#9ca3af",
+    closeButtonBackgroundColor: "transparent",
+    clearChat: {
+      iconColor: "#9ca3af",
+      backgroundColor: "transparent",
+      borderColor: "transparent",
+      enabled: true,
+      iconName: "refresh-cw",
+      size: "29px",
+      showTooltip: true,
+      tooltipText: "Clear chat",
+      paddingX: "0px",
+      paddingY: "0px",
+    },
+    headerIconHidden: false,
+  },
+  copy: {
+    welcomeTitle: "Hello 👋",
+    welcomeSubtitle: "Ask anything about your account or products.",
+    inputPlaceholder: "How can I help...",
+    sendButtonLabel: "Send",
+  },
+  sendButton: {
+    borderWidth: "0px",
+    paddingX: "12px",
+    paddingY: "10px",
+    backgroundColor: "#111827",
+    textColor: "#ffffff",
+    borderColor: "#60a5fa",
+    useIcon: true,
+    iconText: "↑",
+    size: "40px",
+    showTooltip: true,
+    tooltipText: "Send message",
+    iconName: "send",
+  },
+  statusIndicator: {
+    visible: true,
+    idleText: "Online",
+    connectingText: "Connecting…",
+    connectedText: "Streaming…",
+    errorText: "Offline",
+  },
+  voiceRecognition: {
+    enabled: true,
+    pauseDuration: 2000,
+    iconName: "mic",
+    iconSize: "39px",
+    borderWidth: "0px",
+    paddingX: "9px",
+    paddingY: "14px",
+    iconColor: "#111827",
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    recordingIconColor: "#ffffff",
+    recordingBackgroundColor: "#ef4444",
+    recordingBorderColor: "transparent",
+    showTooltip: true,
+    tooltipText: "Start voice recognition",
+  },
+  features: {
+    showReasoning: true,
+    showToolCalls: true,
+  },
+  suggestionChips: [
+    "What can you help me with?",
+    "Tell me about your features",
+    "How does this work?",
+  ],
+  debug: false,
+};
+
+/**
+ * Helper to deep merge user config with defaults
+ * This ensures all default values are present while allowing selective overrides
+ */
+export function mergeWithDefaults(
+  config?: Partial<ChatWidgetConfig>
+): Partial<ChatWidgetConfig> {
+  if (!config) return DEFAULT_WIDGET_CONFIG;
+
+  return {
+    ...DEFAULT_WIDGET_CONFIG,
+    ...config,
+    theme: {
+      ...DEFAULT_WIDGET_CONFIG.theme,
+      ...config.theme,
+    },
+    launcher: {
+      ...DEFAULT_WIDGET_CONFIG.launcher,
+      ...config.launcher,
+      clearChat: {
+        ...DEFAULT_WIDGET_CONFIG.launcher?.clearChat,
+        ...config.launcher?.clearChat,
+      },
+    },
+    copy: {
+      ...DEFAULT_WIDGET_CONFIG.copy,
+      ...config.copy,
+    },
+    sendButton: {
+      ...DEFAULT_WIDGET_CONFIG.sendButton,
+      ...config.sendButton,
+    },
+    statusIndicator: {
+      ...DEFAULT_WIDGET_CONFIG.statusIndicator,
+      ...config.statusIndicator,
+    },
+    voiceRecognition: {
+      ...DEFAULT_WIDGET_CONFIG.voiceRecognition,
+      ...config.voiceRecognition,
+    },
+    features: {
+      ...DEFAULT_WIDGET_CONFIG.features,
+      ...config.features,
+    },
+    suggestionChips: config.suggestionChips ?? DEFAULT_WIDGET_CONFIG.suggestionChips,
+  };
+}

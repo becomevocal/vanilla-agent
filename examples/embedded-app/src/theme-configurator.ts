@@ -4,7 +4,8 @@ import "./theme-configurator.css";
 
 import {
   createChatExperience,
-  markdownPostprocessor
+  markdownPostprocessor,
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import type { ChatWidgetConfig } from "vanilla-agent";
 
@@ -232,83 +233,11 @@ const CLOSE_BUTTON_PRESETS = {
   }
 };
 
-// Default configuration
+// Default configuration - uses shared defaults from vanilla-agent package
 const getDefaultConfig = (): ChatWidgetConfig => ({
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
-  theme: { ...THEME_PRESETS.default, ...RADIUS_PRESETS.default, ...TYPOGRAPHY_PRESETS.default },
-  launcher: {
-    enabled: true,
-    title: "Chat Assistant",
-    subtitle: "Here to help you get answers fast",
-    agentIconText: "💬",
-    position: "bottom-right",
-    width: "min(400px, calc(100vw - 24px))",
-    autoExpand: false,
-    callToActionIconHidden: false,
-    agentIconSize: "40px",
-    headerIconSize: "48px",
-    closeButtonSize: "32px",
-    ...CALL_TO_ACTION_PRESETS.default,
-    // Colors come from theme presets
-    callToActionIconColor: THEME_PRESETS.default.callToAction,
-    callToActionIconBackgroundColor: THEME_PRESETS.default.callToActionBackground,
-    closeButtonColor: THEME_PRESETS.default.closeButtonColor || undefined,
-    closeButtonBackgroundColor: THEME_PRESETS.default.closeButtonBackgroundColor || undefined,
-    closeButtonBorderColor: THEME_PRESETS.default.closeButtonBorderColor || undefined,
-    clearChat: {
-      iconColor: THEME_PRESETS.default.clearChatIconColor || undefined,
-      backgroundColor: THEME_PRESETS.default.clearChatBackgroundColor || undefined,
-      borderColor: THEME_PRESETS.default.clearChatBorderColor || undefined
-    }
-  },
-  copy: {
-    welcomeTitle: "Hello 👋",
-    welcomeSubtitle: "Ask anything about your account or products.",
-    inputPlaceholder: "Type your message…",
-    sendButtonLabel: "Send"
-  },
-  sendButton: {
-    borderWidth: "0px",
-    paddingX: "16px",
-    paddingY: "8px",
-    // Colors come from theme presets
-    backgroundColor: THEME_PRESETS.default.sendButtonBackgroundColor,
-    textColor: THEME_PRESETS.default.sendButtonTextColor,
-    borderColor: THEME_PRESETS.default.sendButtonBorderColor
-  },
-  statusIndicator: {
-    visible: true,
-    idleText: "Online",
-    connectingText: "Connecting…",
-    connectedText: "Streaming…",
-    errorText: "Offline"
-  },
-  voiceRecognition: {
-    enabled: false,
-    pauseDuration: 2000,
-    iconName: "mic",
-    iconSize: "37px",
-    borderWidth: "0px",
-    paddingX: "10px",
-    paddingY: "10px",
-    // Colors come from theme presets (background defaults to transparent)
-    iconColor: THEME_PRESETS.default.micIconColor,
-    backgroundColor: THEME_PRESETS.default.micBackgroundColor || "transparent",
-    borderColor: THEME_PRESETS.default.micBorderColor,
-    recordingIconColor: THEME_PRESETS.default.recordingIconColor,
-    recordingBackgroundColor: THEME_PRESETS.default.recordingBackgroundColor,
-    recordingBorderColor: THEME_PRESETS.default.recordingBorderColor
-  },
-  features: {
-    showReasoning: true,
-    showToolCalls: true
-  },
-  suggestionChips: [
-    "What can you help me with?",
-    "Tell me about your features",
-    "How does this work?"
-  ],
-  debug: false,
+  // Add theme editor specific properties
   initialMessages: [
     {
       id: "sample-1",
@@ -318,7 +247,7 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     }
   ],
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
-});
+} as ChatWidgetConfig);
 
 // Current configuration state
 let currentConfig: ChatWidgetConfig = getDefaultConfig();

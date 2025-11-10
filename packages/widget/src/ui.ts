@@ -337,9 +337,14 @@ export const createChatExperience = (
     introSubtitle.textContent =
       config.copy?.welcomeSubtitle ??
       "Ask anything about your account or products.";
-    textarea.placeholder = config.copy?.inputPlaceholder ?? "Type your message…";
-    sendButton.textContent = config.copy?.sendButtonLabel ?? "Send";
-    
+    textarea.placeholder = config.copy?.inputPlaceholder ?? "How can I help...";
+
+    // Only update send button text if NOT using icon mode
+    const useIcon = config.sendButton?.useIcon ?? false;
+    if (!useIcon) {
+      sendButton.textContent = config.copy?.sendButtonLabel ?? "Send";
+    }
+
     // Update textarea font family and weight
     const fontFamily = config.theme?.inputFontFamily ?? "sans-serif";
     const fontWeight = config.theme?.inputFontWeight ?? "400";

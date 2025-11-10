@@ -26,7 +26,8 @@ import {
   initChatWidget,
   createChatExperience,
   markdownPostprocessor,
-  directivePostprocessor
+  directivePostprocessor,
+  DEFAULT_WIDGET_CONFIG
 } from 'vanilla-agent';
 
 const proxyUrl = '/api/chat/dispatch';
@@ -34,12 +35,12 @@ const proxyUrl = '/api/chat/dispatch';
 // Inline embed
 const inlineHost = document.querySelector('#inline-widget')!;
 createChatExperience(inlineHost, {
+  ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   launcher: { enabled: false },
-  theme: { accent: '#2563eb', primary: '#111827' },
-  features: {
-    showReasoning: true,   // Show thinking bubbles (default: true)
-    showToolCalls: true    // Show tool usage bubbles (default: true)
+  theme: {
+    ...DEFAULT_WIDGET_CONFIG.theme,
+    accent: '#2563eb'
   },
   suggestionChips: ['What can you do?', 'Show API docs'],
   postprocessMessage: ({ text }) => markdownPostprocessor(text)
@@ -49,13 +50,12 @@ createChatExperience(inlineHost, {
 const controller = initChatWidget({
   target: '#launcher-root',
   config: {
+    ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
     launcher: {
-      enabled: true,
-      autoExpand: false,
+      ...DEFAULT_WIDGET_CONFIG.launcher,
       title: 'AI Assistant',
-      subtitle: 'Here to help you get answers fast',
-      width: 'min(420px, 95vw)'
+      subtitle: 'Here to help you get answers fast'
     }
   }
 });
@@ -207,6 +207,38 @@ Replace `VERSION` with `latest` for auto-updates, or a specific version like `0.
 - `install.global.js` - Automatic installer script
 
 The script build exposes a `window.ChatWidget` global with `initChatWidget()` and other exports.
+
+### Using default configuration
+
+The package exports a complete default configuration that you can use as a base:
+
+```ts
+import { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from 'vanilla-agent';
+
+// Option 1: Use defaults with selective overrides
+const controller = initChatWidget({
+  target: '#app',
+  config: {
+    ...DEFAULT_WIDGET_CONFIG,
+    apiUrl: '/api/chat/dispatch',
+    theme: {
+      ...DEFAULT_WIDGET_CONFIG.theme,
+      accent: '#custom-color'  // Override only what you need
+    }
+  }
+});
+
+// Option 2: Use the merge helper
+const controller = initChatWidget({
+  target: '#app',
+  config: mergeWithDefaults({
+    apiUrl: '/api/chat/dispatch',
+    theme: { accent: '#custom-color' }
+  })
+});
+```
+
+This ensures all configuration values are set to sensible defaults while allowing you to customize only what you need.
 
 ### Configuration reference
 
