@@ -52,6 +52,9 @@ const THEME_PRESETS = {
     closeButtonColor: "#9ca3af",
     closeButtonBackgroundColor: "transparent",
     closeButtonBorderColor: "",
+    clearChatIconColor: "#9ca3af",
+    clearChatBackgroundColor: "transparent",
+    clearChatBorderColor: "transparent",
     micIconColor: "#111827",
     micBackgroundColor: "transparent",
     micBorderColor: "transparent",
@@ -79,6 +82,9 @@ const THEME_PRESETS = {
     closeButtonColor: "#9ca3af",
     closeButtonBackgroundColor: "transparent",
     closeButtonBorderColor: "",
+    clearChatIconColor: "#d1d5db",
+    clearChatBackgroundColor: "transparent",
+    clearChatBorderColor: "transparent",
     micIconColor: "#f9fafb",
     micBackgroundColor: "transparent",
     micBorderColor: "transparent",
@@ -106,6 +112,9 @@ const THEME_PRESETS = {
     closeButtonColor: "#666666",
     closeButtonBackgroundColor: "",
     closeButtonBorderColor: "",
+    clearChatIconColor: "#666666",
+    clearChatBackgroundColor: "transparent",
+    clearChatBorderColor: "#999999",
     micIconColor: "#000000",
     micBackgroundColor: "transparent",
     micBorderColor: "transparent",
@@ -217,10 +226,6 @@ const CLOSE_BUTTON_PRESETS = {
     closeButtonBorderWidth: "1px",
     closeButtonBorderRadius: "6px"
   },
-  bold: {
-    closeButtonBorderWidth: "",
-    closeButtonBorderRadius: "50%"
-  },
   outlined: {
     closeButtonBorderWidth: "1px",
     closeButtonBorderRadius: "50%"
@@ -237,7 +242,7 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     subtitle: "Here to help you get answers fast",
     agentIconText: "💬",
     position: "bottom-right",
-    width: "min(360px, calc(100vw - 24px))",
+    width: "min(400px, calc(100vw - 24px))",
     autoExpand: false,
     callToActionIconHidden: false,
     agentIconSize: "40px",
@@ -249,7 +254,12 @@ const getDefaultConfig = (): ChatWidgetConfig => ({
     callToActionIconBackgroundColor: THEME_PRESETS.default.callToActionBackground,
     closeButtonColor: THEME_PRESETS.default.closeButtonColor || undefined,
     closeButtonBackgroundColor: THEME_PRESETS.default.closeButtonBackgroundColor || undefined,
-    closeButtonBorderColor: THEME_PRESETS.default.closeButtonBorderColor || undefined
+    closeButtonBorderColor: THEME_PRESETS.default.closeButtonBorderColor || undefined,
+    clearChat: {
+      iconColor: THEME_PRESETS.default.clearChatIconColor || undefined,
+      backgroundColor: THEME_PRESETS.default.clearChatBackgroundColor || undefined,
+      borderColor: THEME_PRESETS.default.clearChatBorderColor || undefined
+    }
   },
   copy: {
     welcomeTitle: "Hello 👋",
@@ -593,7 +603,7 @@ function setupColorInput(
 
 // Theme controls
 function setupThemeControls() {
-  const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted", "sendButtonBackgroundColor", "sendButtonTextColor", "sendButtonBorderColor", "closeButtonColor", "closeButtonBackgroundColor", "closeButtonBorderColor", "micIconColor", "micBackgroundColor", "micBorderColor", "recordingIconColor", "recordingBackgroundColor", "recordingBorderColor"] as const;
+  const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted", "sendButtonBackgroundColor", "sendButtonTextColor", "sendButtonBorderColor", "closeButtonColor", "closeButtonBackgroundColor", "closeButtonBorderColor", "clearChatIconColor", "clearChatBackgroundColor", "clearChatBorderColor", "micIconColor", "micBackgroundColor", "micBorderColor", "recordingIconColor", "recordingBackgroundColor", "recordingBorderColor"] as const;
 
   themeKeys.forEach((key) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
@@ -688,7 +698,18 @@ function updateTheme(key: string, value: string) {
       [key === "closeButtonColor" ? "closeButtonColor" : key === "closeButtonBackgroundColor" ? "closeButtonBackgroundColor" : "closeButtonBorderColor"]: (value === "" || value === "transparent") ? undefined : value
     };
   }
-  
+
+  // If updating clear chat button colors, also update launcher.clearChat config
+  if (key === "clearChatIconColor" || key === "clearChatBackgroundColor" || key === "clearChatBorderColor") {
+    newConfig.launcher = {
+      ...currentConfig.launcher,
+      clearChat: {
+        ...currentConfig.launcher?.clearChat,
+        [key === "clearChatIconColor" ? "iconColor" : key === "clearChatBackgroundColor" ? "backgroundColor" : "borderColor"]: (value === "" || value === "transparent") ? undefined : value
+      }
+    };
+  }
+
   // If updating mic button colors, also update voiceRecognition config
   if (key === "micIconColor" || key === "micBackgroundColor" || key === "micBorderColor" || 
       key === "recordingIconColor" || key === "recordingBackgroundColor" || key === "recordingBorderColor") {
@@ -713,7 +734,7 @@ function updateTheme(key: string, value: string) {
 
 function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const themeValues = THEME_PRESETS[preset];
-  const { callToActionBackground, sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor, closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor, micIconColor, micBackgroundColor, micBorderColor, recordingIconColor, recordingBackgroundColor, recordingBorderColor, inputFontFamily, inputFontWeight, ...themeColors } = themeValues;
+  const { callToActionBackground, sendButtonBackgroundColor, sendButtonTextColor, sendButtonBorderColor, closeButtonColor, closeButtonBackgroundColor, closeButtonBorderColor, clearChatIconColor, clearChatBackgroundColor, clearChatBorderColor, micIconColor, micBackgroundColor, micBorderColor, recordingIconColor, recordingBackgroundColor, recordingBorderColor, inputFontFamily, inputFontWeight, ...themeColors } = themeValues;
   
   Object.entries(themeColors).forEach(([key, value]) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
@@ -776,6 +797,42 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
     } else {
       closeButtonBorderColorTextInput.value = closeButtonBorderColor;
       closeButtonBorderColorInput.value = closeButtonBorderColor;
+    }
+  }
+
+  // Set clear chat button colors
+  const clearChatIconColorInput = getInput<HTMLInputElement>("color-clearChatIconColor");
+  const clearChatIconColorTextInput = getInput<HTMLInputElement>("color-clearChatIconColor-text");
+  const clearChatBackgroundColorInput = getInput<HTMLInputElement>("color-clearChatBackgroundColor");
+  const clearChatBackgroundColorTextInput = getInput<HTMLInputElement>("color-clearChatBackgroundColor-text");
+  const clearChatBorderColorInput = getInput<HTMLInputElement>("color-clearChatBorderColor");
+  const clearChatBorderColorTextInput = getInput<HTMLInputElement>("color-clearChatBorderColor-text");
+
+  if (clearChatIconColorInput && clearChatIconColorTextInput) {
+    if (clearChatIconColor === "" || clearChatIconColor === "transparent") {
+      clearChatIconColorTextInput.value = "transparent";
+      clearChatIconColorInput.value = "#000000";
+    } else {
+      clearChatIconColorTextInput.value = clearChatIconColor;
+      clearChatIconColorInput.value = clearChatIconColor;
+    }
+  }
+  if (clearChatBackgroundColorInput && clearChatBackgroundColorTextInput) {
+    if (clearChatBackgroundColor === "" || clearChatBackgroundColor === "transparent") {
+      clearChatBackgroundColorTextInput.value = "transparent";
+      clearChatBackgroundColorInput.value = "#000000";
+    } else {
+      clearChatBackgroundColorTextInput.value = clearChatBackgroundColor;
+      clearChatBackgroundColorInput.value = clearChatBackgroundColor;
+    }
+  }
+  if (clearChatBorderColorInput && clearChatBorderColorTextInput) {
+    if (clearChatBorderColor === "" || clearChatBorderColor === "transparent") {
+      clearChatBorderColorTextInput.value = "transparent";
+      clearChatBorderColorInput.value = "#000000";
+    } else {
+      clearChatBorderColorTextInput.value = clearChatBorderColor;
+      clearChatBorderColorInput.value = clearChatBorderColor;
     }
   }
 
@@ -867,7 +924,13 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
       callToActionIconBackgroundColor: callToActionBackground,
       closeButtonColor: closeButtonColor || undefined,
       closeButtonBackgroundColor: closeButtonBackgroundColor || undefined,
-      closeButtonBorderColor: closeButtonBorderColor || undefined
+      closeButtonBorderColor: closeButtonBorderColor || undefined,
+      clearChat: {
+        ...currentConfig.launcher?.clearChat,
+        iconColor: clearChatIconColor || undefined,
+        backgroundColor: clearChatBackgroundColor || undefined,
+        borderColor: clearChatBorderColor || undefined
+      }
     },
     voiceRecognition: {
       ...currentConfig.voiceRecognition,
@@ -1100,7 +1163,7 @@ function setupLauncherControls() {
   agentIconNameInput.value = currentConfig.launcher?.agentIconName ?? "";
   agentIconHiddenInput.checked = currentConfig.launcher?.agentIconHidden ?? false;
   positionInput.value = currentConfig.launcher?.position ?? "bottom-right";
-  widthInput.value = currentConfig.launcher?.width ?? "min(360px, calc(100vw - 24px))";
+  widthInput.value = currentConfig.launcher?.width ?? "min(400px, calc(100vw - 24px))";
   autoExpandInput.checked = currentConfig.launcher?.autoExpand ?? false;
   callToActionIconTextInput.value = currentConfig.launcher?.callToActionIconText ?? "↗";
   callToActionIconNameInput.value = currentConfig.launcher?.callToActionIconName ?? "";
@@ -1210,11 +1273,21 @@ function setupCloseButtonControls() {
   const closeButtonPlacementInput = getInput<HTMLSelectElement>("launcher-close-button-placement");
   const closeButtonBorderWidthInput = getInput<HTMLInputElement>("launcher-close-button-border-width");
   const closeButtonBorderRadiusInput = getInput<HTMLInputElement>("launcher-close-button-border-radius");
+  const closeButtonIconNameInput = getInput<HTMLInputElement>("launcher-close-button-icon-name");
+  const closeButtonIconTextInput = getInput<HTMLInputElement>("launcher-close-button-icon-text");
+  const closeButtonTooltipTextInput = getInput<HTMLInputElement>("launcher-close-button-tooltip-text");
+  const closeButtonShowTooltipInput = getInput<HTMLInputElement>("launcher-close-button-show-tooltip");
+  const closeButtonPaddingXInput = getInput<HTMLInputElement>("launcher-close-button-padding-x");
+  const closeButtonPaddingYInput = getInput<HTMLInputElement>("launcher-close-button-padding-y");
 
   // Set initial values
   closeButtonPlacementInput.value = currentConfig.launcher?.closeButtonPlacement ?? "inline";
   closeButtonBorderWidthInput.value = currentConfig.launcher?.closeButtonBorderWidth ?? "";
   closeButtonBorderRadiusInput.value = currentConfig.launcher?.closeButtonBorderRadius ?? "";
+  closeButtonIconNameInput.value = currentConfig.launcher?.closeButtonIconName ?? "x";
+  closeButtonIconTextInput.value = currentConfig.launcher?.closeButtonIconText ?? "×";
+  closeButtonTooltipTextInput.value = currentConfig.launcher?.closeButtonTooltipText ?? "Close chat";
+  closeButtonShowTooltipInput.checked = currentConfig.launcher?.closeButtonShowTooltip ?? true;
 
   const updateCloseButton = () => {
     const newConfig = {
@@ -1225,7 +1298,13 @@ function setupCloseButtonControls() {
         closeButtonPlacement: closeButtonPlacementInput.value as "inline" | "top-right",
         // Note: Colors come from theme, not from these controls
         closeButtonBorderWidth: closeButtonBorderWidthInput.value || undefined,
-        closeButtonBorderRadius: closeButtonBorderRadiusInput.value || undefined
+        closeButtonBorderRadius: closeButtonBorderRadiusInput.value || undefined,
+        closeButtonPaddingX: closeButtonPaddingXInput.value.trim() || undefined,
+        closeButtonPaddingY: closeButtonPaddingYInput.value.trim() || undefined,
+        closeButtonIconName: closeButtonIconNameInput.value.trim() || undefined,
+        closeButtonIconText: closeButtonIconTextInput.value.trim() || undefined,
+        closeButtonTooltipText: closeButtonTooltipTextInput.value.trim() || undefined,
+        closeButtonShowTooltip: closeButtonShowTooltipInput.checked
       }
     };
     debouncedUpdate(newConfig);
@@ -1277,7 +1356,41 @@ function setupCloseButtonControls() {
     }
   });
 
+  // Setup slider for close button padding X
+  setupSliderInput({
+    sliderId: "launcher-close-button-padding-x-slider",
+    textInputId: "launcher-close-button-padding-x",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCloseButton();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.closeButtonPaddingX ?? "0px";
+    }
+  });
+
+  // Setup slider for close button padding Y
+  setupSliderInput({
+    sliderId: "launcher-close-button-padding-y-slider",
+    textInputId: "launcher-close-button-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCloseButton();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.closeButtonPaddingY ?? "0px";
+    }
+  });
+
   closeButtonPlacementInput.addEventListener("change", updateCloseButton);
+  closeButtonIconNameInput.addEventListener("input", updateCloseButton);
+  closeButtonIconTextInput.addEventListener("input", updateCloseButton);
+  closeButtonTooltipTextInput.addEventListener("input", updateCloseButton);
+  closeButtonShowTooltipInput.addEventListener("change", updateCloseButton);
 
   // Close button preset buttons
   document.querySelectorAll("[data-close-button-preset]").forEach((button) => {
@@ -1399,6 +1512,17 @@ function setupCopyControls() {
   const headerIconNameInput = getInput<HTMLInputElement>("launcher-header-icon-name");
   const headerIconHiddenInput = getInput<HTMLInputElement>("launcher-header-icon-hidden");
 
+  // Clear chat button inputs
+  const clearChatEnabledInput = getInput<HTMLInputElement>("clear-chat-enabled");
+  const clearChatIconNameInput = getInput<HTMLInputElement>("clear-chat-icon-name");
+  const clearChatBorderWidthInput = getInput<HTMLInputElement>("clear-chat-border-width");
+  const clearChatBorderRadiusInput = getInput<HTMLInputElement>("clear-chat-border-radius");
+  const clearChatSizeInput = getInput<HTMLInputElement>("clear-chat-size");
+  const clearChatShowTooltipInput = getInput<HTMLInputElement>("clear-chat-show-tooltip");
+  const clearChatTooltipTextInput = getInput<HTMLInputElement>("clear-chat-tooltip-text");
+  const clearChatPaddingXInput = getInput<HTMLInputElement>("clear-chat-padding-x");
+  const clearChatPaddingYInput = getInput<HTMLInputElement>("clear-chat-padding-y");
+
   // Set initial values
   welcomeTitleInput.value = currentConfig.copy?.welcomeTitle ?? "Hello 👋";
   welcomeSubtitleInput.value = currentConfig.copy?.welcomeSubtitle ?? "Ask anything about your account or products.";
@@ -1412,6 +1536,15 @@ function setupCopyControls() {
   tooltipTextInput.value = currentConfig.sendButton?.tooltipText ?? "Send message";
   headerIconNameInput.value = currentConfig.launcher?.headerIconName ?? "";
   headerIconHiddenInput.checked = currentConfig.launcher?.headerIconHidden ?? false;
+
+  // Clear chat button initial values
+  clearChatEnabledInput.checked = currentConfig.launcher?.clearChat?.enabled ?? true;
+  clearChatIconNameInput.value = currentConfig.launcher?.clearChat?.iconName ?? "refresh-cw";
+  clearChatBorderWidthInput.value = currentConfig.launcher?.clearChat?.borderWidth ?? "";
+  clearChatBorderRadiusInput.value = currentConfig.launcher?.clearChat?.borderRadius ?? "";
+  clearChatSizeInput.value = currentConfig.launcher?.clearChat?.size ?? "32px";
+  clearChatShowTooltipInput.checked = currentConfig.launcher?.clearChat?.showTooltip ?? true;
+  clearChatTooltipTextInput.value = currentConfig.launcher?.clearChat?.tooltipText ?? "Clear chat";
 
   // Setup slider inputs for border width and padding
   setupSliderInput({
@@ -1513,6 +1646,77 @@ function setupCopyControls() {
     }
   });
 
+  // Setup clear chat button sliders
+  setupSliderInput({
+    sliderId: "clear-chat-border-width-slider",
+    textInputId: "clear-chat-border-width",
+    min: 0,
+    max: 8,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.clearChat?.borderWidth ?? "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "clear-chat-border-radius-slider",
+    textInputId: "clear-chat-border-radius",
+    min: 0,
+    max: 100,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.clearChat?.borderRadius ?? "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "clear-chat-size-slider",
+    textInputId: "clear-chat-size",
+    min: 24,
+    max: 64,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.clearChat?.size ?? "29px";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "clear-chat-padding-x-slider",
+    textInputId: "clear-chat-padding-x",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.clearChat?.paddingX ?? "0px";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "clear-chat-padding-y-slider",
+    textInputId: "clear-chat-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateCopy();
+    },
+    getInitialValue: () => {
+      return currentConfig.launcher?.clearChat?.paddingY ?? "0px";
+    }
+  });
+
   const updateCopy = () => {
     const newConfig = {
       ...currentConfig,
@@ -1536,13 +1740,25 @@ function setupCopyControls() {
         ...currentConfig.launcher,
         headerIconSize: headerIconSizeInput.value,
         headerIconName: headerIconNameInput.value || undefined,
-        headerIconHidden: headerIconHiddenInput.checked
+        headerIconHidden: headerIconHiddenInput.checked,
+        clearChat: {
+          ...currentConfig.launcher?.clearChat,
+          enabled: clearChatEnabledInput.checked,
+          iconName: clearChatIconNameInput.value.trim() || undefined,
+          borderWidth: clearChatBorderWidthInput.value.trim() || undefined,
+          borderRadius: clearChatBorderRadiusInput.value.trim() || undefined,
+          size: clearChatSizeInput.value.trim() || undefined,
+          paddingX: clearChatPaddingXInput.value.trim() || undefined,
+          paddingY: clearChatPaddingYInput.value.trim() || undefined,
+          showTooltip: clearChatShowTooltipInput.checked,
+          tooltipText: clearChatTooltipTextInput.value.trim() || undefined
+        }
       }
     };
     debouncedUpdate(newConfig);
   };
 
-  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput, headerIconNameInput, headerIconHiddenInput]
+  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput, headerIconNameInput, headerIconHiddenInput, clearChatEnabledInput, clearChatIconNameInput, clearChatShowTooltipInput, clearChatTooltipTextInput]
     .forEach((input) => input.addEventListener("input", updateCopy));
 
   // Send button preset buttons

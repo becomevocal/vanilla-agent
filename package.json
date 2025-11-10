@@ -8,9 +8,9 @@
     "lint": "pnpm --filter vanilla-agent lint && pnpm --filter vanilla-agent-proxy lint",
     "typecheck": "pnpm --filter vanilla-agent typecheck && pnpm --filter vanilla-agent-proxy typecheck",
     "dev:widget": "pnpm --filter embedded-app dev",
-    "dev:proxy": "pnpm --filter proxy dev",
-    "dev:cloudflare-proxy": "pnpm --filter cloudflare-proxy dev",
-    "dev": "concurrently \"pnpm dev:proxy\" \"pnpm dev:widget\"",
+    "dev:vercel": "pnpm --filter vercel-edge dev",
+    "dev:cloudflare": "pnpm --filter cloudflare-workers dev",
+    "dev": "concurrently \"pnpm dev:vercel\" \"pnpm dev:widget\"",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"

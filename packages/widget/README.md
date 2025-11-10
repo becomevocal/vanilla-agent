@@ -223,7 +223,7 @@ The script build exposes a `window.ChatWidget` global with `initChatWidget()` an
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |
 | `postprocessMessage` | `(ctx) => string` | Transform message text before it renders (return HTML). Combine with `markdownPostprocessor` for rich output. |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
-| `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(360px, calc(100vw - 24px))`. |
+| `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(400px, calc(100vw - 24px))`. |
 | `debug` | `boolean` | Emits verbose logs to `console`. |
 
 All options are safe to mutate via `initChatWidget(...).update(newConfig)`.

@@ -119,6 +119,15 @@ export class ChatWidgetSession {
     this.setStatus("idle");
   }
 
+  public clearMessages() {
+    this.abortController?.abort();
+    this.abortController = null;
+    this.messages = [];
+    this.setStreaming(false);
+    this.setStatus("idle");
+    this.callbacks.onMessagesChanged([...this.messages]);
+  }
+
   private handleEvent = (event: ChatWidgetEvent) => {
     if (event.type === "message") {
       this.upsertMessage(event.message);

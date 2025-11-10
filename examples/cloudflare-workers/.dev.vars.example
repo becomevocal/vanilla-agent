@@ -6,3 +6,7 @@ TRAVRSE_API_KEY=tv_test_your_api_key_here
 
 # Optional: Reference to an existing Travrse flow
 # TRAVRSE_FLOW_ID=flow_your_flow_id_here
+
+# Optional: Stripe secret key for checkout functionality
+# Required for /api/checkout endpoint and shopping assistant checkout actions
+# STRIPE_SECRET_KEY=sk_test_your_stripe_key_here

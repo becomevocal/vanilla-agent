@@ -102,6 +102,7 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
     let clientPayload: {
       messages?: Array<{ role: string; content: string; createdAt?: string }>;
       flowId?: string;
+      metadata?: Record<string, unknown>;
     };
     try {
       clientPayload = await c.req.json();
@@ -133,7 +134,7 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       record: {
         name: "Streaming Chat Widget",
         type: "standalone",
-        metadata: {}
+        metadata: clientPayload.metadata || {}
       },
       messages: formattedMessages,
       options: {
@@ -230,6 +231,11 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
 export const createVercelHandler = (options?: ChatProxyOptions) =>
   handle(createChatProxyApp(options));
 
+// Export pre-configured flows
+export * from "./flows/index.js";
+
+// Export utility functions
+export * from "./utils/index.js";
 
 export default createChatProxyApp;
 

@@ -40,7 +40,7 @@ export const createWrapper = (config?: ChatWidgetConfig): PanelWrapper => {
     "tvw-relative tvw-min-h-[320px]"
   );
   const launcherWidth = config?.launcher?.width ?? config?.launcherWidth;
-  const width = launcherWidth ?? "min(360px, calc(100vw - 24px))";
+  const width = launcherWidth ?? "min(400px, calc(100vw - 24px))";
   panel.style.width = width;
   panel.style.maxWidth = width;
 
@@ -63,6 +63,9 @@ export interface PanelElements {
   introTitle: HTMLElement;
   introSubtitle: HTMLElement;
   closeButton: HTMLButtonElement;
+  closeButtonWrapper: HTMLElement;
+  clearChatButton: HTMLButtonElement | null;
+  clearChatButtonWrapper: HTMLElement | null;
   iconHolder: HTMLElement;
 }
 
@@ -141,19 +144,184 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     header.append(headerCopy);
   }
 
+  // Create clear chat button if enabled
+  const clearChatConfig = launcher.clearChat ?? {};
+  const clearChatEnabled = clearChatConfig.enabled ?? true;
+  let clearChatButton: HTMLButtonElement | null = null;
+  let clearChatButtonWrapper: HTMLElement | null = null;
+
+  if (clearChatEnabled) {
+    const clearChatSize = clearChatConfig.size ?? "32px";
+    const clearChatIconName = clearChatConfig.iconName ?? "refresh-cw";
+    const clearChatIconColor = clearChatConfig.iconColor ?? "";
+    const clearChatBgColor = clearChatConfig.backgroundColor ?? "";
+    const clearChatBorderWidth = clearChatConfig.borderWidth ?? "";
+    const clearChatBorderColor = clearChatConfig.borderColor ?? "";
+    const clearChatBorderRadius = clearChatConfig.borderRadius ?? "";
+    const clearChatPaddingX = clearChatConfig.paddingX ?? "";
+    const clearChatPaddingY = clearChatConfig.paddingY ?? "";
+    const clearChatTooltipText = clearChatConfig.tooltipText ?? "Clear chat";
+    const clearChatShowTooltip = clearChatConfig.showTooltip ?? true;
+
+    // Create button wrapper for tooltip
+    clearChatButtonWrapper = createElement(
+      "div",
+      "tvw-relative tvw-ml-auto tvw-clear-chat-button-wrapper"
+    );
+
+    clearChatButton = createElement(
+      "button",
+      "tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
+    ) as HTMLButtonElement;
+
+    clearChatButton.style.height = clearChatSize;
+    clearChatButton.style.width = clearChatSize;
+    clearChatButton.type = "button";
+    clearChatButton.setAttribute("aria-label", clearChatTooltipText);
+
+    // Add icon
+    const iconSvg = renderLucideIcon(clearChatIconName, "20px", clearChatIconColor || "", 2);
+    if (iconSvg) {
+      clearChatButton.appendChild(iconSvg);
+    }
+
+    // Apply styling from config
+    if (clearChatIconColor) {
+      clearChatButton.style.color = clearChatIconColor;
+      clearChatButton.classList.remove("tvw-text-cw-muted");
+    }
+
+    if (clearChatBgColor) {
+      clearChatButton.style.backgroundColor = clearChatBgColor;
+      clearChatButton.classList.remove("hover:tvw-bg-gray-100");
+    }
+
+    if (clearChatBorderWidth || clearChatBorderColor) {
+      const borderWidth = clearChatBorderWidth || "0px";
+      const borderColor = clearChatBorderColor || "transparent";
+      clearChatButton.style.border = `${borderWidth} solid ${borderColor}`;
+      clearChatButton.classList.remove("tvw-border-none");
+    }
+
+    if (clearChatBorderRadius) {
+      clearChatButton.style.borderRadius = clearChatBorderRadius;
+      clearChatButton.classList.remove("tvw-rounded-full");
+    }
+
+    // Apply padding styling
+    if (clearChatPaddingX) {
+      clearChatButton.style.paddingLeft = clearChatPaddingX;
+      clearChatButton.style.paddingRight = clearChatPaddingX;
+    } else {
+      clearChatButton.style.paddingLeft = "";
+      clearChatButton.style.paddingRight = "";
+    }
+    if (clearChatPaddingY) {
+      clearChatButton.style.paddingTop = clearChatPaddingY;
+      clearChatButton.style.paddingBottom = clearChatPaddingY;
+    } else {
+      clearChatButton.style.paddingTop = "";
+      clearChatButton.style.paddingBottom = "";
+    }
+
+    clearChatButtonWrapper.appendChild(clearChatButton);
+
+    // Add tooltip with portaling to document.body to escape overflow clipping
+    if (clearChatShowTooltip && clearChatTooltipText && clearChatButton && clearChatButtonWrapper) {
+      let portaledTooltip: HTMLElement | null = null;
+
+      const showTooltip = () => {
+        if (portaledTooltip || !clearChatButton) return; // Already showing or button doesn't exist
+
+        // Create tooltip element
+        portaledTooltip = createElement("div", "tvw-clear-chat-tooltip");
+        portaledTooltip.textContent = clearChatTooltipText;
+
+        // Add arrow
+        const arrow = createElement("div");
+        arrow.className = "tvw-clear-chat-tooltip-arrow";
+        portaledTooltip.appendChild(arrow);
+
+        // Get button position
+        const buttonRect = clearChatButton.getBoundingClientRect();
+
+        // Position tooltip above button
+        portaledTooltip.style.position = "fixed";
+        portaledTooltip.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
+        portaledTooltip.style.top = `${buttonRect.top - 8}px`;
+        portaledTooltip.style.transform = "translate(-50%, -100%)";
+
+        // Append to body
+        document.body.appendChild(portaledTooltip);
+      };
+
+      const hideTooltip = () => {
+        if (portaledTooltip && portaledTooltip.parentNode) {
+          portaledTooltip.parentNode.removeChild(portaledTooltip);
+          portaledTooltip = null;
+        }
+      };
+
+      // Add event listeners
+      clearChatButtonWrapper.addEventListener("mouseenter", showTooltip);
+      clearChatButtonWrapper.addEventListener("mouseleave", hideTooltip);
+      clearChatButton.addEventListener("focus", showTooltip);
+      clearChatButton.addEventListener("blur", hideTooltip);
+
+      // Store cleanup function on the button for later use
+      (clearChatButtonWrapper as any)._cleanupTooltip = () => {
+        hideTooltip();
+        if (clearChatButtonWrapper) {
+          clearChatButtonWrapper.removeEventListener("mouseenter", showTooltip);
+          clearChatButtonWrapper.removeEventListener("mouseleave", hideTooltip);
+        }
+        if (clearChatButton) {
+          clearChatButton.removeEventListener("focus", showTooltip);
+          clearChatButton.removeEventListener("blur", hideTooltip);
+        }
+      };
+    }
+
+    header.appendChild(clearChatButtonWrapper);
+  }
+
+  // Create close button wrapper for tooltip positioning
+  const closeButtonWrapper = createElement(
+    "div",
+    closeButtonPlacement === "top-right"
+      ? "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50"
+      : (clearChatEnabled
+          ? ""
+          : "tvw-ml-auto")
+  );
+
   // Create close button with base classes
   const closeButton = createElement(
     "button",
-    closeButtonPlacement === "top-right"
-      ? "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50 tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
-      : "tvw-ml-auto tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
+    "tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none"
   ) as HTMLButtonElement;
   closeButton.style.height = closeButtonSize;
   closeButton.style.width = closeButtonSize;
   closeButton.type = "button";
-  closeButton.setAttribute("aria-label", "Close chat");
-  closeButton.textContent = "×";
+
+  // Get tooltip config
+  const closeButtonTooltipText = launcher.closeButtonTooltipText ?? "Close chat";
+  const closeButtonShowTooltip = launcher.closeButtonShowTooltip ?? true;
+
+  closeButton.setAttribute("aria-label", closeButtonTooltipText);
   closeButton.style.display = showClose ? "" : "none";
+
+  // Add icon or fallback text
+  const closeButtonIconName = launcher.closeButtonIconName ?? "x";
+  const closeButtonIconText = launcher.closeButtonIconText ?? "×";
+
+  // Try to render Lucide icon, fallback to text if not provided or fails
+  const iconSvg = renderLucideIcon(closeButtonIconName, "20px", launcher.closeButtonColor || "", 2);
+  if (iconSvg) {
+    closeButton.appendChild(iconSvg);
+  } else {
+    closeButton.textContent = closeButtonIconText;
+  }
   
   // Apply close button styling from config
   if (launcher.closeButtonColor) {
@@ -190,15 +358,85 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     closeButton.style.borderRadius = "";
     closeButton.classList.add("tvw-rounded-full");
   }
-  
-  // Position close button based on placement
+
+  // Apply padding styling
+  if (launcher.closeButtonPaddingX) {
+    closeButton.style.paddingLeft = launcher.closeButtonPaddingX;
+    closeButton.style.paddingRight = launcher.closeButtonPaddingX;
+  } else {
+    closeButton.style.paddingLeft = "";
+    closeButton.style.paddingRight = "";
+  }
+  if (launcher.closeButtonPaddingY) {
+    closeButton.style.paddingTop = launcher.closeButtonPaddingY;
+    closeButton.style.paddingBottom = launcher.closeButtonPaddingY;
+  } else {
+    closeButton.style.paddingTop = "";
+    closeButton.style.paddingBottom = "";
+  }
+
+  closeButtonWrapper.appendChild(closeButton);
+
+  // Add tooltip with portaling to document.body to escape overflow clipping
+  if (closeButtonShowTooltip && closeButtonTooltipText) {
+    let portaledTooltip: HTMLElement | null = null;
+
+    const showTooltip = () => {
+      if (portaledTooltip) return; // Already showing
+
+      // Create tooltip element
+      portaledTooltip = createElement("div", "tvw-clear-chat-tooltip");
+      portaledTooltip.textContent = closeButtonTooltipText;
+
+      // Add arrow
+      const arrow = createElement("div");
+      arrow.className = "tvw-clear-chat-tooltip-arrow";
+      portaledTooltip.appendChild(arrow);
+
+      // Get button position
+      const buttonRect = closeButton.getBoundingClientRect();
+
+      // Position tooltip above button
+      portaledTooltip.style.position = "fixed";
+      portaledTooltip.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
+      portaledTooltip.style.top = `${buttonRect.top - 8}px`;
+      portaledTooltip.style.transform = "translate(-50%, -100%)";
+
+      // Append to body
+      document.body.appendChild(portaledTooltip);
+    };
+
+    const hideTooltip = () => {
+      if (portaledTooltip && portaledTooltip.parentNode) {
+        portaledTooltip.parentNode.removeChild(portaledTooltip);
+        portaledTooltip = null;
+      }
+    };
+
+    // Add event listeners
+    closeButtonWrapper.addEventListener("mouseenter", showTooltip);
+    closeButtonWrapper.addEventListener("mouseleave", hideTooltip);
+    closeButton.addEventListener("focus", showTooltip);
+    closeButton.addEventListener("blur", hideTooltip);
+
+    // Store cleanup function on the wrapper for later use
+    (closeButtonWrapper as any)._cleanupTooltip = () => {
+      hideTooltip();
+      closeButtonWrapper.removeEventListener("mouseenter", showTooltip);
+      closeButtonWrapper.removeEventListener("mouseleave", hideTooltip);
+      closeButton.removeEventListener("focus", showTooltip);
+      closeButton.removeEventListener("blur", hideTooltip);
+    };
+  }
+
+  // Position close button wrapper based on placement
   if (closeButtonPlacement === "top-right") {
     // Make container position relative for absolute positioning
     container.style.position = "relative";
-    container.appendChild(closeButton);
+    container.appendChild(closeButtonWrapper);
   } else {
     // Inline placement: append to header
-    header.appendChild(closeButton);
+    header.appendChild(closeButtonWrapper);
   }
 
   const body = createElement(
@@ -547,6 +785,9 @@ export const buildPanel = (config?: ChatWidgetConfig, showClose = true): PanelEl
     introTitle,
     introSubtitle,
     closeButton,
+    closeButtonWrapper,
+    clearChatButton,
+    clearChatButtonWrapper,
     iconHolder
   };
 };

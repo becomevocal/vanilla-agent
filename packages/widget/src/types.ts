@@ -24,6 +24,9 @@ export type ChatWidgetTheme = {
   closeButtonColor?: string;
   closeButtonBackgroundColor?: string;
   closeButtonBorderColor?: string;
+  clearChatIconColor?: string;
+  clearChatBackgroundColor?: string;
+  clearChatBorderColor?: string;
   micIconColor?: string;
   micBackgroundColor?: string;
   micBorderColor?: string;
@@ -68,7 +71,14 @@ export type ChatWidgetLauncherConfig = {
   closeButtonBorderWidth?: string;
   closeButtonBorderColor?: string;
   closeButtonBorderRadius?: string;
+  closeButtonPaddingX?: string;
+  closeButtonPaddingY?: string;
   closeButtonPlacement?: "inline" | "top-right";
+  closeButtonIconName?: string;
+  closeButtonIconText?: string;
+  closeButtonTooltipText?: string;
+  closeButtonShowTooltip?: boolean;
+  clearChat?: ChatWidgetClearChatConfig;
 };
 
 export type ChatWidgetSendButtonConfig = {
@@ -84,6 +94,21 @@ export type ChatWidgetSendButtonConfig = {
   backgroundColor?: string;
   textColor?: string;
   size?: string;
+};
+
+export type ChatWidgetClearChatConfig = {
+  enabled?: boolean;
+  iconName?: string;
+  iconColor?: string;
+  backgroundColor?: string;
+  borderWidth?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  size?: string;
+  paddingX?: string;
+  paddingY?: string;
+  tooltipText?: string;
+  showTooltip?: boolean;
 };
 
 export type ChatWidgetStatusIndicatorConfig = {

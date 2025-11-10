@@ -28,3 +28,6 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+
+# Local development only
+examples/standalone-widget/

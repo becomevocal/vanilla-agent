@@ -130,6 +130,9 @@ export const initChatWidget = (
     toggle() {
       controller.toggle();
     },
+    clearChat() {
+      controller.clearChat();
+    },
     destroy() {
       controller.destroy();
       host.remove();

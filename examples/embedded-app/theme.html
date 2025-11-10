@@ -165,6 +165,30 @@
             </div>
           </div>
           <div class="form-group">
+            <label for="color-clearChatIconColor">Clear Chat Icon</label>
+            <p class="color-description">Clear chat button icon color</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-clearChatIconColor" />
+              <input type="text" id="color-clearChatIconColor-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-clearChatBackgroundColor">Clear Chat Background</label>
+            <p class="color-description">Clear chat button background color</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-clearChatBackgroundColor" />
+              <input type="text" id="color-clearChatBackgroundColor-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="color-clearChatBorderColor">Clear Chat Border</label>
+            <p class="color-description">Clear chat button border color</p>
+            <div class="color-input-wrapper">
+              <input type="color" id="color-clearChatBorderColor" />
+              <input type="text" id="color-clearChatBorderColor-text" />
+            </div>
+          </div>
+          <div class="form-group">
             <label for="color-micIconColor">Mic Icon</label>
             <p class="color-description">Microphone icon color</p>
             <div class="color-input-wrapper">
@@ -374,7 +398,7 @@
           </div>
           <div class="form-group">
             <label for="launcher-width">Width (CSS)</label>
-            <input type="text" id="launcher-width" value="min(360px, calc(100vw - 24px))" />
+            <input type="text" id="launcher-width" value="min(400px, calc(100vw - 24px))" />
           </div>
           <div class="form-group">
             <label class="toggle-label">
@@ -529,6 +553,68 @@
               <span class="toggle-text">Hide Header Icon</span>
             </label>
           </div>
+
+          <!-- Clear Chat Button -->
+          <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 14px; font-weight: 600; color: #374151;">Clear Chat Button</h3>
+
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="clear-chat-enabled" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Enable Clear Chat Button</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-icon-name">Clear Chat Icon Name (Lucide)</label>
+            <input type="text" id="clear-chat-icon-name" value="refresh-cw" placeholder="e.g., refresh-cw, x, trash-2" />
+            <p class="color-description">See <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer">Lucide Icons</a> for available icons.</p>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-border-width">Clear Chat Border Width (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="clear-chat-border-width-slider" min="0" max="8" step="1" />
+              <input type="text" id="clear-chat-border-width" placeholder="e.g., 1px, 2px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-border-radius">Clear Chat Border Radius (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="clear-chat-border-radius-slider" min="0" max="100" step="1" />
+              <input type="text" id="clear-chat-border-radius" placeholder="e.g., 50%, 4px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-size">Clear Chat Button Size (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="clear-chat-size-slider" min="24" max="64" step="1" />
+              <input type="text" id="clear-chat-size" value="32px" placeholder="e.g., 32px, 2rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="clear-chat-show-tooltip" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Tooltip</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-tooltip-text">Clear Chat Tooltip Text</label>
+            <input type="text" id="clear-chat-tooltip-text" value="Clear chat" placeholder="e.g., Clear chat, Reset conversation" />
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-padding-x">Clear Chat Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="clear-chat-padding-x-slider" min="0" max="32" step="1" />
+              <input type="text" id="clear-chat-padding-x" placeholder="e.g., 0px, 8px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="clear-chat-padding-y">Clear Chat Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="clear-chat-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="clear-chat-padding-y" placeholder="e.g., 0px, 8px" />
+            </div>
+          </div>
           </div>
         </section>
 
@@ -542,7 +628,6 @@
             <div class="accordion-presets">
               <button type="button" data-close-button-preset="default">Default</button>
               <button type="button" data-close-button-preset="minimal">Minimal</button>
-              <button type="button" data-close-button-preset="bold">Bold</button>
               <button type="button" data-close-button-preset="outlined">Outlined</button>
             </div>
           </div>
@@ -573,6 +658,41 @@
             <div class="slider-input-wrapper">
               <input type="range" id="launcher-close-button-border-radius-slider" min="0" max="100" step="1" />
               <input type="text" id="launcher-close-button-border-radius" placeholder="e.g., 50%, 4px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-icon-name">Close Button Icon Name (Lucide)</label>
+            <input type="text" id="launcher-close-button-icon-name" value="x" placeholder="e.g., x, circle-x, square-x" />
+            <p class="color-description">See <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer">Lucide Icons</a> for available icons.</p>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-icon-text">Close Button Icon Text (Fallback)</label>
+            <input type="text" id="launcher-close-button-icon-text" value="×" placeholder="e.g., ×, X, ✕" />
+            <p class="color-description">Fallback text/emoji if Lucide icon name is not provided or fails to render.</p>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-tooltip-text">Close Button Tooltip Text</label>
+            <input type="text" id="launcher-close-button-tooltip-text" value="Close chat" placeholder="Close chat" />
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="launcher-close-button-show-tooltip" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Close Button Tooltip</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-padding-x">Close Button Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-close-button-padding-x-slider" min="0" max="32" step="1" />
+              <input type="text" id="launcher-close-button-padding-x" placeholder="e.g., 0px, 8px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="launcher-close-button-padding-y">Close Button Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="launcher-close-button-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="launcher-close-button-padding-y" placeholder="e.g., 0px, 8px" />
             </div>
           </div>
           </div>
