@@ -3,9 +3,17 @@ import { serve } from "@hono/node-server";
 import getPort from "get-port";
 import {
   createChatProxyApp,
+  FORM_DIRECTIVE_FLOW,
   SHOPPING_ASSISTANT_FLOW,
   createCheckoutSession
 } from "vanilla-agent-proxy";
+
+// Sample environment variables (.env file):
+// PORT=43111
+// FLOW_ID_FORM_DIRECTIVE=flow_01abc123...
+// FLOW_ID_SHOPPING_ASSISTANT=flow_02def456...
+// STRIPE_SECRET_KEY=sk_test_...
+// FRONTEND_URL=http://localhost:5173
 
 const preferredPort = Number(process.env.PORT ?? 43111);
 
@@ -20,7 +28,8 @@ const app = createChatProxyApp({
 const directiveApp = createChatProxyApp({
   path: "/api/chat/dispatch-directive",
   allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
-  flowId: process.env.TRAVRSE_FLOW_ID,
+  flowId: process.env.FLOW_ID_FORM_DIRECTIVE || undefined,
+  flowConfig: process.env.FLOW_ID_FORM_DIRECTIVE ? undefined : FORM_DIRECTIVE_FLOW
 });
 
 // Action middleware proxy - returns JSON actions for page interaction
@@ -28,7 +37,8 @@ const directiveApp = createChatProxyApp({
 const actionApp = createChatProxyApp({
   path: "/api/chat/dispatch-action",
   allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
-  flowConfig: SHOPPING_ASSISTANT_FLOW
+  flowId: process.env.FLOW_ID_SHOPPING_ASSISTANT || undefined,
+  flowConfig: process.env.FLOW_ID_SHOPPING_ASSISTANT ? undefined : SHOPPING_ASSISTANT_FLOW
 });
 
 // Mount both apps

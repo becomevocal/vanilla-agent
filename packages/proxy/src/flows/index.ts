@@ -3,6 +3,7 @@
  */
 
 export { CONVERSATIONAL_FLOW } from "./conversational.js";
+export { FORM_DIRECTIVE_FLOW } from "./scheduling.js";
 export {
   SHOPPING_ASSISTANT_FLOW,
   SHOPPING_ASSISTANT_METADATA_FLOW

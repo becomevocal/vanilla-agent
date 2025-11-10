@@ -1,5 +1,6 @@
 import {
   createChatProxyApp,
+  FORM_DIRECTIVE_FLOW,
   SHOPPING_ASSISTANT_FLOW,
   SHOPPING_ASSISTANT_METADATA_FLOW,
   createCheckoutSession
@@ -9,10 +10,21 @@ import { Hono } from "hono";
 // Environment variables interface for Cloudflare Workers
 interface Env {
   TRAVRSE_API_KEY: string;
-  TRAVRSE_FLOW_ID?: string;
+  FLOW_ID_FORM_DIRECTIVE?: string;
+  FLOW_ID_SHOPPING_ASSISTANT?: string;
+  FLOW_ID_SHOPPING_ASSISTANT_METADATA?: string;
   STRIPE_SECRET_KEY?: string;
   ALLOWED_ORIGINS?: string;
 }
+
+// Sample environment variables (wrangler.toml or Cloudflare dashboard):
+// [vars]
+// TRAVRSE_API_KEY = "tvrs_..."
+// FLOW_ID_FORM_DIRECTIVE = "flow_01abc123..."
+// FLOW_ID_SHOPPING_ASSISTANT = "flow_02def456..."
+// FLOW_ID_SHOPPING_ASSISTANT_METADATA = "flow_03ghi789..."
+// STRIPE_SECRET_KEY = "sk_test_..."
+// ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:4173"
 
 // Helper function to parse allowed origins from environment variable
 // Supports "*" for wildcard or comma-separated list of origins
@@ -41,7 +53,8 @@ app.all("/api/chat/dispatch-directive", async (c) => {
   const proxyApp = createChatProxyApp({
     path: "/api/chat/dispatch-directive",
     apiKey: c.env.TRAVRSE_API_KEY,
-    flowId: c.env.TRAVRSE_FLOW_ID, // Reference existing flow from environment
+    flowId: c.env.FLOW_ID_FORM_DIRECTIVE || undefined,
+    flowConfig: c.env.FLOW_ID_FORM_DIRECTIVE ? undefined : FORM_DIRECTIVE_FLOW,
     allowedOrigins: getAllowedOrigins(c.env),
   });
   return proxyApp.fetch(c.req.raw, c.env);
@@ -53,7 +66,8 @@ app.all("/api/chat/dispatch-action", async (c) => {
   const proxyApp = createChatProxyApp({
     path: "/api/chat/dispatch-action",
     apiKey: c.env.TRAVRSE_API_KEY,
-    flowConfig: SHOPPING_ASSISTANT_FLOW,
+    flowId: c.env.FLOW_ID_SHOPPING_ASSISTANT || undefined,
+    flowConfig: c.env.FLOW_ID_SHOPPING_ASSISTANT ? undefined : SHOPPING_ASSISTANT_FLOW,
     allowedOrigins: getAllowedOrigins(c.env),
   });
   return proxyApp.fetch(c.req.raw, c.env);
@@ -65,7 +79,8 @@ app.all("/api/chat/dispatch-metadata", async (c) => {
   const proxyApp = createChatProxyApp({
     path: "/api/chat/dispatch-metadata",
     apiKey: c.env.TRAVRSE_API_KEY,
-    flowConfig: SHOPPING_ASSISTANT_METADATA_FLOW,
+    flowId: c.env.FLOW_ID_SHOPPING_ASSISTANT_METADATA || undefined,
+    flowConfig: c.env.FLOW_ID_SHOPPING_ASSISTANT_METADATA ? undefined : SHOPPING_ASSISTANT_METADATA_FLOW,
     allowedOrigins: getAllowedOrigins(c.env),
   });
   return proxyApp.fetch(c.req.raw, c.env);

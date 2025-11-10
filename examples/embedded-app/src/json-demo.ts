@@ -69,7 +69,7 @@ initAgentWidget({
       enabled: true,
       title: "Directive Demo",
       subtitle: "Opens the interactive form example",
-      iconText: "🧈",
+      agentIconText: "🧈",
       autoExpand: false,
       width: 'min(420px, 95vw)'
     },

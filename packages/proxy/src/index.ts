@@ -148,31 +148,7 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
     // Use flow ID if provided, otherwise use flow config
     if (flowId) {
       travrsePayload.flow = {
-        "name": "Chat with 8b",
-        "description": "Flow with 1 step",
-        "steps": [
-          {
-            "id": "step_01k8wnwpdcferbrq79tzj49aec",
-            "name": "Prompt 1",
-            "type": "prompt",
-            "order": 0,
-            "enabled": true,
-            "config": {
-              "text": "{{user_message}}",
-              "model": "qwen/qwen3-8b",
-              // "tools": {
-              //   "tool_ids": [
-              //     "tool_01k8ky2xpjfzybye5ywcmjr379",
-              //     "builtin:firecrawl"
-              //   ]
-              // },
-              "reasoning": false,
-              "user_prompt": "{{user_message}}",
-              "output_variable": "prompt_result",
-              "response_format": "JSON"
-            }
-          }
-        ]
+        id: flowId
       }
     } else {
       travrsePayload.flow = flowConfig;
