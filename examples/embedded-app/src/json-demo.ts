@@ -59,6 +59,7 @@ createAgentExperience(inlineMount, {
 
 initAgentWidget({
   target: "#json-launcher",
+  useShadowDom: false,
   config: {
     ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,

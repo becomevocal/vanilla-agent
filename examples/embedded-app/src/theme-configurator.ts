@@ -2089,8 +2089,8 @@ function setupExportControls() {
         const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual");
         navigator.clipboard.writeText(code).then(() => {
           const formatNames = {
-            esm: "ESM/Module",
-            "script-installer": "Script Tag (Auto Installer)",
+            // esm: "ESM/Module",
+            "script-installer": "Script Tag (Auto Installer - Recommended)",
             "script-manual": "Script Tag (Manual)"
           };
           showFeedback(`✓ ${formatNames[format]} code copied to clipboard!`);
@@ -2262,7 +2262,7 @@ function generateScriptManualCode(config: any): string {
     "<!-- Initialize widget -->",
     "<script>",
     "  window.AgentWidget.initAgentWidget({",
-    "    target: '#chat-widget-root',",
+    "    target: 'body',",
     "    config: {"
   ];
 

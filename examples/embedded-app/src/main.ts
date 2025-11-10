@@ -54,21 +54,12 @@ const launcherController = initAgentWidget({
   config: {
     ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
+    theme: {
+      launcherRadius: ".5rem"
+    },
     launcher: {
       ...DEFAULT_WIDGET_CONFIG.launcher,
-      width: 'min(920px, 95vw)',
-      iconUrl: "https://dummyimage.com/96x96/111827/ffffff&text=AI"
-    },
-    theme: {
-      ...DEFAULT_WIDGET_CONFIG.theme,
-      primary: "#101828",
-      muted: "#475467"
-    },
-    copy: {
-      ...DEFAULT_WIDGET_CONFIG.copy,
-      welcomeTitle: "Chat with the team",
-      welcomeSubtitle:
-        "This workspace demo shows how you can configure features and launcher styling."
+      iconUrl: "https://dummyimage.com/96x96/111827/ffffff&text=AI",
     },
     suggestionChips: [
       "How do I embed the widget?",

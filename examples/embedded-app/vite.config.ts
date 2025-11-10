@@ -20,6 +20,17 @@ export default defineConfig({
   optimizeDeps: {
     include: ["lucide"]
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        'action-middleware': path.resolve(__dirname, 'action-middleware.html'),
+        json: path.resolve(__dirname, 'json.html'),
+        theme: path.resolve(__dirname, 'theme.html'),
+        products: path.resolve(__dirname, 'products.html'),
+      }
+    }
+  },
   server: {
     port: 5173,
     proxy: {

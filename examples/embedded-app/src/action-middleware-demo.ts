@@ -100,7 +100,7 @@ const config: AgentWidgetConfig = {
     width: "min(920px, 95vw)",
     title: "Shopping Assistant",
     subtitle: "I can help you find products and add them to your cart",
-    iconText: "🛍️"
+    agentIconText: "🛍️"
   },
   theme: {
     ...DEFAULT_WIDGET_CONFIG.theme,
@@ -254,6 +254,7 @@ const config: AgentWidgetConfig = {
 // Initialize widget
 const widgetController = initAgentWidget({
   target: "#launcher-root",
+  useShadowDom: false,
   config,
   onReady: () => {
     // Handle navigation message after widget is ready
