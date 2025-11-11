@@ -14,6 +14,26 @@
           <p class="subtitle">Easily drop a customized agent into any site.</p>
         </div>
 
+        <!-- Search Section -->
+        <div class="search-section">
+          <div class="search-input-wrapper">
+            <input
+              type="text"
+              id="field-search"
+              class="search-input"
+              placeholder="Search for field names..."
+              autocomplete="off"
+            />
+            <button type="button" id="clear-search" class="clear-search-btn" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div id="search-results" class="search-results" style="display: none;"></div>
+        </div>
+
         <!-- Theme Section -->
         <section class="config-section accordion">
           <div class="accordion-header">

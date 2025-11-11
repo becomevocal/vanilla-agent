@@ -2348,6 +2348,7 @@ function setupResetControls() {
 // Initialize all controls
 function init() {
   setupAccordions();
+  setupFieldSearch(); // Initialize field search
   setupThemeControls();
   setupTypographyControls();
   setupLauncherControls();
@@ -2442,6 +2443,555 @@ function setupAccordions() {
 
   // Save initial state
   saveAccordionState(accordionState);
+}
+
+// Field Search functionality
+interface SearchableField {
+  id: string;
+  label: string;
+  key: string;
+  type: 'color' | 'text' | 'number' | 'checkbox' | 'select' | 'slider';
+  accordionName: string;
+  accordionId: string;
+  element?: HTMLElement;
+  getValue: () => string | boolean;
+  setValue: (value: string | boolean) => void;
+}
+
+let searchableFields: SearchableField[] = [];
+let searchInput: HTMLInputElement | null = null;
+let clearButton: HTMLButtonElement | null = null;
+let searchResultsContainer: HTMLElement | null = null;
+
+function setupFieldSearch() {
+  searchInput = document.getElementById('field-search') as HTMLInputElement;
+  clearButton = document.getElementById('clear-search') as HTMLButtonElement;
+  searchResultsContainer = document.getElementById('search-results');
+
+  if (!searchInput || !clearButton || !searchResultsContainer) {
+    console.warn('Search elements not found');
+    return;
+  }
+
+  // Build searchable index
+  buildSearchableFieldsIndex();
+
+  // Add event listeners
+  searchInput.addEventListener('input', handleSearch);
+  clearButton.addEventListener('click', clearSearch);
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      clearSearch();
+    }
+  });
+}
+
+function buildSearchableFieldsIndex() {
+  searchableFields = [];
+
+  // Theme Colors
+  const themeColorFields = [
+    { id: 'color-primary', label: 'Primary', key: 'primary' },
+    { id: 'color-accent', label: 'Accent', key: 'accent' },
+    { id: 'color-callToAction', label: 'Call to Action', key: 'callToAction' },
+    { id: 'color-surface', label: 'Surface', key: 'surface' },
+    { id: 'color-container', label: 'Container', key: 'container' },
+    { id: 'color-border', label: 'Border', key: 'border' },
+    { id: 'color-divider', label: 'Divider', key: 'divider' },
+    { id: 'color-messageBorder', label: 'Message Border', key: 'messageBorder' },
+    { id: 'color-inputBackground', label: 'Input Background', key: 'inputBackground' },
+    { id: 'color-muted', label: 'Muted', key: 'muted' },
+    { id: 'color-sendButtonBackgroundColor', label: 'Send Button Background', key: 'sendButtonBackgroundColor' },
+    { id: 'color-sendButtonTextColor', label: 'Send Button Text', key: 'sendButtonTextColor' },
+    { id: 'color-sendButtonBorderColor', label: 'Send Button Border', key: 'sendButtonBorderColor' },
+    { id: 'color-closeButtonColor', label: 'Close Button Color', key: 'closeButtonColor' },
+    { id: 'color-closeButtonBackgroundColor', label: 'Close Button Background', key: 'closeButtonBackgroundColor' },
+    { id: 'color-closeButtonBorderColor', label: 'Close Button Border', key: 'closeButtonBorderColor' },
+    { id: 'color-clearChatIconColor', label: 'Clear Chat Icon', key: 'clearChatIconColor' },
+    { id: 'color-clearChatBackgroundColor', label: 'Clear Chat Background', key: 'clearChatBackgroundColor' },
+    { id: 'color-clearChatBorderColor', label: 'Clear Chat Border', key: 'clearChatBorderColor' },
+    { id: 'color-micIconColor', label: 'Mic Icon', key: 'micIconColor' },
+    { id: 'color-micBackgroundColor', label: 'Mic Background', key: 'micBackgroundColor' },
+    { id: 'color-micBorderColor', label: 'Mic Border', key: 'micBorderColor' },
+    { id: 'color-recordingIconColor', label: 'Recording Icon', key: 'recordingIconColor' },
+    { id: 'color-recordingBackgroundColor', label: 'Recording Background', key: 'recordingBackgroundColor' },
+    { id: 'color-recordingBorderColor', label: 'Recording Border', key: 'recordingBorderColor' }
+  ];
+
+  themeColorFields.forEach(field => {
+    const colorInput = document.getElementById(field.id) as HTMLInputElement;
+    const textInput = document.getElementById(`${field.id}-text`) as HTMLInputElement;
+    if (colorInput && textInput) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.key,
+        type: 'color',
+        accordionName: 'Theme Colors',
+        accordionId: 'theme-colors',
+        element: colorInput.parentElement?.parentElement as HTMLElement,
+        getValue: () => textInput.value || colorInput.value,
+        setValue: (value: string | boolean) => {
+          const strValue = String(value);
+          textInput.value = strValue;
+          if (/^#[0-9A-Fa-f]{6}$/.test(strValue)) {
+            colorInput.value = strValue;
+          }
+          textInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Typography
+  const fontFamilySelect = document.getElementById('inputFontFamily') as HTMLSelectElement;
+  if (fontFamilySelect) {
+    searchableFields.push({
+      id: 'inputFontFamily',
+      label: 'Font Family',
+      key: 'inputFontFamily',
+      type: 'select',
+      accordionName: 'Typography',
+      accordionId: 'typography',
+      element: fontFamilySelect.parentElement as HTMLElement,
+      getValue: () => fontFamilySelect.value,
+      setValue: (value: string | boolean) => {
+        fontFamilySelect.value = String(value);
+        fontFamilySelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
+
+  // Font Weight slider
+  const fontWeightSlider = document.getElementById('inputFontWeight-slider') as HTMLInputElement;
+  const fontWeightText = document.getElementById('inputFontWeight') as HTMLInputElement;
+  if (fontWeightSlider && fontWeightText) {
+    searchableFields.push({
+      id: 'inputFontWeight',
+      label: 'Font Weight',
+      key: 'inputFontWeight',
+      type: 'slider',
+      accordionName: 'Typography',
+      accordionId: 'typography',
+      element: fontWeightSlider.parentElement?.parentElement as HTMLElement,
+      getValue: () => fontWeightText.value,
+      setValue: (value: string | boolean) => {
+        fontWeightText.value = String(value);
+        fontWeightSlider.value = String(value);
+        fontWeightText.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
+  // Border Radius fields
+  const radiusFields = [
+    { id: 'radiusSm', label: 'Small Radius' },
+    { id: 'radiusMd', label: 'Medium Radius' },
+    { id: 'radiusLg', label: 'Large Radius' },
+    { id: 'launcherRadius', label: 'Launcher Radius' },
+    { id: 'buttonRadius', label: 'Button Radius' }
+  ];
+
+  radiusFields.forEach(field => {
+    const slider = document.getElementById(`${field.id}-slider`) as HTMLInputElement;
+    const textInput = document.getElementById(field.id) as HTMLInputElement;
+    if (slider && textInput) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: 'slider',
+        accordionName: 'Border Radius',
+        accordionId: 'border-radius',
+        element: slider.parentElement?.parentElement as HTMLElement,
+        getValue: () => textInput.value,
+        setValue: (value: string | boolean) => {
+          const strValue = String(value);
+          textInput.value = strValue;
+          // Parse value and update slider
+          const numValue = parseFloat(strValue.replace('px', '').replace('rem', ''));
+          slider.value = String(numValue);
+          textInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Launch Button fields
+  const launchFields = [
+    { id: 'launcher-title', label: 'Launcher Title', type: 'text' },
+    { id: 'launcher-subtitle', label: 'Launcher Subtitle', type: 'text' },
+    { id: 'launcher-width', label: 'Launcher Width', type: 'text' },
+    { id: 'launcher-position', label: 'Position', type: 'select' },
+    { id: 'launcher-autoExpand', label: 'Auto Expand', type: 'checkbox' },
+    { id: 'launcher-enabled', label: 'Show Launcher', type: 'checkbox' },
+    { id: 'launcher-agent-icon-text', label: 'Agent Icon Text', type: 'text' },
+    { id: 'launcher-agent-icon-name', label: 'Agent Icon Name', type: 'text' },
+    { id: 'launcher-agent-icon-size', label: 'Agent Icon Size', type: 'text' }
+  ];
+
+  launchFields.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement | HTMLSelectElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id.replace('launcher-', ''),
+        type: field.type as any,
+        accordionName: 'Launch Button',
+        accordionId: 'launch-button',
+        element: element.parentElement as HTMLElement,
+        getValue: () => {
+          if (field.type === 'checkbox') {
+            return (element as HTMLInputElement).checked;
+          }
+          return element.value;
+        },
+        setValue: (value: string | boolean) => {
+          if (field.type === 'checkbox') {
+            (element as HTMLInputElement).checked = Boolean(value);
+          } else {
+            element.value = String(value);
+          }
+          element.dispatchEvent(new Event(field.type === 'checkbox' ? 'change' : 'input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Panel fields (including Welcome text and Send Button text)
+  const panelFields = [
+    { id: 'copy-welcome-title', label: 'Welcome Title', type: 'text' },
+    { id: 'copy-welcome-subtitle', label: 'Welcome Subtitle', type: 'text' },
+    { id: 'send-button-icon-text', label: 'Send Button Icon Text', type: 'text' }
+  ];
+
+  panelFields.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: 'text',
+        accordionName: 'Panel',
+        accordionId: 'panel',
+        element: element.parentElement as HTMLElement,
+        getValue: () => element.value,
+        setValue: (value: string | boolean) => {
+          element.value = String(value);
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Close Button fields
+  const closeButtonFields = [
+    { id: 'launcher-close-button-icon-text', label: 'Close Button Icon Text', type: 'text' },
+    { id: 'launcher-close-button-icon-name', label: 'Close Button Icon Name', type: 'text' },
+    { id: 'launcher-close-button-tooltip-text', label: 'Close Button Tooltip Text', type: 'text' }
+  ];
+
+  closeButtonFields.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: 'text',
+        accordionName: 'Close Button',
+        accordionId: 'close-button',
+        element: element.parentElement as HTMLElement,
+        getValue: () => element.value,
+        setValue: (value: string | boolean) => {
+          element.value = String(value);
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Status Indicator fields
+  const statusFields = [
+    { id: 'status-idle-text', label: 'Idle Status Text', type: 'text' },
+    { id: 'status-connecting-text', label: 'Connecting Status Text', type: 'text' },
+    { id: 'status-connected-text', label: 'Connected Status Text', type: 'text' },
+    { id: 'status-error-text', label: 'Error Status Text', type: 'text' }
+  ];
+
+  statusFields.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: 'text',
+        accordionName: 'Status Indicator',
+        accordionId: 'status-indicator',
+        element: element.parentElement as HTMLElement,
+        getValue: () => element.value,
+        setValue: (value: string | boolean) => {
+          element.value = String(value);
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Features
+  const featureToggles = [
+    { id: 'show-reasoning', label: 'Show Reasoning' },
+    { id: 'show-tool-calls', label: 'Show Tool Calls' },
+    { id: 'debug-mode', label: 'Debug Mode' },
+    { id: 'enable-voice', label: 'Enable Voice Recognition' }
+  ];
+
+  featureToggles.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: 'checkbox',
+        accordionName: 'Features',
+        accordionId: 'features',
+        element: element.parentElement as HTMLElement,
+        getValue: () => element.checked,
+        setValue: (value: string | boolean) => {
+          element.checked = Boolean(value);
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Other Options
+  const apiUrlInput = document.getElementById('api-url') as HTMLInputElement;
+  if (apiUrlInput) {
+    searchableFields.push({
+      id: 'api-url',
+      label: 'API URL',
+      key: 'apiUrl',
+      type: 'text',
+      accordionName: 'Other Options',
+      accordionId: 'other-options',
+      element: apiUrlInput.parentElement as HTMLElement,
+      getValue: () => apiUrlInput.value,
+      setValue: (value: string | boolean) => {
+        apiUrlInput.value = String(value);
+        apiUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
+  const flowIdInput = document.getElementById('flow-id') as HTMLInputElement;
+  if (flowIdInput) {
+    searchableFields.push({
+      id: 'flow-id',
+      label: 'Flow ID',
+      key: 'flowId',
+      type: 'text',
+      accordionName: 'Other Options',
+      accordionId: 'other-options',
+      element: flowIdInput.parentElement as HTMLElement,
+      getValue: () => flowIdInput.value,
+      setValue: (value: string | boolean) => {
+        flowIdInput.value = String(value);
+        flowIdInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+}
+
+function handleSearch() {
+  if (!searchInput || !searchResultsContainer) return;
+
+  const searchTerm = searchInput.value.trim().toLowerCase();
+
+  if (!searchTerm) {
+    hideSearchResults();
+    if (clearButton) clearButton.style.display = 'none';
+    return;
+  }
+
+  if (clearButton) clearButton.style.display = 'block';
+
+  // Perform search - simple substring matching first, could add fuzzy search later
+  const results = searchableFields.filter(field => {
+    return (
+      field.label.toLowerCase().includes(searchTerm) ||
+      field.key.toLowerCase().includes(searchTerm) ||
+      field.id.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  displaySearchResults(results);
+}
+
+function displaySearchResults(results: SearchableField[]) {
+  if (!searchResultsContainer) return;
+
+  if (results.length === 0) {
+    searchResultsContainer.innerHTML = '<div class="search-no-results">No fields found</div>';
+    searchResultsContainer.style.display = 'block';
+    return;
+  }
+
+  searchResultsContainer.innerHTML = '';
+
+  results.forEach(field => {
+    const resultItem = document.createElement('div');
+    resultItem.className = 'search-result-item';
+
+    const header = document.createElement('div');
+    header.className = 'search-result-header';
+
+    const labelDiv = document.createElement('div');
+    labelDiv.innerHTML = `
+      <div class="search-result-label">${field.label}</div>
+      <div class="search-result-key">${field.key}</div>
+    `;
+
+    const accordionBtn = document.createElement('button');
+    accordionBtn.className = 'search-result-accordion';
+    accordionBtn.textContent = field.accordionName;
+    accordionBtn.onclick = () => navigateToField(field);
+
+    header.appendChild(labelDiv);
+    header.appendChild(accordionBtn);
+
+    const controlDiv = document.createElement('div');
+    controlDiv.className = 'search-result-control';
+
+    // Create control based on field type
+    if (field.type === 'color') {
+      const colorWrapper = document.createElement('div');
+      colorWrapper.className = 'color-input-wrapper';
+
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = String(field.getValue()) || '#000000';
+
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.value = String(field.getValue());
+
+      colorInput.addEventListener('input', () => {
+        textInput.value = colorInput.value;
+        field.setValue(colorInput.value);
+      });
+
+      textInput.addEventListener('input', () => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(textInput.value)) {
+          colorInput.value = textInput.value;
+        }
+        field.setValue(textInput.value);
+      });
+
+      colorWrapper.appendChild(colorInput);
+      colorWrapper.appendChild(textInput);
+      controlDiv.appendChild(colorWrapper);
+    } else if (field.type === 'checkbox') {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = Boolean(field.getValue());
+      checkbox.addEventListener('change', () => {
+        field.setValue(checkbox.checked);
+      });
+      controlDiv.appendChild(checkbox);
+    } else if (field.type === 'select') {
+      const originalSelect = document.getElementById(field.id) as HTMLSelectElement;
+      if (originalSelect) {
+        const select = document.createElement('select');
+        // Copy options from original
+        Array.from(originalSelect.options).forEach(option => {
+          const newOption = document.createElement('option');
+          newOption.value = option.value;
+          newOption.textContent = option.textContent;
+          select.appendChild(newOption);
+        });
+        select.value = String(field.getValue());
+        select.addEventListener('change', () => {
+          field.setValue(select.value);
+        });
+        controlDiv.appendChild(select);
+      }
+    } else {
+      const input = document.createElement('input');
+      input.type = field.type === 'slider' ? 'text' : field.type;
+      input.value = String(field.getValue());
+      input.addEventListener('input', () => {
+        field.setValue(input.value);
+      });
+      controlDiv.appendChild(input);
+    }
+
+    resultItem.appendChild(header);
+    resultItem.appendChild(controlDiv);
+    searchResultsContainer!.appendChild(resultItem);
+  });
+
+  searchResultsContainer.style.display = 'block';
+}
+
+function navigateToField(field: SearchableField) {
+  // Find and expand the accordion
+  const accordions = document.querySelectorAll('.accordion');
+  accordions.forEach(accordion => {
+    const title = accordion.querySelector('h2');
+    if (title && title.textContent === field.accordionName) {
+      // Expand the accordion if it's collapsed
+      if (accordion.classList.contains('collapsed')) {
+        accordion.classList.remove('collapsed');
+        // Update accordion state
+        const accordionId = field.accordionId;
+        const state = getAccordionState();
+        state[accordionId] = false; // false = expanded
+        saveAccordionState(state);
+      }
+
+      // Scroll to the accordion
+      accordion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // Find and highlight the specific field
+      if (field.element) {
+        setTimeout(() => {
+          field.element!.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          // Add highlight animation
+          const input = field.element!.querySelector('input, select, textarea') as HTMLElement;
+          if (input) {
+            input.classList.add('field-highlight');
+            input.focus();
+            setTimeout(() => {
+              input.classList.remove('field-highlight');
+            }, 2000);
+          }
+        }, 300);
+      }
+    }
+  });
+}
+
+function clearSearch() {
+  if (searchInput) {
+    searchInput.value = '';
+  }
+  if (clearButton) {
+    clearButton.style.display = 'none';
+  }
+  hideSearchResults();
+}
+
+function hideSearchResults() {
+  if (searchResultsContainer) {
+    searchResultsContainer.style.display = 'none';
+    searchResultsContainer.innerHTML = '';
+  }
 }
 
 // Start the configurator
