@@ -17,9 +17,6 @@ export default defineConfig({
       )
     }
   },
-  optimizeDeps: {
-    include: ["lucide"]
-  },
   build: {
     rollupOptions: {
       input: {
