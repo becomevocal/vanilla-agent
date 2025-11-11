@@ -469,7 +469,7 @@ export const createAgentExperience = (
           if (finalValue && speechRecognition && isRecording) {
             stopVoiceRecognition();
             textarea.value = "";
-            session.sendMessage(finalValue);
+            session.sendMessage(finalValue, { viaVoice: true });
           }
         }, pauseDuration);
       }
@@ -488,7 +488,7 @@ export const createAgentExperience = (
         const finalValue = textarea.value.trim();
         if (finalValue && finalValue !== initialText.trim()) {
           textarea.value = "";
-          session.sendMessage(finalValue);
+          session.sendMessage(finalValue, { viaVoice: true });
         }
         stopVoiceRecognition();
       }

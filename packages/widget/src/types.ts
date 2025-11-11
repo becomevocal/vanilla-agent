@@ -193,6 +193,22 @@ export type AgentWidgetToolCall = {
 
 export type AgentWidgetMessageVariant = "assistant" | "reasoning" | "tool";
 
+/**
+ * Represents a message in the chat conversation.
+ * 
+ * @property id - Unique message identifier
+ * @property role - Message role: "user", "assistant", or "system"
+ * @property content - Message text content
+ * @property createdAt - ISO timestamp when message was created
+ * @property streaming - Whether message is still streaming (for assistant messages)
+ * @property variant - Message variant for assistant messages: "assistant", "reasoning", or "tool"
+ * @property sequence - Message ordering number
+ * @property reasoning - Reasoning data for assistant reasoning messages
+ * @property toolCall - Tool call data for assistant tool messages
+ * @property tools - Array of tool calls
+ * @property viaVoice - Set to `true` when a user message is sent via voice recognition.
+ *                      Useful for implementing voice-specific behaviors like auto-reactivation.
+ */
 export type AgentWidgetMessage = {
   id: string;
   role: AgentWidgetMessageRole;
@@ -204,6 +220,7 @@ export type AgentWidgetMessage = {
   reasoning?: AgentWidgetReasoning;
   toolCall?: AgentWidgetToolCall;
   tools?: AgentWidgetToolCall[];
+  viaVoice?: boolean;
 };
 
 export type AgentWidgetEvent =

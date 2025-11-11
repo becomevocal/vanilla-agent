@@ -60,7 +60,7 @@ export class AgentWidgetSession {
     return this.streaming;
   }
 
-  public async sendMessage(rawInput: string) {
+  public async sendMessage(rawInput: string, options?: { viaVoice?: boolean }) {
     const input = rawInput.trim();
     if (!input) return;
 
@@ -71,7 +71,8 @@ export class AgentWidgetSession {
       role: "user",
       content: input,
       createdAt: new Date().toISOString(),
-      sequence: this.nextSequence()
+      sequence: this.nextSequence(),
+      viaVoice: options?.viaVoice || false
     };
 
     this.appendMessage(userMessage);

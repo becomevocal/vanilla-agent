@@ -49,6 +49,7 @@ createAgentExperience(inlineHost, {
 // Floating launcher with runtime updates
 const controller = initAgentWidget({
   target: '#launcher-root',
+  windowKey: 'chatController', // Optional: stores controller on window.chatController
   config: {
     ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
@@ -69,12 +70,26 @@ controller.update({
 });
 ```
 
+### Initialization options
+
+`initAgentWidget` accepts the following options:
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `target` | `string \| HTMLElement` | CSS selector or element where widget mounts. |
+| `config` | `AgentWidgetConfig` | Widget configuration object (see [Configuration reference](#configuration-reference) below). |
+| `useShadowDom` | `boolean` | Use Shadow DOM for style isolation (default: `true`). |
+| `onReady` | `() => void` | Callback fired when widget is initialized. |
+| `windowKey` | `string` | If provided, stores the controller on `window[windowKey]` for global access. Automatically cleaned up on `destroy()`. |
+
 > **Security note:** When you return HTML from `postprocessMessage`, make sure you sanitise it before injecting into the page. The provided postprocessors (`markdownPostprocessor`, `directivePostprocessor`) do not perform sanitisation.
 
 
 ### Programmatic control
 
-`initAgentWidget` (and `createAgentExperience`) return a controller with `open()`, `close()`, and `toggle()` helpers so you can launch the widget from your own UI elements.
+`initAgentWidget` (and `createAgentExperience`) return a controller with methods to programmatically control the widget.
+
+#### Basic controls
 
 ```ts
 const chat = initAgentWidget({
@@ -84,6 +99,89 @@ const chat = initAgentWidget({
 
 document.getElementById('open-chat')?.addEventListener('click', () => chat.open())
 document.getElementById('toggle-chat')?.addEventListener('click', () => chat.toggle())
+document.getElementById('close-chat')?.addEventListener('click', () => chat.close())
+```
+
+#### Message hooks
+
+You can programmatically set messages, submit messages, and control voice recognition:
+
+```ts
+const chat = initAgentWidget({
+  target: '#launcher-root',
+  config: { /* ... */ }
+})
+
+// Set a message in the input field (doesn't submit)
+chat.setMessage("Hello, I need help")
+
+// Submit a message (uses textarea value if no argument provided)
+chat.submitMessage()
+// Or submit a specific message
+chat.submitMessage("What are your hours?")
+
+// Start voice recognition
+chat.startVoiceRecognition()
+
+// Stop voice recognition
+chat.stopVoiceRecognition()
+```
+
+All hook methods return `boolean` indicating success (`true`) or failure (`false`). They will automatically open the widget if it's currently closed (when launcher is enabled).
+
+#### Accessing from window
+
+To access the controller globally (e.g., from browser console or external scripts), use the `windowKey` option:
+
+```ts
+const chat = initAgentWidget({
+  target: '#launcher-root',
+  windowKey: 'chatController', // Stores controller on window.chatController
+  config: { /* ... */ }
+})
+
+// Now accessible globally
+window.chatController.setMessage("Hello from console!")
+window.chatController.submitMessage("Test message")
+window.chatController.startVoiceRecognition()
+```
+
+#### Message Types
+
+The widget uses `AgentWidgetMessage` objects to represent messages in the conversation. You can access these through `postprocessMessage` callbacks or by inspecting the session's message array.
+
+```typescript
+type AgentWidgetMessage = {
+  id: string;                    // Unique message identifier
+  role: "user" | "assistant" | "system";
+  content: string;               // Message text content
+  createdAt: string;             // ISO timestamp
+  streaming?: boolean;           // Whether message is still streaming
+  variant?: "assistant" | "reasoning" | "tool";
+  sequence?: number;             // Message ordering
+  reasoning?: AgentWidgetReasoning;
+  toolCall?: AgentWidgetToolCall;
+  tools?: AgentWidgetToolCall[];
+  viaVoice?: boolean;            // Indicates if user message was sent via voice input
+};
+```
+
+**`viaVoice` field**: Set to `true` when a user message is sent through voice recognition. This allows you to implement voice-specific behaviors, such as automatically reactivating voice recognition after assistant responses. You can check this field in your `postprocessMessage` callback:
+
+```ts
+postprocessMessage: ({ message, text, streaming }) => {
+  if (message.role === 'user' && message.viaVoice) {
+    console.log('User sent message via voice');
+  }
+  return text;
+}
+```
+
+Alternatively, manually assign the controller:
+
+```ts
+const chat = initAgentWidget({ /* ... */ })
+window.chatController = chat
 ```
 
 ### Travrse adapter
@@ -175,8 +273,9 @@ For more control, manually load CSS and JavaScript:
 
 <!-- Initialize widget -->
 <script>
-  window.AgentWidget.initAgentWidget({
+  const chatController = window.AgentWidget.initAgentWidget({
     target: '#vanilla-agent-anchor', // or 'body' for floating launcher
+    windowKey: 'chatWidget', // Optional: stores controller on window.chatWidget
     config: {
       apiUrl: '/api/chat/dispatch',
       launcher: {
@@ -190,6 +289,9 @@ For more control, manually load CSS and JavaScript:
       }
     }
   });
+  
+  // Controller is now available as window.chatWidget (if windowKey was used)
+  // or use the returned chatController variable
 </script>
 ```
 
