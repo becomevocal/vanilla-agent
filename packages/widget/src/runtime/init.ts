@@ -116,7 +116,7 @@ export const initAgentWidget = (
   let controller = createAgentExperience(mount, options.config);
   options.onReady?.();
 
-  return {
+  const handle: AgentWidgetInitHandle = {
     host,
     update(nextConfig: AgentWidgetConfig) {
       controller.update(nextConfig);
@@ -133,9 +133,32 @@ export const initAgentWidget = (
     clearChat() {
       controller.clearChat();
     },
+    setMessage(message: string) {
+      return controller.setMessage(message);
+    },
+    submitMessage(message?: string) {
+      return controller.submitMessage(message);
+    },
+    startVoiceRecognition() {
+      return controller.startVoiceRecognition();
+    },
+    stopVoiceRecognition() {
+      return controller.stopVoiceRecognition();
+    },
     destroy() {
       controller.destroy();
       host.remove();
+      // Clean up window reference if it was set
+      if (options.windowKey && typeof window !== 'undefined') {
+        delete (window as any)[options.windowKey];
+      }
     }
   };
+
+  // Store on window if windowKey is provided
+  if (options.windowKey && typeof window !== 'undefined') {
+    (window as any)[options.windowKey] = handle;
+  }
+
+  return handle;
 };

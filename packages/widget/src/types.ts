@@ -216,4 +216,5 @@ export type AgentWidgetInitOptions = {
   config?: AgentWidgetConfig;
   useShadowDom?: boolean;
   onReady?: () => void;
+  windowKey?: string; // If provided, stores the controller on window[windowKey] for global access
 };

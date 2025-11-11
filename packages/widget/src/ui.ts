@@ -23,6 +23,10 @@ type Controller = {
   close: () => void;
   toggle: () => void;
   clearChat: () => void;
+  setMessage: (message: string) => boolean;
+  submitMessage: (message?: string) => boolean;
+  startVoiceRecognition: () => boolean;
+  stopVoiceRecognition: () => boolean;
 };
 
 const buildPostprocessor = (cfg?: AgentWidgetConfig): MessageTransform => {
@@ -1595,6 +1599,55 @@ export const createAgentExperience = (
         detail: { timestamp: new Date().toISOString() }
       });
       window.dispatchEvent(clearEvent);
+    },
+    setMessage(message: string): boolean {
+      if (!textarea) return false;
+      if (session.isStreaming()) return false;
+      
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true);
+      }
+      
+      textarea.value = message;
+      // Trigger input event for any listeners
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    },
+    submitMessage(message?: string): boolean {
+      if (session.isStreaming()) return false;
+      
+      const valueToSubmit = message?.trim() || textarea.value.trim();
+      if (!valueToSubmit) return false;
+      
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true);
+      }
+      
+      textarea.value = "";
+      session.sendMessage(valueToSubmit);
+      return true;
+    },
+    startVoiceRecognition(): boolean {
+      if (isRecording || session.isStreaming()) return false;
+      
+      const SpeechRecognitionClass = getSpeechRecognitionClass();
+      if (!SpeechRecognitionClass) return false;
+      
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true);
+      }
+      
+      startVoiceRecognition();
+      return true;
+    },
+    stopVoiceRecognition(): boolean {
+      if (!isRecording) return false;
+      
+      stopVoiceRecognition();
+      return true;
     },
     destroy() {
       destroyCallbacks.forEach((cb) => cb());
