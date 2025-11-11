@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.2.0
+
+### Minor Changes
+
+- added message and voice input hooks
+
 ## 1.1.0
 
 ### Minor Changes
