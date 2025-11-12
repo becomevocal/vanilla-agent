@@ -1,5 +1,5 @@
 import { createElement, createFragment } from "../utils/dom";
-import { AgentWidgetMessage } from "../types";
+import { AgentWidgetMessage, AgentWidgetConfig } from "../types";
 import { MessageTransform } from "./message-bubble";
 import { createStandardBubble } from "./message-bubble";
 import { createReasoningBubble } from "./reasoning-bubble";
@@ -10,7 +10,8 @@ export const renderMessages = (
   messages: AgentWidgetMessage[],
   transform: MessageTransform,
   showReasoning: boolean,
-  showToolCalls: boolean
+  showToolCalls: boolean,
+  config?: AgentWidgetConfig
 ) => {
   container.innerHTML = "";
   const fragment = createFragment();
@@ -22,7 +23,7 @@ export const renderMessages = (
       bubble = createReasoningBubble(message);
     } else if (message.variant === "tool" && message.toolCall) {
       if (!showToolCalls) return;
-      bubble = createToolBubble(message);
+      bubble = createToolBubble(message, config);
     } else {
       bubble = createStandardBubble(message, transform);
     }
@@ -38,6 +39,7 @@ export const renderMessages = (
   container.appendChild(fragment);
   container.scrollTop = container.scrollHeight;
 };
+
 
 
 

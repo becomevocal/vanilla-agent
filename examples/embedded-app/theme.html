@@ -851,6 +851,146 @@
             <input type="text" id="voice-recognition-tooltip-text" placeholder="e.g., Start voice recognition" />
             <p class="color-description">Text to display in the tooltip when hovering over the mic button</p>
           </div>
+          <div class="form-group">
+            <label>Test Messages</label>
+            <p class="color-description">Inject test tool call and reasoning messages to preview styling</p>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button type="button" id="test-tool-call" class="test-button">Test Tool Call</button>
+              <button type="button" id="test-reasoning" class="test-button">Test Reasoning Call</button>
+            </div>
+          </div>
+          </div>
+        </section>
+
+        <!-- Tool Call Styles Section -->
+        <section class="config-section accordion">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Tool Call Styles</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <div class="form-group">
+            <label for="tool-call-background-color">Bubble Background Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-background-color" />
+              <input type="text" id="tool-call-background-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-border-color">Bubble Border Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-border-color" />
+              <input type="text" id="tool-call-border-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-border-width">Bubble Border Width (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-border-width-slider" min="0" max="10" step="1" />
+              <input type="text" id="tool-call-border-width" placeholder="e.g., 1px, 2px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-border-radius">Bubble Border Radius (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-border-radius-slider" min="0" max="32" step="1" />
+              <input type="text" id="tool-call-border-radius" placeholder="e.g., 12px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-header-background-color">Header Background Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-header-background-color" />
+              <input type="text" id="tool-call-header-background-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-header-text-color">Header Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-header-text-color" />
+              <input type="text" id="tool-call-header-text-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-header-padding-x">Header Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-header-padding-x-slider" min="0" max="32" step="1" />
+              <input type="text" id="tool-call-header-padding-x" placeholder="e.g., 16px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-header-padding-y">Header Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-header-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="tool-call-header-padding-y" placeholder="e.g., 12px, 0.75rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-content-background-color">Content Background Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-content-background-color" />
+              <input type="text" id="tool-call-content-background-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-content-text-color">Content Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-content-text-color" />
+              <input type="text" id="tool-call-content-text-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-content-padding-x">Content Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-content-padding-x-slider" min="0" max="32" step="1" />
+              <input type="text" id="tool-call-content-padding-x" placeholder="e.g., 16px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-content-padding-y">Content Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="tool-call-content-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="tool-call-content-padding-y" placeholder="e.g., 12px, 0.75rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-code-block-background-color">Code Block Background Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-code-block-background-color" />
+              <input type="text" id="tool-call-code-block-background-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-code-block-border-color">Code Block Border Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-code-block-border-color" />
+              <input type="text" id="tool-call-code-block-border-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-code-block-text-color">Code Block Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-code-block-text-color" />
+              <input type="text" id="tool-call-code-block-text-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-toggle-text-color">Toggle Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-toggle-text-color" />
+              <input type="text" id="tool-call-toggle-text-color-text" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tool-call-label-text-color">Label Text Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="tool-call-label-text-color" />
+              <input type="text" id="tool-call-label-text-color-text" />
+            </div>
+          </div>
           </div>
         </section>
 

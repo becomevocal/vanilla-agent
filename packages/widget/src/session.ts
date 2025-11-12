@@ -60,6 +60,10 @@ export class AgentWidgetSession {
     return this.streaming;
   }
 
+  public injectTestEvent(event: AgentWidgetEvent) {
+    this.handleEvent(event);
+  }
+
   public async sendMessage(rawInput: string, options?: { viaVoice?: boolean }) {
     const input = rawInput.trim();
     if (!input) return;

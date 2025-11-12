@@ -1,6 +1,7 @@
 import { createElement } from "../utils/dom";
 import { AgentWidgetMessage } from "../types";
 import { describeReasonStatus } from "../utils/formatting";
+import { renderLucideIcon } from "../utils/icons";
 
 // Expansion state per widget instance
 const reasoningExpansionState = new Set<string>();
@@ -10,6 +11,7 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
   const bubble = createElement(
     "div",
     [
+      "tvw-w-full",
       "tvw-max-w-[85%]",
       "tvw-rounded-2xl",
       "tvw-bg-cw-surface",
@@ -36,7 +38,7 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
   header.setAttribute("aria-expanded", expanded ? "true" : "false");
 
   const headerContent = createElement("div", "tvw-flex tvw-flex-col tvw-text-left");
-  const title = createElement("span", "tvw-text-xs tvw-font-semibold tvw-text-cw-primary");
+  const title = createElement("span", "tvw-text-xs tvw-text-cw-primary");
   title.textContent = "Thinking...";
   headerContent.appendChild(title);
 
@@ -50,13 +52,20 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
     title.style.display = "";
   }
 
-  const toggleLabel = createElement(
-    "span",
-    "tvw-text-xs tvw-text-cw-primary"
-  );
-  toggleLabel.textContent = expanded ? "Hide" : "Show";
+  const toggleIcon = createElement("div", "tvw-flex tvw-items-center");
+  const iconColor = "currentColor";
+  const chevronIcon = renderLucideIcon(expanded ? "chevron-up" : "chevron-down", 16, iconColor, 2);
+  if (chevronIcon) {
+    toggleIcon.appendChild(chevronIcon);
+  } else {
+    // Fallback to text if icon fails
+    toggleIcon.textContent = expanded ? "Hide" : "Show";
+  }
 
-  header.append(headerContent, toggleLabel);
+  const headerMeta = createElement("div", "tvw-flex tvw-items-center tvw-ml-auto");
+  headerMeta.append(toggleIcon);
+
+  header.append(headerContent, headerMeta);
 
   const content = createElement(
     "div",
@@ -78,7 +87,16 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
 
   const applyExpansionState = () => {
     header.setAttribute("aria-expanded", expanded ? "true" : "false");
-    toggleLabel.textContent = expanded ? "Hide" : "Show";
+    // Update chevron icon
+    toggleIcon.innerHTML = "";
+    const iconColor = "currentColor";
+    const chevronIcon = renderLucideIcon(expanded ? "chevron-up" : "chevron-down", 16, iconColor, 2);
+    if (chevronIcon) {
+      toggleIcon.appendChild(chevronIcon);
+    } else {
+      // Fallback to text if icon fails
+      toggleIcon.textContent = expanded ? "Hide" : "Show";
+    }
     content.style.display = expanded ? "" : "none";
   };
 

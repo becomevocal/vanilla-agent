@@ -1,6 +1,6 @@
 import { escapeHtml } from "./postprocessors";
 import { AgentWidgetSession, AgentWidgetSessionStatus } from "./session";
-import { AgentWidgetConfig, AgentWidgetMessage } from "./types";
+import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
@@ -27,6 +27,7 @@ type Controller = {
   submitMessage: (message?: string) => boolean;
   startVoiceRecognition: () => boolean;
   stopVoiceRecognition: () => boolean;
+  injectTestMessage: (event: AgentWidgetEvent) => void;
 };
 
 const buildPostprocessor = (cfg?: AgentWidgetConfig): MessageTransform => {
@@ -191,7 +192,7 @@ export const createAgentExperience = (
           if (!showToolCalls) return;
           bubble = matchingPlugin.renderToolCall({
             message,
-            defaultRenderer: () => createToolBubble(message),
+            defaultRenderer: () => createToolBubble(message, config),
             config
           });
         } else if (matchingPlugin.renderMessage) {
@@ -216,7 +217,7 @@ export const createAgentExperience = (
           bubble = createReasoningBubble(message);
         } else if (message.variant === "tool" && message.toolCall) {
           if (!showToolCalls) return;
-          bubble = createToolBubble(message);
+          bubble = createToolBubble(message, config);
         } else {
           bubble = createStandardBubble(message, transform);
           if (message.role !== "user") {
@@ -823,6 +824,7 @@ export const createAgentExperience = (
 
   return {
     update(nextConfig: AgentWidgetConfig) {
+      const previousToolCallConfig = config.toolCall;
       config = { ...config, ...nextConfig };
       applyThemeVariables(mount, config);
 
@@ -875,6 +877,12 @@ export const createAgentExperience = (
       prevLauncherEnabled = launcherEnabled;
       recalcPanelHeight();
       refreshCloseButton();
+
+      // Re-render messages if toolCall config changed (to apply new styles)
+      const toolCallConfigChanged = JSON.stringify(nextConfig.toolCall) !== JSON.stringify(previousToolCallConfig);
+      if (toolCallConfigChanged && session) {
+        renderMessagesWithPlugins(messagesWrapper, session.getMessages(), postprocess);
+      }
 
       // Update panel icon sizes
       const launcher = config.launcher ?? {};
@@ -1648,6 +1656,13 @@ export const createAgentExperience = (
       
       stopVoiceRecognition();
       return true;
+    },
+    injectTestMessage(event: AgentWidgetEvent) {
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true);
+      }
+      session.injectTestEvent(event);
     },
     destroy() {
       destroyCallbacks.forEach((cb) => cb());

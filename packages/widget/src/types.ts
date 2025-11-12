@@ -138,6 +138,26 @@ export type AgentWidgetVoiceRecognitionConfig = {
   showRecordingIndicator?: boolean;
 };
 
+export type AgentWidgetToolCallConfig = {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  borderRadius?: string;
+  headerBackgroundColor?: string;
+  headerTextColor?: string;
+  headerPaddingX?: string;
+  headerPaddingY?: string;
+  contentBackgroundColor?: string;
+  contentTextColor?: string;
+  contentPaddingX?: string;
+  contentPaddingY?: string;
+  codeBlockBackgroundColor?: string;
+  codeBlockBorderColor?: string;
+  codeBlockTextColor?: string;
+  toggleTextColor?: string;
+  labelTextColor?: string;
+};
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -159,6 +179,7 @@ export type AgentWidgetConfig = {
   sendButton?: AgentWidgetSendButtonConfig;
   statusIndicator?: AgentWidgetStatusIndicatorConfig;
   voiceRecognition?: AgentWidgetVoiceRecognitionConfig;
+  toolCall?: AgentWidgetToolCallConfig;
   postprocessMessage?: (context: {
     text: string;
     message: AgentWidgetMessage;

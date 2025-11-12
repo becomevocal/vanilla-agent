@@ -7,7 +7,7 @@ import {
   markdownPostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
-import type { AgentWidgetConfig } from "vanilla-agent";
+import type { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -485,50 +485,93 @@ function setupSliderInput(config: SliderConfig) {
   });
 }
 
+// Shared utility for color input validation and value setting
+function normalizeColorValue(value: string): { textValue: string; colorPickerValue: string } {
+  const trimmed = value.trim();
+  const lower = trimmed.toLowerCase();
+  
+  if (lower === "transparent") {
+    return { textValue: "transparent", colorPickerValue: "#000000" };
+  }
+  
+  if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
+    return { textValue: trimmed, colorPickerValue: trimmed };
+  }
+  
+  if (trimmed === "") {
+    return { textValue: "", colorPickerValue: "#000000" };
+  }
+  
+  // Other CSS color values (rgba, rgb, etc.) - preserve as-is
+  return { textValue: trimmed, colorPickerValue: "#000000" };
+}
+
+function handleColorInputChange(
+  textInput: HTMLInputElement,
+  colorInput: HTMLInputElement,
+  onUpdate: (value: string) => void,
+  emptyValueBehavior: "preserve" | "default" | "undefined" = "preserve"
+): void {
+  const value = textInput.value.trim().toLowerCase();
+  const normalized = normalizeColorValue(textInput.value.trim());
+  
+  if (value === "transparent") {
+    colorInput.value = normalized.colorPickerValue;
+    onUpdate("transparent");
+  } else if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+    colorInput.value = normalized.colorPickerValue;
+    onUpdate(normalized.textValue);
+  } else if (value === "") {
+    if (emptyValueBehavior === "default") {
+      colorInput.value = "#000000";
+      onUpdate("transparent");
+    } else if (emptyValueBehavior === "undefined") {
+      onUpdate("");
+    } else {
+      // preserve - don't change color input, just update config
+      onUpdate("");
+    }
+  } else {
+    // Other CSS color values - don't update color picker but update config
+    onUpdate(normalized.textValue);
+  }
+}
+
 // Helper function to setup color inputs with transparent support
 function setupColorInput(
   colorInputId: string,
   textInputId: string,
   getValue: () => string,
   setValue: (value: string) => void,
-  defaultValue: string = "transparent"
+  defaultValue: string = "transparent",
+  emptyValueBehavior: "preserve" | "default" | "undefined" = "default"
 ) {
   const colorInput = getInput<HTMLInputElement>(colorInputId);
   const textInput = getInput<HTMLInputElement>(textInputId);
 
   // Initialize values
   const currentValue = getValue() || defaultValue;
-  if (currentValue === "transparent") {
-    textInput.value = "transparent";
-    colorInput.value = "#000000"; // Placeholder value for color picker
-  } else {
-    textInput.value = currentValue;
-    colorInput.value = currentValue || "#000000";
-  }
+  const normalized = normalizeColorValue(currentValue);
+  
+  textInput.value = normalized.textValue;
+  colorInput.value = normalized.colorPickerValue;
+
+  // Flag to prevent feedback loop when programmatically setting values
+  let isUpdatingFromColorPicker = false;
 
   // Sync from color picker to text input
   colorInput.addEventListener("input", () => {
-    textInput.value = colorInput.value;
-    setValue(colorInput.value);
+    const newValue = colorInput.value;
+    isUpdatingFromColorPicker = true;
+    textInput.value = newValue;
+    isUpdatingFromColorPicker = false;
+    setValue(newValue);
   });
 
   // Sync from text input to color picker
   textInput.addEventListener("input", () => {
-    const value = textInput.value.trim().toLowerCase();
-    if (value === "transparent") {
-      colorInput.value = "#000000";
-      setValue("transparent");
-    } else if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-      colorInput.value = value;
-      setValue(value);
-    } else if (value === "") {
-      // Empty means use default (transparent)
-      colorInput.value = "#000000";
-      setValue("transparent");
-    } else {
-      // Allow other CSS color values (like rgba, etc.)
-      setValue(value);
-    }
+    if (isUpdatingFromColorPicker) return;
+    handleColorInputChange(textInput, colorInput, setValue, emptyValueBehavior);
   });
 }
 
@@ -537,26 +580,14 @@ function setupThemeControls() {
   const themeKeys = ["primary", "accent", "callToAction", "surface", "container", "border", "divider", "messageBorder", "inputBackground", "muted", "sendButtonBackgroundColor", "sendButtonTextColor", "sendButtonBorderColor", "closeButtonColor", "closeButtonBackgroundColor", "closeButtonBorderColor", "clearChatIconColor", "clearChatBackgroundColor", "clearChatBorderColor", "micIconColor", "micBackgroundColor", "micBorderColor", "recordingIconColor", "recordingBackgroundColor", "recordingBorderColor"] as const;
 
   themeKeys.forEach((key) => {
-    const colorInput = getInput<HTMLInputElement>(`color-${key}`);
-    const textInput = getInput<HTMLInputElement>(`color-${key}-text`);
-
-    // Sync color picker and text input
-    colorInput.addEventListener("input", () => {
-      textInput.value = colorInput.value;
-      updateTheme(key, colorInput.value);
-    });
-
-    textInput.addEventListener("input", () => {
-      if (/^#[0-9A-Fa-f]{6}$/.test(textInput.value)) {
-        colorInput.value = textInput.value;
-        updateTheme(key, textInput.value);
-      }
-    });
-
-    // Set initial values
-    const initialValue = currentConfig.theme?.[key] || THEME_PRESETS.default[key];
-    colorInput.value = initialValue;
-    textInput.value = initialValue;
+    setupColorInput(
+      `color-${key}`,
+      `color-${key}-text`,
+      () => currentConfig.theme?.[key] || THEME_PRESETS.default[key],
+      (value) => updateTheme(key, value),
+      THEME_PRESETS.default[key],
+      "undefined" // Empty values should be undefined (removed from config)
+    );
   });
 
   // Radius controls
@@ -670,8 +701,9 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   Object.entries(themeColors).forEach(([key, value]) => {
     const colorInput = getInput<HTMLInputElement>(`color-${key}`);
     const textInput = getInput<HTMLInputElement>(`color-${key}-text`);
-    colorInput.value = value;
-    textInput.value = value;
+    const normalized = normalizeColorValue(String(value));
+    colorInput.value = normalized.colorPickerValue;
+    textInput.value = normalized.textValue;
   });
 
   // Set send button colors
@@ -683,16 +715,19 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const sendButtonBorderColorTextInput = getInput<HTMLInputElement>("color-sendButtonBorderColor-text");
 
   if (sendButtonBgColorInput && sendButtonBgColorTextInput) {
-    sendButtonBgColorInput.value = sendButtonBackgroundColor;
-    sendButtonBgColorTextInput.value = sendButtonBackgroundColor;
+    const normalized = normalizeColorValue(sendButtonBackgroundColor);
+    sendButtonBgColorInput.value = normalized.colorPickerValue;
+    sendButtonBgColorTextInput.value = normalized.textValue;
   }
   if (sendButtonTextColorInput && sendButtonTextColorTextInput) {
-    sendButtonTextColorInput.value = sendButtonTextColor;
-    sendButtonTextColorTextInput.value = sendButtonTextColor;
+    const normalized = normalizeColorValue(sendButtonTextColor);
+    sendButtonTextColorInput.value = normalized.colorPickerValue;
+    sendButtonTextColorTextInput.value = normalized.textValue;
   }
   if (sendButtonBorderColorInput && sendButtonBorderColorTextInput) {
-    sendButtonBorderColorInput.value = sendButtonBorderColor;
-    sendButtonBorderColorTextInput.value = sendButtonBorderColor;
+    const normalized = normalizeColorValue(sendButtonBorderColor);
+    sendButtonBorderColorInput.value = normalized.colorPickerValue;
+    sendButtonBorderColorTextInput.value = normalized.textValue;
   }
 
   // Set close button colors
@@ -704,31 +739,19 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const closeButtonBorderColorTextInput = getInput<HTMLInputElement>("color-closeButtonBorderColor-text");
 
   if (closeButtonColorInput && closeButtonColorTextInput) {
-    if (closeButtonColor) {
-      closeButtonColorInput.value = closeButtonColor;
-      closeButtonColorTextInput.value = closeButtonColor;
-    } else {
-      closeButtonColorInput.value = "";
-      closeButtonColorTextInput.value = "";
-    }
+    const normalized = normalizeColorValue(closeButtonColor || "");
+    closeButtonColorInput.value = normalized.colorPickerValue;
+    closeButtonColorTextInput.value = normalized.textValue;
   }
   if (closeButtonBgColorInput && closeButtonBgColorTextInput) {
-    if (closeButtonBackgroundColor === "" || closeButtonBackgroundColor === "transparent") {
-      closeButtonBgColorTextInput.value = "transparent";
-      closeButtonBgColorInput.value = "#000000";
-    } else {
-      closeButtonBgColorTextInput.value = closeButtonBackgroundColor;
-      closeButtonBgColorInput.value = closeButtonBackgroundColor;
-    }
+    const normalized = normalizeColorValue(closeButtonBackgroundColor || "");
+    closeButtonBgColorInput.value = normalized.colorPickerValue;
+    closeButtonBgColorTextInput.value = normalized.textValue;
   }
   if (closeButtonBorderColorInput && closeButtonBorderColorTextInput) {
-    if (closeButtonBorderColor === "" || closeButtonBorderColor === "transparent") {
-      closeButtonBorderColorTextInput.value = "transparent";
-      closeButtonBorderColorInput.value = "#000000";
-    } else {
-      closeButtonBorderColorTextInput.value = closeButtonBorderColor;
-      closeButtonBorderColorInput.value = closeButtonBorderColor;
-    }
+    const normalized = normalizeColorValue(closeButtonBorderColor || "");
+    closeButtonBorderColorInput.value = normalized.colorPickerValue;
+    closeButtonBorderColorTextInput.value = normalized.textValue;
   }
 
   // Set clear chat button colors
@@ -740,31 +763,19 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const clearChatBorderColorTextInput = getInput<HTMLInputElement>("color-clearChatBorderColor-text");
 
   if (clearChatIconColorInput && clearChatIconColorTextInput) {
-    if (clearChatIconColor === "" || clearChatIconColor === "transparent") {
-      clearChatIconColorTextInput.value = "transparent";
-      clearChatIconColorInput.value = "#000000";
-    } else {
-      clearChatIconColorTextInput.value = clearChatIconColor;
-      clearChatIconColorInput.value = clearChatIconColor;
-    }
+    const normalized = normalizeColorValue(clearChatIconColor || "");
+    clearChatIconColorInput.value = normalized.colorPickerValue;
+    clearChatIconColorTextInput.value = normalized.textValue;
   }
   if (clearChatBackgroundColorInput && clearChatBackgroundColorTextInput) {
-    if (clearChatBackgroundColor === "" || clearChatBackgroundColor === "transparent") {
-      clearChatBackgroundColorTextInput.value = "transparent";
-      clearChatBackgroundColorInput.value = "#000000";
-    } else {
-      clearChatBackgroundColorTextInput.value = clearChatBackgroundColor;
-      clearChatBackgroundColorInput.value = clearChatBackgroundColor;
-    }
+    const normalized = normalizeColorValue(clearChatBackgroundColor || "");
+    clearChatBackgroundColorInput.value = normalized.colorPickerValue;
+    clearChatBackgroundColorTextInput.value = normalized.textValue;
   }
   if (clearChatBorderColorInput && clearChatBorderColorTextInput) {
-    if (clearChatBorderColor === "" || clearChatBorderColor === "transparent") {
-      clearChatBorderColorTextInput.value = "transparent";
-      clearChatBorderColorInput.value = "#000000";
-    } else {
-      clearChatBorderColorTextInput.value = clearChatBorderColor;
-      clearChatBorderColorInput.value = clearChatBorderColor;
-    }
+    const normalized = normalizeColorValue(clearChatBorderColor || "");
+    clearChatBorderColorInput.value = normalized.colorPickerValue;
+    clearChatBorderColorTextInput.value = normalized.textValue;
   }
 
   // Set mic button colors
@@ -802,29 +813,28 @@ function applyPreset(preset: keyof typeof THEME_PRESETS) {
   const recordingBorderColorTextInput = getInput<HTMLInputElement>("color-recordingBorderColor-text");
 
   if (recordingIconColorInput && recordingIconColorTextInput) {
-    recordingIconColorInput.value = recordingIconColor;
-    recordingIconColorTextInput.value = recordingIconColor;
+    const normalized = normalizeColorValue(recordingIconColor || "");
+    recordingIconColorInput.value = normalized.colorPickerValue;
+    recordingIconColorTextInput.value = normalized.textValue;
   }
   if (recordingBackgroundColorInput && recordingBackgroundColorTextInput) {
-    recordingBackgroundColorInput.value = recordingBackgroundColor;
-    recordingBackgroundColorTextInput.value = recordingBackgroundColor;
+    const normalized = normalizeColorValue(recordingBackgroundColor || "");
+    recordingBackgroundColorInput.value = normalized.colorPickerValue;
+    recordingBackgroundColorTextInput.value = normalized.textValue;
   }
   if (recordingBorderColorInput && recordingBorderColorTextInput) {
-    if (recordingBorderColor === "" || recordingBorderColor === "transparent") {
-      recordingBorderColorTextInput.value = "transparent";
-      recordingBorderColorInput.value = "#000000";
-    } else {
-      recordingBorderColorTextInput.value = recordingBorderColor;
-      recordingBorderColorInput.value = recordingBorderColor;
-    }
+    const normalized = normalizeColorValue(recordingBorderColor || "");
+    recordingBorderColorInput.value = normalized.colorPickerValue;
+    recordingBorderColorTextInput.value = normalized.textValue;
   }
 
   // Also set the call to action background color
   const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
   const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
   if (callToActionIconBackgroundColorInput && callToActionIconBackgroundColorTextInput) {
-    callToActionIconBackgroundColorInput.value = callToActionBackground;
-    callToActionIconBackgroundColorTextInput.value = callToActionBackground;
+    const normalized = normalizeColorValue(callToActionBackground || "");
+    callToActionIconBackgroundColorInput.value = normalized.colorPickerValue;
+    callToActionIconBackgroundColorTextInput.value = normalized.textValue;
   }
 
   // Set typography controls
@@ -1735,6 +1745,198 @@ function setupStatusIndicatorControls() {
     .forEach((input) => input.addEventListener("input", updateStatusIndicator));
 }
 
+// Test message generators and streaming simulation
+function createTestToolCallMessage(id: string, sequence: number): AgentWidgetMessage {
+  return {
+    id: `tool-${id}`,
+    role: "assistant",
+    content: "",
+    createdAt: new Date().toISOString(),
+    streaming: true,
+    variant: "tool",
+    sequence,
+    toolCall: {
+      id,
+      name: "Email Send",
+      status: "pending"
+    }
+  };
+}
+
+function createTestReasoningMessage(id: string, sequence: number): AgentWidgetMessage {
+  return {
+    id: `reasoning-${id}`,
+    role: "assistant",
+    content: "",
+    createdAt: new Date().toISOString(),
+    streaming: true,
+    variant: "reasoning",
+    sequence,
+    reasoning: {
+      id,
+      status: "pending",
+      chunks: []
+    }
+  };
+}
+
+async function streamTestToolCall() {
+  const toolId = `test-${Date.now()}`;
+  const baseSequence = Date.now();
+  let sequenceCounter = 0;
+  const nextSequence = () => baseSequence + sequenceCounter++;
+
+  // Emit connecting status
+  widgetController.injectTestMessage({ type: "status", status: "connecting" });
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // Emit connected status
+  widgetController.injectTestMessage({ type: "status", status: "connected" });
+
+  // Create initial tool call message
+  const toolMessage = createTestToolCallMessage(toolId, nextSequence());
+  widgetController.injectTestMessage({ type: "message", message: { ...toolMessage } });
+
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  // Update to running status
+  const runningMessage: AgentWidgetMessage = {
+    ...toolMessage,
+    toolCall: {
+      ...toolMessage.toolCall!,
+      status: "running",
+      startedAt: Date.now(),
+      name: "Email Send",
+      args: { to: "user@example.com", subject: "Test Email", body: "This is a test message" }
+    }
+  };
+  widgetController.injectTestMessage({ type: "message", message: runningMessage });
+
+  // Stream chunks
+  const chunks = ["Connecting to email server...", "Sending email...", "Email sent successfully"];
+  for (let i = 0; i < chunks.length; i++) {
+    await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 100));
+    const chunkMessage: AgentWidgetMessage = {
+      ...runningMessage,
+      toolCall: {
+        ...runningMessage.toolCall!,
+        chunks: chunks.slice(0, i + 1)
+      }
+    };
+    widgetController.injectTestMessage({ type: "message", message: chunkMessage });
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 400));
+
+  // Complete the tool call
+  const completedMessage: AgentWidgetMessage = {
+    ...runningMessage,
+    streaming: false,
+    toolCall: {
+      ...runningMessage.toolCall!,
+      status: "complete",
+      chunks: chunks,
+      result: { success: true, messageId: "msg-12345" },
+      duration: 2200,
+      completedAt: Date.now(),
+      durationMs: 2200
+    }
+  };
+  widgetController.injectTestMessage({ type: "message", message: completedMessage });
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // Emit idle status
+  widgetController.injectTestMessage({ type: "status", status: "idle" });
+}
+
+async function streamTestReasoning() {
+  const reasoningId = `test-${Date.now()}`;
+  const baseSequence = Date.now();
+  let sequenceCounter = 0;
+  const nextSequence = () => baseSequence + sequenceCounter++;
+
+  // Emit connecting status
+  widgetController.injectTestMessage({ type: "status", status: "connecting" });
+
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Emit connected status
+  widgetController.injectTestMessage({ type: "status", status: "connected" });
+
+  // Create initial reasoning message
+  const reasoningMessage = createTestReasoningMessage(reasoningId, nextSequence());
+  widgetController.injectTestMessage({ type: "message", message: { ...reasoningMessage } });
+
+  await new Promise(resolve => setTimeout(resolve, 150));
+
+  // Update to streaming status
+  const streamingMessage: AgentWidgetMessage = {
+    ...reasoningMessage,
+    reasoning: {
+      ...reasoningMessage.reasoning!,
+      status: "streaming",
+      startedAt: Date.now(),
+      chunks: []
+    }
+  };
+  widgetController.injectTestMessage({ type: "message", message: streamingMessage });
+
+  // Stream reasoning chunks
+  const chunks = [
+    "Analyzing the user's request...",
+    "Considering available options...",
+    "Evaluating best approach...",
+    "Preparing response...",
+    "Reviewing context and requirements...",
+    "Identifying key constraints and parameters...",
+    "Exploring potential solutions...",
+    "Assessing feasibility of each option...",
+    "Comparing trade-offs and benefits...",
+    "Selecting optimal strategy...",
+    "Validating approach against requirements...",
+    "Refining details and edge cases...",
+    "Ensuring accuracy and completeness...",
+    "Finalizing implementation plan...",
+    "Double-checking all considerations...",
+    "Ready to proceed with response..."
+  ];
+  
+  for (let i = 0; i < chunks.length; i++) {
+    await new Promise(resolve => setTimeout(resolve, 120 + Math.random() * 80));
+    const chunkMessage: AgentWidgetMessage = {
+      ...streamingMessage,
+      reasoning: {
+        ...streamingMessage.reasoning!,
+        chunks: chunks.slice(0, i + 1)
+      }
+    };
+    widgetController.injectTestMessage({ type: "message", message: chunkMessage });
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // Complete the reasoning
+  const completedMessage: AgentWidgetMessage = {
+    ...streamingMessage,
+    streaming: false,
+    reasoning: {
+      ...streamingMessage.reasoning!,
+      status: "complete",
+      chunks: chunks,
+      completedAt: Date.now(),
+      durationMs: 3200 // Updated for 4x longer reasoning (16 chunks vs 4)
+    }
+  };
+  widgetController.injectTestMessage({ type: "message", message: completedMessage });
+
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Emit idle status
+  widgetController.injectTestMessage({ type: "status", status: "idle" });
+}
+
 // Features controls
 function setupFeatureControls() {
   const reasoningInput = getInput<HTMLInputElement>("feature-reasoning");
@@ -1912,6 +2114,18 @@ function setupFeatureControls() {
   [reasoningInput, toolCallsInput, debugInput, voiceRecognitionInput].forEach((input) =>
     input.addEventListener("change", updateFeatures)
   );
+
+  // Setup test buttons
+  const testToolCallButton = getInput<HTMLButtonElement>("test-tool-call");
+  const testReasoningButton = getInput<HTMLButtonElement>("test-reasoning");
+
+  testToolCallButton.addEventListener("click", () => {
+    streamTestToolCall();
+  });
+
+  testReasoningButton.addEventListener("click", () => {
+    streamTestReasoning();
+  });
 }
 
 // Suggestion chips controls
@@ -2345,6 +2559,196 @@ function setupResetControls() {
   });
 }
 
+// Tool Call Styles controls
+function setupToolCallControls() {
+  const updateToolCall = () => {
+    const backgroundColorInput = getInput<HTMLInputElement>("tool-call-background-color");
+    const borderColorInput = getInput<HTMLInputElement>("tool-call-border-color");
+    const borderWidthInput = getInput<HTMLInputElement>("tool-call-border-width");
+    const borderRadiusInput = getInput<HTMLInputElement>("tool-call-border-radius");
+    const headerBackgroundColorInput = getInput<HTMLInputElement>("tool-call-header-background-color");
+    const headerTextColorInput = getInput<HTMLInputElement>("tool-call-header-text-color");
+    const headerPaddingXInput = getInput<HTMLInputElement>("tool-call-header-padding-x");
+    const headerPaddingYInput = getInput<HTMLInputElement>("tool-call-header-padding-y");
+    const contentBackgroundColorInput = getInput<HTMLInputElement>("tool-call-content-background-color");
+    const contentTextColorInput = getInput<HTMLInputElement>("tool-call-content-text-color");
+    const contentPaddingXInput = getInput<HTMLInputElement>("tool-call-content-padding-x");
+    const contentPaddingYInput = getInput<HTMLInputElement>("tool-call-content-padding-y");
+    const codeBlockBackgroundColorInput = getInput<HTMLInputElement>("tool-call-code-block-background-color");
+    const codeBlockBorderColorInput = getInput<HTMLInputElement>("tool-call-code-block-border-color");
+    const codeBlockTextColorInput = getInput<HTMLInputElement>("tool-call-code-block-text-color");
+    const toggleTextColorInput = getInput<HTMLInputElement>("tool-call-toggle-text-color");
+    const labelTextColorInput = getInput<HTMLInputElement>("tool-call-label-text-color");
+
+    // Get values from inputs - for colors, read from text input (which syncs with color picker)
+    // Color inputs always have a value (even if placeholder), so we read from text inputs which can be empty
+    const backgroundColorTextInput = getInput<HTMLInputElement>("tool-call-background-color-text");
+    const borderColorTextInput = getInput<HTMLInputElement>("tool-call-border-color-text");
+    const headerBackgroundColorTextInput = getInput<HTMLInputElement>("tool-call-header-background-color-text");
+    const headerTextColorTextInput = getInput<HTMLInputElement>("tool-call-header-text-color-text");
+    const contentBackgroundColorTextInput = getInput<HTMLInputElement>("tool-call-content-background-color-text");
+    const contentTextColorTextInput = getInput<HTMLInputElement>("tool-call-content-text-color-text");
+    const codeBlockBackgroundColorTextInput = getInput<HTMLInputElement>("tool-call-code-block-background-color-text");
+    const codeBlockBorderColorTextInput = getInput<HTMLInputElement>("tool-call-code-block-border-color-text");
+    const codeBlockTextColorTextInput = getInput<HTMLInputElement>("tool-call-code-block-text-color-text");
+    const toggleTextColorTextInput = getInput<HTMLInputElement>("tool-call-toggle-text-color-text");
+    const labelTextColorTextInput = getInput<HTMLInputElement>("tool-call-label-text-color-text");
+
+    const backgroundColor = backgroundColorTextInput.value.trim() || undefined;
+    const borderColor = borderColorTextInput.value.trim() || undefined;
+    const borderWidth = borderWidthInput.value.trim() || undefined;
+    const borderRadius = borderRadiusInput.value.trim() || undefined;
+    const headerBackgroundColor = headerBackgroundColorTextInput.value.trim() || undefined;
+    const headerTextColor = headerTextColorTextInput.value.trim() || undefined;
+    const headerPaddingX = headerPaddingXInput.value.trim() || undefined;
+    const headerPaddingY = headerPaddingYInput.value.trim() || undefined;
+    const contentBackgroundColor = contentBackgroundColorTextInput.value.trim() || undefined;
+    const contentTextColor = contentTextColorTextInput.value.trim() || undefined;
+    const contentPaddingX = contentPaddingXInput.value.trim() || undefined;
+    const contentPaddingY = contentPaddingYInput.value.trim() || undefined;
+    const codeBlockBackgroundColor = codeBlockBackgroundColorTextInput.value.trim() || undefined;
+    const codeBlockBorderColor = codeBlockBorderColorTextInput.value.trim() || undefined;
+    const codeBlockTextColor = codeBlockTextColorTextInput.value.trim() || undefined;
+    const toggleTextColor = toggleTextColorTextInput.value.trim() || undefined;
+    const labelTextColor = labelTextColorTextInput.value.trim() || undefined;
+
+    const newConfig = {
+      ...currentConfig,
+      toolCall: {
+        backgroundColor,
+        borderColor,
+        borderWidth,
+        borderRadius,
+        headerBackgroundColor,
+        headerTextColor,
+        headerPaddingX,
+        headerPaddingY,
+        contentBackgroundColor,
+        contentTextColor,
+        contentPaddingX,
+        contentPaddingY,
+        codeBlockBackgroundColor,
+        codeBlockBorderColor,
+        codeBlockTextColor,
+        toggleTextColor,
+        labelTextColor
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  // Color inputs - map camelCase keys to kebab-case HTML IDs
+  const colorKeyMap: Record<string, string> = {
+    backgroundColor: "background-color",
+    borderColor: "border-color",
+    headerBackgroundColor: "header-background-color",
+    headerTextColor: "header-text-color",
+    contentBackgroundColor: "content-background-color",
+    contentTextColor: "content-text-color",
+    codeBlockBackgroundColor: "code-block-background-color",
+    codeBlockBorderColor: "code-block-border-color",
+    codeBlockTextColor: "code-block-text-color",
+    toggleTextColor: "toggle-text-color",
+    labelTextColor: "label-text-color"
+  };
+
+  Object.entries(colorKeyMap).forEach(([key, htmlKey]) => {
+    setupColorInput(
+      `tool-call-${htmlKey}`,
+      `tool-call-${htmlKey}-text`,
+      () => currentConfig.toolCall?.[key as keyof typeof currentConfig.toolCall] as string || "",
+      () => updateToolCall(),
+      "",
+      "preserve" // Empty values should be preserved (undefined in config)
+    );
+  });
+
+  // Slider inputs
+  setupSliderInput({
+    sliderId: "tool-call-border-width-slider",
+    textInputId: "tool-call-border-width",
+    min: 0,
+    max: 10,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.borderWidth || "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "tool-call-border-radius-slider",
+    textInputId: "tool-call-border-radius",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.borderRadius || "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "tool-call-header-padding-x-slider",
+    textInputId: "tool-call-header-padding-x",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.headerPaddingX || "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "tool-call-header-padding-y-slider",
+    textInputId: "tool-call-header-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.headerPaddingY || "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "tool-call-content-padding-x-slider",
+    textInputId: "tool-call-content-padding-x",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.contentPaddingX || "";
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "tool-call-content-padding-y-slider",
+    textInputId: "tool-call-content-padding-y",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: () => {
+      updateToolCall();
+    },
+    getInitialValue: () => {
+      return currentConfig.toolCall?.contentPaddingY || "";
+    }
+  });
+}
+
 // Initialize all controls
 function init() {
   setupAccordions();
@@ -2356,6 +2760,7 @@ function init() {
   setupCloseButtonControls();
   setupStatusIndicatorControls();
   setupFeatureControls();
+  setupToolCallControls();
   setupSuggestionChipsControls();
   setupOtherOptionsControls();
   setupExportControls();
@@ -2533,10 +2938,9 @@ function buildSearchableFieldsIndex() {
         getValue: () => textInput.value || colorInput.value,
         setValue: (value: string | boolean) => {
           const strValue = String(value);
-          textInput.value = strValue;
-          if (/^#[0-9A-Fa-f]{6}$/.test(strValue)) {
-            colorInput.value = strValue;
-          }
+          const normalized = normalizeColorValue(strValue);
+          textInput.value = normalized.textValue;
+          colorInput.value = normalized.colorPickerValue;
           textInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       });
@@ -2874,22 +3278,32 @@ function displaySearchResults(results: SearchableField[]) {
 
       const colorInput = document.createElement('input');
       colorInput.type = 'color';
-      colorInput.value = String(field.getValue()) || '#000000';
+      colorInput.id = `search-${field.id}-color`;
 
       const textInput = document.createElement('input');
       textInput.type = 'text';
-      textInput.value = String(field.getValue());
+      textInput.id = `search-${field.id}-text`;
+
+      // Initialize with current value
+      const currentValue = String(field.getValue() || '');
+      const normalized = normalizeColorValue(currentValue);
+      textInput.value = normalized.textValue;
+      colorInput.value = normalized.colorPickerValue;
+
+      // Flag to prevent feedback loop
+      let isUpdatingFromColorPicker = false;
 
       colorInput.addEventListener('input', () => {
-        textInput.value = colorInput.value;
-        field.setValue(colorInput.value);
+        const newValue = colorInput.value;
+        isUpdatingFromColorPicker = true;
+        textInput.value = newValue;
+        isUpdatingFromColorPicker = false;
+        field.setValue(newValue);
       });
 
       textInput.addEventListener('input', () => {
-        if (/^#[0-9A-Fa-f]{6}$/.test(textInput.value)) {
-          colorInput.value = textInput.value;
-        }
-        field.setValue(textInput.value);
+        if (isUpdatingFromColorPicker) return;
+        handleColorInputChange(textInput, colorInput, (value) => field.setValue(value), "preserve");
       });
 
       colorWrapper.appendChild(colorInput);
