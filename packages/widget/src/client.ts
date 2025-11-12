@@ -1,4 +1,5 @@
 import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "./types";
+import { extractTextFromJson, createJsonParser } from "./utils/formatting";
 
 type DispatchOptions = {
   messages: AgentWidgetMessage[];
@@ -322,6 +323,24 @@ export class AgentWidgetClient {
       return Date.now();
     };
 
+    const ensureStringContent = (value: unknown): string => {
+      if (typeof value === "string") {
+        return value;
+      }
+      if (value === null || value === undefined) {
+        return "";
+      }
+      // Convert objects/arrays to JSON string
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    };
+
+    // Maintain stateful schema-stream parsers per message for incremental JSON parsing
+    const jsonParsers = new Map<string, ReturnType<typeof createJsonParser>>();
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -517,25 +536,142 @@ export class AgentWidgetClient {
             toolContext.byCall.delete(callKey);
           }
         } else if (payloadType === "step_chunk") {
+          // Only process chunks for prompt steps, not tool/context steps
+          const stepType = (payload as any).stepType;
+          const executionType = (payload as any).executionType;
+          if (stepType === "tool" || executionType === "context") {
+            // Skip tool-related chunks - they're handled by tool_start/tool_complete
+            continue;
+          }
           const assistant = ensureAssistantMessage();
           const chunk = payload.text ?? payload.delta ?? payload.content ?? "";
           if (chunk) {
             assistant.content += chunk;
+            
+            // Try to extract text from JSON if it looks like JSON
+            const trimmed = assistant.content.trim();
+            if (trimmed.startsWith('{')) {
+              // Try fast path first (complete JSON)
+              const extractedText = extractTextFromJson(assistant.content);
+              if (extractedText !== null) {
+                // Replace content with extracted text for streaming display
+                assistant.content = extractedText;
+                // Clean up parser if it exists
+                jsonParsers.delete(assistant.id);
+              } else {
+                // Use stateful schema-stream parser for incomplete JSON
+                if (!jsonParsers.has(assistant.id)) {
+                  jsonParsers.set(assistant.id, createJsonParser());
+                }
+                const parser = jsonParsers.get(assistant.id)!;
+                
+                // Process the accumulated content (schema-stream needs full JSON context)
+                // It will extract text field as it becomes available
+                parser.processChunk(assistant.content).then((text) => {
+                  if (text !== null) {
+                    // Update the message content with extracted text
+                    const currentAssistant = assistantMessage;
+                    if (currentAssistant && currentAssistant.id === assistant.id) {
+                      currentAssistant.content = text;
+                      emitMessage(currentAssistant);
+                    }
+                  }
+                }).catch(() => {
+                  // Ignore errors
+                });
+                
+                // Check if we already have extracted text from previous chunks
+                const currentText = parser.getExtractedText();
+                if (currentText !== null) {
+                  assistant.content = currentText;
+                }
+              }
+            }
+            
             emitMessage(assistant);
           }
           if (payload.isComplete) {
             const finalContent = payload.result?.response ?? assistant.content;
             if (finalContent) {
-              assistant.content = finalContent;
+              assistant.content = ensureStringContent(finalContent);
+              // Try to extract text from final JSON
+              const trimmed = assistant.content.trim();
+              if (trimmed.startsWith('{')) {
+                const extractedText = extractTextFromJson(assistant.content);
+                if (extractedText !== null) {
+                  assistant.content = extractedText;
+                } else {
+                  // Try parser if it exists
+                  const parser = jsonParsers.get(assistant.id);
+                  if (parser) {
+                    parser.processChunk(assistant.content).then((text) => {
+                      if (text !== null) {
+                        const currentAssistant = assistantMessage;
+                        if (currentAssistant && currentAssistant.id === assistant.id) {
+                          currentAssistant.content = text;
+                          currentAssistant.streaming = false;
+                          emitMessage(currentAssistant);
+                        }
+                      }
+                    });
+                    const currentText = parser.getExtractedText();
+                    if (currentText !== null) {
+                      assistant.content = currentText;
+                    }
+                  }
+                }
+              }
+              // Clean up parser
+              const parser = jsonParsers.get(assistant.id);
+              if (parser) {
+                parser.close().catch(() => {});
+                jsonParsers.delete(assistant.id);
+              }
               assistant.streaming = false;
               emitMessage(assistant);
             }
           }
         } else if (payloadType === "step_complete") {
+          // Only process completions for prompt steps, not tool/context steps
+          const stepType = (payload as any).stepType;
+          const executionType = (payload as any).executionType;
+          if (stepType === "tool" || executionType === "context") {
+            // Skip tool-related completions - they're handled by tool_complete
+            continue;
+          }
           const finalContent = payload.result?.response;
           const assistant = ensureAssistantMessage();
-          if (finalContent) {
-            assistant.content = finalContent;
+          if (finalContent !== undefined && finalContent !== null) {
+            assistant.content = ensureStringContent(finalContent);
+            // Try to extract text from final JSON
+            const trimmed = assistant.content.trim();
+            if (trimmed.startsWith('{')) {
+              const extractedText = extractTextFromJson(assistant.content);
+              if (extractedText !== null) {
+                assistant.content = extractedText;
+              } else {
+                // Try parser if it exists
+                const parser = jsonParsers.get(assistant.id);
+                if (parser) {
+                  parser.processChunk(assistant.content).then((text) => {
+                    if (text !== null) {
+                      const currentAssistant = assistantMessage;
+                      if (currentAssistant && currentAssistant.id === assistant.id) {
+                        currentAssistant.content = text;
+                        currentAssistant.streaming = false;
+                        emitMessage(currentAssistant);
+                      }
+                    }
+                  });
+                  const currentText = parser.getExtractedText();
+                  if (currentText !== null) {
+                    assistant.content = currentText;
+                  }
+                }
+              }
+            }
+            // Clean up parser
+            jsonParsers.delete(assistant.id);
             assistant.streaming = false;
             emitMessage(assistant);
           } else {
@@ -545,10 +681,41 @@ export class AgentWidgetClient {
           }
         } else if (payloadType === "flow_complete") {
           const finalContent = payload.result?.response;
-          if (finalContent) {
+          if (finalContent !== undefined && finalContent !== null) {
             const assistant = ensureAssistantMessage();
-            if (finalContent !== assistant.content) {
-              assistant.content = finalContent;
+            const stringContent = ensureStringContent(finalContent);
+            // Try to extract text from JSON
+            const trimmed = stringContent.trim();
+            let displayContent = stringContent;
+            if (trimmed.startsWith('{')) {
+              const extractedText = extractTextFromJson(stringContent);
+              if (extractedText !== null) {
+                displayContent = extractedText;
+              } else {
+                // Try parser if it exists
+                const parser = jsonParsers.get(assistant.id);
+                if (parser) {
+                  parser.processChunk(stringContent).then((text) => {
+                    if (text !== null) {
+                      const currentAssistant = assistantMessage;
+                      if (currentAssistant && currentAssistant.id === assistant.id) {
+                        currentAssistant.content = text;
+                        currentAssistant.streaming = false;
+                        emitMessage(currentAssistant);
+                      }
+                    }
+                  });
+                  const currentText = parser.getExtractedText();
+                  if (currentText !== null) {
+                    displayContent = currentText;
+                  }
+                }
+              }
+            }
+            // Clean up parser
+            jsonParsers.delete(assistant.id);
+            if (displayContent !== assistant.content) {
+              assistant.content = displayContent;
               emitMessage(assistant);
             }
             assistant.streaming = false;

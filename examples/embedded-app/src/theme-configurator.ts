@@ -8,6 +8,7 @@ import {
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import type { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "vanilla-agent";
+import { parseActionResponse } from "./middleware";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -248,7 +249,39 @@ const getDefaultConfig = (): AgentWidgetConfig => ({
       createdAt: new Date().toISOString()
     }
   ],
-  postprocessMessage: ({ text }) => markdownPostprocessor(text)
+  postprocessMessage: ({ text, streaming, message }) => {
+    // For assistant messages, check if the response is JSON and extract the text field
+    if (message.role === "assistant" && !message.variant) {
+      const trimmed = text.trim();
+      const looksLikeJson = trimmed.startsWith('{') || text.includes('{');
+      
+      if (streaming) {
+        // During streaming, suppress JSON chunks to avoid showing partial JSON
+        if (looksLikeJson) {
+          return "";
+        }
+        // Return non-JSON chunks as-is with markdown processing
+        return markdownPostprocessor(text);
+      } else {
+        // Streaming is complete - parse JSON and extract text
+        if (looksLikeJson) {
+          const action = parseActionResponse(text);
+          if (action && action.action === "message" && action.text) {
+            // Return the extracted text with markdown processing
+            return markdownPostprocessor(action.text);
+          } else if (action && "text" in action && action.text) {
+            // For other action types that have text, return the text
+            return markdownPostprocessor(action.text);
+          }
+          // If JSON parsing failed, return empty to suppress invalid JSON
+          return "";
+        }
+      }
+    }
+    
+    // For non-assistant messages or non-JSON content, return as-is with markdown processing
+    return markdownPostprocessor(text);
+  }
 } as AgentWidgetConfig);
 
 // Current configuration state

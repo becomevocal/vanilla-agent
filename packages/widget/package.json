@@ -32,7 +32,9 @@
   },
   "dependencies": {
     "lucide": "^0.552.0",
-    "marked": "^12.0.2"
+    "marked": "^12.0.2",
+    "schema-stream": "^3.2.2",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

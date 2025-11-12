@@ -835,3 +835,12 @@ form:focus-within textarea {
   margin: 0.5rem 0;
   border-radius: 0.375rem;
 }
+
+/* Ensure links in user messages match the text color */
+#vanilla-agent-root .tvw-text-white a,
+#vanilla-agent-root .tvw-text-white a:visited,
+#vanilla-agent-root .tvw-text-white a:hover,
+#vanilla-agent-root .tvw-text-white a:active {
+  color: inherit;
+  text-decoration: underline;
+}
