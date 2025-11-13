@@ -1,5 +1,5 @@
-import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "./types";
-import { extractTextFromJson, createJsonParser } from "./utils/formatting";
+import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent, AgentWidgetStreamParser } from "./types";
+import { extractTextFromJson, createPlainTextParser } from "./utils/formatting";
 
 type DispatchOptions = {
   messages: AgentWidgetMessage[];
@@ -14,6 +14,7 @@ export class AgentWidgetClient {
   private readonly apiUrl: string;
   private readonly headers: Record<string, string>;
   private readonly debug: boolean;
+  private readonly createStreamParser: () => AgentWidgetStreamParser;
 
   constructor(private config: AgentWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
@@ -22,6 +23,8 @@ export class AgentWidgetClient {
       ...config.headers
     };
     this.debug = Boolean(config.debug);
+    // Use custom stream parser from config, or fall back to plain text parser
+    this.createStreamParser = config.streamParser ?? createPlainTextParser;
   }
 
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {
@@ -338,8 +341,10 @@ export class AgentWidgetClient {
       }
     };
 
-    // Maintain stateful schema-stream parsers per message for incremental JSON parsing
-    const jsonParsers = new Map<string, ReturnType<typeof createJsonParser>>();
+    // Maintain stateful stream parsers per message for incremental parsing
+    const streamParsers = new Map<string, AgentWidgetStreamParser>();
+    // Track accumulated raw content for structured formats (JSON, XML, etc.)
+    const rawContentBuffers = new Map<string, string>();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -546,65 +551,127 @@ export class AgentWidgetClient {
           const assistant = ensureAssistantMessage();
           const chunk = payload.text ?? payload.delta ?? payload.content ?? "";
           if (chunk) {
-            assistant.content += chunk;
+            // Accumulate raw content for structured format parsing
+            const rawBuffer = rawContentBuffers.get(assistant.id) ?? "";
+            const accumulatedRaw = rawBuffer + chunk;
             
-            // Try to extract text from JSON if it looks like JSON
-            const trimmed = assistant.content.trim();
-            if (trimmed.startsWith('{')) {
-              // Try fast path first (complete JSON)
-              const extractedText = extractTextFromJson(assistant.content);
-              if (extractedText !== null) {
-                // Replace content with extracted text for streaming display
-                assistant.content = extractedText;
-                // Clean up parser if it exists
-                jsonParsers.delete(assistant.id);
-              } else {
-                // Use stateful schema-stream parser for incomplete JSON
-                if (!jsonParsers.has(assistant.id)) {
-                  jsonParsers.set(assistant.id, createJsonParser());
-                }
-                const parser = jsonParsers.get(assistant.id)!;
-                
-                // Process the accumulated content (schema-stream needs full JSON context)
-                // It will extract text field as it becomes available
-                parser.processChunk(assistant.content).then((text) => {
-                  if (text !== null) {
-                    // Update the message content with extracted text
-                    const currentAssistant = assistantMessage;
-                    if (currentAssistant && currentAssistant.id === assistant.id) {
-                      currentAssistant.content = text;
-                      emitMessage(currentAssistant);
-                    }
-                  }
-                }).catch(() => {
-                  // Ignore errors
-                });
-                
-                // Check if we already have extracted text from previous chunks
-                const currentText = parser.getExtractedText();
-                if (currentText !== null) {
-                  assistant.content = currentText;
-                }
-              }
+            // Use stream parser to parse
+            if (!streamParsers.has(assistant.id)) {
+              streamParsers.set(assistant.id, this.createStreamParser());
+            }
+            const parser = streamParsers.get(assistant.id)!;
+            
+            // Check if content looks like JSON
+            const looksLikeJson = accumulatedRaw.trim().startsWith('{') || accumulatedRaw.trim().startsWith('[');
+            
+            // Store raw buffer before processing (needed for step_complete handler)
+            if (looksLikeJson) {
+              rawContentBuffers.set(assistant.id, accumulatedRaw);
             }
             
-            emitMessage(assistant);
+            // Check if this is a plain text parser (marked with __isPlainTextParser)
+            const isPlainTextParser = (parser as any).__isPlainTextParser === true;
+            
+            // If plain text parser, just append the chunk directly
+            if (isPlainTextParser) {
+              assistant.content += chunk;
+              // Clear any raw buffer/parser since we're in plain text mode
+              rawContentBuffers.delete(assistant.id);
+              streamParsers.delete(assistant.id);
+              emitMessage(assistant);
+              continue;
+            }
+            
+            // Try to parse with the parser (for structured parsers)
+            const parsedResult = parser.processChunk(accumulatedRaw);
+            
+            // Handle async parser result
+            if (parsedResult instanceof Promise) {
+              parsedResult.then((result) => {
+                // Extract text from result (could be string or object)
+                const text = typeof result === 'string' ? result : result?.text ?? null;
+                
+                if (text !== null && text.trim() !== "") {
+                  // Parser successfully extracted text
+                  // Update the message content with extracted text
+                  const currentAssistant = assistantMessage;
+                  if (currentAssistant && currentAssistant.id === assistant.id) {
+                    currentAssistant.content = text;
+                    emitMessage(currentAssistant);
+                  }
+                } else if (!looksLikeJson && !accumulatedRaw.trim().startsWith('<')) {
+                  // Not a structured format - show as plain text
+                  const currentAssistant = assistantMessage;
+                  if (currentAssistant && currentAssistant.id === assistant.id) {
+                    currentAssistant.content += chunk;
+                    rawContentBuffers.delete(currentAssistant.id);
+                    streamParsers.delete(currentAssistant.id);
+                    emitMessage(currentAssistant);
+                  }
+                }
+                // Otherwise wait for more chunks (incomplete structured format)
+              }).catch(() => {
+                // On error, treat as plain text
+                assistant.content += chunk;
+                rawContentBuffers.delete(assistant.id);
+                streamParsers.delete(assistant.id);
+                emitMessage(assistant);
+              });
+            } else {
+              // Synchronous parser result
+              // Extract text from result (could be string, null, or object)
+              const text = typeof parsedResult === 'string' ? parsedResult : parsedResult?.text ?? null;
+              
+              if (text !== null && text.trim() !== "") {
+                // Parser successfully extracted text
+                // Buffer is already set above
+                assistant.content = text;
+                emitMessage(assistant);
+              } else if (!looksLikeJson && !accumulatedRaw.trim().startsWith('<')) {
+                // Not a structured format - show as plain text
+                assistant.content += chunk;
+                // Clear any raw buffer/parser if we were in structured format mode
+                rawContentBuffers.delete(assistant.id);
+                streamParsers.delete(assistant.id);
+                emitMessage(assistant);
+              }
+              // Otherwise wait for more chunks (incomplete structured format)
+            }
+            
+            // Also check if we already have extracted text from previous chunks
+            const currentText = parser.getExtractedText();
+            if (currentText != null && currentText !== "" && currentText !== assistant.content) {
+              assistant.content = currentText;
+              emitMessage(assistant);
+            }
           }
           if (payload.isComplete) {
             const finalContent = payload.result?.response ?? assistant.content;
             if (finalContent) {
-              assistant.content = ensureStringContent(finalContent);
-              // Try to extract text from final JSON
-              const trimmed = assistant.content.trim();
-              if (trimmed.startsWith('{')) {
-                const extractedText = extractTextFromJson(assistant.content);
-                if (extractedText !== null) {
-                  assistant.content = extractedText;
-                } else {
-                  // Try parser if it exists
-                  const parser = jsonParsers.get(assistant.id);
-                  if (parser) {
-                    parser.processChunk(assistant.content).then((text) => {
+              // Check if we have raw content buffer that needs final processing
+              const rawBuffer = rawContentBuffers.get(assistant.id);
+              const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
+              
+              // Try to extract text from final structured content
+              const parser = streamParsers.get(assistant.id);
+              let extractedText: string | null = null;
+              
+              if (parser) {
+                // First check if parser already has extracted text
+                extractedText = parser.getExtractedText();
+                
+                if (extractedText === null) {
+                  // Try extracting with regex
+                  extractedText = extractTextFromJson(contentToProcess);
+                }
+                
+                if (extractedText === null) {
+                  // Try parser.processChunk as last resort
+                  const parsedResult = parser.processChunk(contentToProcess);
+                  if (parsedResult instanceof Promise) {
+                    parsedResult.then((result) => {
+                      // Extract text from result (could be string or object)
+                      const text = typeof result === 'string' ? result : result?.text ?? null;
                       if (text !== null) {
                         const currentAssistant = assistantMessage;
                         if (currentAssistant && currentAssistant.id === assistant.id) {
@@ -614,19 +681,31 @@ export class AgentWidgetClient {
                         }
                       }
                     });
-                    const currentText = parser.getExtractedText();
-                    if (currentText !== null) {
-                      assistant.content = currentText;
-                    }
+                  } else {
+                    // Extract text from synchronous result
+                    extractedText = typeof parsedResult === 'string' ? parsedResult : parsedResult?.text ?? null;
                   }
                 }
               }
-              // Clean up parser
-              const parser = jsonParsers.get(assistant.id);
-              if (parser) {
-                parser.close().catch(() => {});
-                jsonParsers.delete(assistant.id);
+              
+            // Set content: use extracted text if available, otherwise use raw content
+            if (extractedText !== null && extractedText.trim() !== "") {
+              assistant.content = extractedText;
+            } else if (!rawContentBuffers.has(assistant.id)) {
+              // Only use raw final content if we didn't accumulate chunks
+              assistant.content = ensureStringContent(finalContent);
+            }
+              
+              // Clean up parser and buffer
+              const parserToClose = streamParsers.get(assistant.id);
+              if (parserToClose) {
+                const closeResult = parserToClose.close?.();
+                if (closeResult instanceof Promise) {
+                  closeResult.catch(() => {});
+                }
+                streamParsers.delete(assistant.id);
               }
+              rawContentBuffers.delete(assistant.id);
               assistant.streaming = false;
               emitMessage(assistant);
             }
@@ -642,40 +721,100 @@ export class AgentWidgetClient {
           const finalContent = payload.result?.response;
           const assistant = ensureAssistantMessage();
           if (finalContent !== undefined && finalContent !== null) {
-            assistant.content = ensureStringContent(finalContent);
-            // Try to extract text from final JSON
-            const trimmed = assistant.content.trim();
-            if (trimmed.startsWith('{')) {
-              const extractedText = extractTextFromJson(assistant.content);
-              if (extractedText !== null) {
-                assistant.content = extractedText;
+            // Check if we already have extracted text from streaming
+            const parser = streamParsers.get(assistant.id);
+            let hasExtractedText = false;
+            
+            if (parser) {
+              // First check if parser already extracted text during streaming
+              const currentExtractedText = parser.getExtractedText();
+              if (currentExtractedText !== null && currentExtractedText.trim() !== "") {
+                // We already have extracted text from streaming - use it
+                assistant.content = currentExtractedText;
+                hasExtractedText = true;
               } else {
-                // Try parser if it exists
-                const parser = jsonParsers.get(assistant.id);
-                if (parser) {
-                  parser.processChunk(assistant.content).then((text) => {
-                    if (text !== null) {
-                      const currentAssistant = assistantMessage;
-                      if (currentAssistant && currentAssistant.id === assistant.id) {
-                        currentAssistant.content = text;
-                        currentAssistant.streaming = false;
-                        emitMessage(currentAssistant);
+                // No extracted text yet - try to extract from final content
+                const rawBuffer = rawContentBuffers.get(assistant.id);
+                const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
+                
+                // Try fast path first
+                const extractedText = extractTextFromJson(contentToProcess);
+                if (extractedText !== null) {
+                  assistant.content = extractedText;
+                  hasExtractedText = true;
+                } else {
+                  // Try parser
+                  const parsedResult = parser.processChunk(contentToProcess);
+                  if (parsedResult instanceof Promise) {
+                    parsedResult.then((result) => {
+                      // Extract text from result (could be string or object)
+                      const text = typeof result === 'string' ? result : result?.text ?? null;
+                      
+                      if (text !== null && text.trim() !== "") {
+                        const currentAssistant = assistantMessage;
+                        if (currentAssistant && currentAssistant.id === assistant.id) {
+                          currentAssistant.content = text;
+                          currentAssistant.streaming = false;
+                          emitMessage(currentAssistant);
+                        }
+                      } else {
+                        // No extracted text - check if we should show raw content
+                        const finalExtractedText = parser.getExtractedText();
+                        if (finalExtractedText === null || finalExtractedText.trim() === "") {
+                          // No extracted text available - show raw content only if no streaming happened
+                          const currentAssistant = assistantMessage;
+                          if (currentAssistant && currentAssistant.id === assistant.id) {
+                            // Only show raw content if we never had any extracted text
+                            if (!rawContentBuffers.has(assistant.id)) {
+                              currentAssistant.content = ensureStringContent(finalContent);
+                            }
+                            currentAssistant.streaming = false;
+                            emitMessage(currentAssistant);
+                          }
+                        }
+                      }
+                    });
+                  } else {
+                    // Extract text from synchronous result
+                    const text = typeof parsedResult === 'string' ? parsedResult : parsedResult?.text ?? null;
+                    
+                    if (text !== null && text.trim() !== "") {
+                      assistant.content = text;
+                      hasExtractedText = true;
+                    } else {
+                      // Check stub one more time
+                      const finalExtractedText = parser.getExtractedText();
+                      if (finalExtractedText !== null && finalExtractedText.trim() !== "") {
+                        assistant.content = finalExtractedText;
+                        hasExtractedText = true;
                       }
                     }
-                  });
-                  const currentText = parser.getExtractedText();
-                  if (currentText !== null) {
-                    assistant.content = currentText;
                   }
                 }
               }
             }
-            // Clean up parser
-            jsonParsers.delete(assistant.id);
+            
+            // Only show raw content if we never extracted any text and no buffer was used
+            if (!hasExtractedText && !rawContentBuffers.has(assistant.id)) {
+              // No extracted text and no streaming happened - show raw content
+              assistant.content = ensureStringContent(finalContent);
+            }
+            
+            // Clean up parser and buffer
+            if (parser) {
+              const closeResult = parser.close?.();
+              if (closeResult instanceof Promise) {
+                closeResult.catch(() => {});
+              }
+            }
+            streamParsers.delete(assistant.id);
+            rawContentBuffers.delete(assistant.id);
             assistant.streaming = false;
             emitMessage(assistant);
           } else {
-            // No final content, just mark as complete
+            // No final content, just mark as complete and clean up
+            streamParsers.delete(assistant.id);
+            rawContentBuffers.delete(assistant.id);
             assistant.streaming = false;
             emitMessage(assistant);
           }
@@ -683,19 +822,23 @@ export class AgentWidgetClient {
           const finalContent = payload.result?.response;
           if (finalContent !== undefined && finalContent !== null) {
             const assistant = ensureAssistantMessage();
-            const stringContent = ensureStringContent(finalContent);
-            // Try to extract text from JSON
-            const trimmed = stringContent.trim();
-            let displayContent = stringContent;
-            if (trimmed.startsWith('{')) {
+            // Check if we have raw content buffer that needs final processing
+            const rawBuffer = rawContentBuffers.get(assistant.id);
+            const stringContent = rawBuffer ?? ensureStringContent(finalContent);
+            // Try to extract text from structured content
+            let displayContent = ensureStringContent(finalContent);
+            const parser = streamParsers.get(assistant.id);
+            if (parser) {
               const extractedText = extractTextFromJson(stringContent);
               if (extractedText !== null) {
                 displayContent = extractedText;
               } else {
                 // Try parser if it exists
-                const parser = jsonParsers.get(assistant.id);
-                if (parser) {
-                  parser.processChunk(stringContent).then((text) => {
+                const parsedResult = parser.processChunk(stringContent);
+                if (parsedResult instanceof Promise) {
+                  parsedResult.then((result) => {
+                    // Extract text from result (could be string or object)
+                    const text = typeof result === 'string' ? result : result?.text ?? null;
                     if (text !== null) {
                       const currentAssistant = assistantMessage;
                       if (currentAssistant && currentAssistant.id === assistant.id) {
@@ -705,15 +848,16 @@ export class AgentWidgetClient {
                       }
                     }
                   });
-                  const currentText = parser.getExtractedText();
-                  if (currentText !== null) {
-                    displayContent = currentText;
-                  }
+                }
+                const currentText = parser.getExtractedText();
+                if (currentText !== null) {
+                  displayContent = currentText;
                 }
               }
             }
-            // Clean up parser
-            jsonParsers.delete(assistant.id);
+            // Clean up parser and buffer
+            streamParsers.delete(assistant.id);
+            rawContentBuffers.delete(assistant.id);
             if (displayContent !== assistant.content) {
               assistant.content = displayContent;
               emitMessage(assistant);
@@ -721,11 +865,15 @@ export class AgentWidgetClient {
             assistant.streaming = false;
             emitMessage(assistant);
           } else {
-            const existingAssistant = assistantMessage;
-            if (existingAssistant) {
-              const assistantFinal = existingAssistant as AgentWidgetMessage;
-              assistantFinal.streaming = false;
-              emitMessage(assistantFinal);
+            // No final content, just mark as complete and clean up
+            if (assistantMessage !== null) {
+              // Clean up any remaining parsers/buffers
+              // TypeScript narrowing issue - assistantMessage is checked for null above
+              const msg: AgentWidgetMessage = assistantMessage;
+              streamParsers.delete(msg.id);
+              rawContentBuffers.delete(msg.id);
+              msg.streaming = false;
+              emitMessage(msg);
             }
           }
           onEvent({ type: "status", status: "idle" });

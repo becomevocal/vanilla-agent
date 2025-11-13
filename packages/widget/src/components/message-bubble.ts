@@ -78,10 +78,15 @@ export const createStandardBubble = (
   });
   bubble.appendChild(contentDiv);
 
-  // Add typing indicator if this is a streaming assistant message with content
-  if (message.streaming && message.role === "assistant" && message.content && message.content.trim()) {
-    const typingIndicator = createTypingIndicator();
-    bubble.appendChild(typingIndicator);
+  // Add typing indicator if this is a streaming assistant message
+  // Show it when streaming starts (even if content is empty), hide it once content appears
+  if (message.streaming && message.role === "assistant") {
+    // Only show typing indicator if content is empty or just starting
+    // Hide it once we have substantial content
+    if (!message.content || !message.content.trim()) {
+      const typingIndicator = createTypingIndicator();
+      bubble.appendChild(typingIndicator);
+    }
   }
 
   return bubble;

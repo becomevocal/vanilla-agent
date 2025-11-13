@@ -1,5 +1,5 @@
 import { createAgentExperience, AgentWidgetController } from "../ui";
-import { AgentWidgetConfig, AgentWidgetInitOptions } from "../types";
+import { AgentWidgetConfig, AgentWidgetInitOptions, AgentWidgetEvent } from "../types";
 
 const ensureTarget = (target: string | HTMLElement): HTMLElement => {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -144,6 +144,9 @@ export const initAgentWidget = (
     },
     stopVoiceRecognition() {
       return controller.stopVoiceRecognition();
+    },
+    injectTestMessage(event: AgentWidgetEvent) {
+      controller.injectTestMessage(event);
     },
     destroy() {
       controller.destroy();

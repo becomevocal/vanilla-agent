@@ -158,6 +158,61 @@ export type AgentWidgetToolCallConfig = {
   labelTextColor?: string;
 };
 
+/**
+ * Interface for pluggable stream parsers that extract text from streaming responses.
+ * Parsers handle incremental parsing to extract text values from structured formats (JSON, XML, etc.).
+ * 
+ * @example
+ * ```typescript
+ * const jsonParser: AgentWidgetStreamParser = {
+ *   processChunk: async (content) => {
+ *     // Extract text from JSON - return null if not JSON or text not available yet
+ *     if (!content.trim().startsWith('{')) return null;
+ *     const match = content.match(/"text"\s*:\s*"([^"]*)"/);
+ *     return match ? match[1] : null;
+ *   },
+ *   getExtractedText: () => extractedText
+ * };
+ * ```
+ */
+export interface AgentWidgetStreamParserResult {
+  /**
+   * The extracted text to display (may be partial during streaming)
+   */
+  text: string | null;
+  
+  /**
+   * Optional: The raw accumulated content (useful for middleware that needs the original format)
+   */
+  raw?: string;
+}
+
+export interface AgentWidgetStreamParser {
+  /**
+   * Process a chunk of content and return the extracted text (if available).
+   * This method is called for each chunk as it arrives during streaming.
+   * Return null if the content doesn't match this parser's format or if text is not yet available.
+   * 
+   * @param accumulatedContent - The full accumulated content so far (including new chunk)
+   * @returns The extracted text value and optionally raw content, or null if not yet available or format doesn't match
+   */
+  processChunk(accumulatedContent: string): Promise<AgentWidgetStreamParserResult | string | null> | AgentWidgetStreamParserResult | string | null;
+  
+  /**
+   * Get the currently extracted text value (may be partial).
+   * This is called synchronously to get the latest extracted text without processing.
+   * 
+   * @returns The currently extracted text value, or null if not yet available
+   */
+  getExtractedText(): string | null;
+  
+  /**
+   * Clean up any resources when parsing is complete.
+   */
+  close?(): Promise<void> | void;
+}
+
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -186,6 +241,37 @@ export type AgentWidgetConfig = {
     streaming: boolean;
   }) => string;
   plugins?: AgentWidgetPlugin[];
+  /**
+   * Custom stream parser for extracting text from streaming structured responses.
+   * Handles incremental parsing of JSON, XML, or other formats.
+   * If not provided, uses the default JSON parser.
+   * 
+   * @example
+   * ```typescript
+   * streamParser: () => ({
+   *   processChunk: async (content) => {
+   *     // Return null if not your format, or extracted text if available
+   *     if (!content.trim().startsWith('{')) return null;
+   *     return extractText(content);
+   *   },
+   *   getExtractedText: () => extractedText
+   * })
+   * ```
+   */
+  streamParser?: () => AgentWidgetStreamParser;
+  /**
+   * Additional localStorage key to clear when the clear chat button is clicked.
+   * The widget automatically clears `"vanilla-agent-chat-history"` by default.
+   * Use this option to clear additional keys (e.g., if you're using a custom storage key).
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   clearChatHistoryStorageKey: "my-custom-chat-history"
+   * }
+   * ```
+   */
+  clearChatHistoryStorageKey?: string;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

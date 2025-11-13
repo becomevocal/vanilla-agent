@@ -1029,6 +1029,15 @@
             <label for="flow-id">Flow ID (optional)</label>
             <input type="text" id="flow-id" placeholder="flow_abc123" />
           </div>
+          <div class="form-group" data-search-label="Stream Parser JSON parsing text extraction response format">
+            <label for="stream-parser">Stream Parser</label>
+            <select id="stream-parser">
+              <option value="plain">Plain Text (Default)</option>
+              <option value="json">JSON (Robust - partial-json)</option>
+              <option value="regex-json">JSON (Simple - regex)</option>
+              <option value="xml">XML</option>
+            </select>
+          </div>
         </section>
 
       </aside>

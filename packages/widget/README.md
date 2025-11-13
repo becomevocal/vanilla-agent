@@ -129,6 +129,18 @@ chat.stopVoiceRecognition()
 
 All hook methods return `boolean` indicating success (`true`) or failure (`false`). They will automatically open the widget if it's currently closed (when launcher is enabled).
 
+#### Clear chat
+
+```ts
+const chat = initAgentWidget({
+  target: '#launcher-root',
+  config: { /* ... */ }
+})
+
+// Clear all messages programmatically
+chat.clearChat()
+```
+
 #### Accessing from window
 
 To access the controller globally (e.g., from browser console or external scripts), use the `windowKey` option:
@@ -184,6 +196,32 @@ const chat = initAgentWidget({ /* ... */ })
 window.chatController = chat
 ```
 
+### Events
+
+The widget dispatches custom events that you can listen to for integration with your application:
+
+#### `vanilla-agent:clear-chat`
+
+Dispatched when the user clicks the "Clear chat" button or when `chat.clearChat()` is called programmatically.
+
+```ts
+window.addEventListener("vanilla-agent:clear-chat", (event) => {
+  console.log("Chat cleared at:", event.detail.timestamp);
+  // Clear your localStorage, reset state, etc.
+});
+```
+
+**Event detail:**
+- `timestamp`: ISO timestamp string of when the chat was cleared
+
+**Use cases:**
+- Clear localStorage chat history
+- Reset application state
+- Track analytics events
+- Sync with backend
+
+**Note:** The widget automatically clears the `"vanilla-agent-chat-history"` localStorage key by default when chat is cleared. If you set `clearChatHistoryStorageKey` in the config, it will also clear that additional key. You can still listen to this event for additional custom behavior.
+
 ### Travrse adapter
 
 This package ships with a Travrse adapter by default. The proxy handles all flow configuration, keeping the client lightweight and flexible.
@@ -228,7 +266,9 @@ The easiest way is to use the automatic installer script. It handles loading CSS
       theme: {
         accent: '#2563eb',
         surface: '#ffffff'
-      }
+      },
+      // Optional: configure stream parser for JSON/XML responses
+      // streamParser: () => window.AgentWidget.createJsonStreamParser()
     }
   };
 </script>
@@ -286,7 +326,9 @@ For more control, manually load CSS and JavaScript:
       theme: {
         accent: '#111827',
         surface: '#f5f5f5'
-      }
+      },
+      // Optional: configure stream parser for JSON/XML responses
+      streamParser: window.AgentWidget.createJsonStreamParser // or createXmlParser, createPlainTextParser
     }
   });
   
@@ -308,7 +350,14 @@ Replace `VERSION` with `latest` for auto-updates, or a specific version like `0.
 - `index.global.js` - Widget JavaScript (IIFE format)
 - `install.global.js` - Automatic installer script
 
-The script build exposes a `window.AgentWidget` global with `initAgentWidget()` and other exports.
+The script build exposes a `window.AgentWidget` global with `initAgentWidget()` and other exports, including parser functions:
+
+- `window.AgentWidget.initAgentWidget()` - Initialize the widget
+- `window.AgentWidget.createPlainTextParser()` - Plain text parser (default)
+- `window.AgentWidget.createJsonStreamParser()` - JSON parser using schema-stream
+- `window.AgentWidget.createXmlParser()` - XML parser
+- `window.AgentWidget.markdownPostprocessor()` - Markdown postprocessor
+- `window.AgentWidget.directivePostprocessor()` - Directive postprocessor
 
 ### Using default configuration
 
@@ -356,11 +405,178 @@ This ensures all configuration values are set to sensible defaults while allowin
 | `initialMessages` | `AgentWidgetMessage[]` | Seed the conversation transcript. |
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |
 | `postprocessMessage` | `(ctx) => string` | Transform message text before it renders (return HTML). Combine with `markdownPostprocessor` for rich output. |
+| `streamParser` | `() => AgentWidgetStreamParser` | Custom stream parser for detecting formats and extracting text from streaming responses. Handles JSON, XML, or custom formats. See [Stream Parser Configuration](#stream-parser-configuration) below. |
+| `clearChatHistoryStorageKey` | `string` | Additional localStorage key to clear when the clear chat button is clicked. The widget automatically clears `"vanilla-agent-chat-history"` by default. Use this option to clear additional keys (e.g., if you're using a custom storage key). |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
 | `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(400px, calc(100vw - 24px))`. |
 | `debug` | `boolean` | Emits verbose logs to `console`. |
 
 All options are safe to mutate via `initAgentWidget(...).update(newConfig)`.
+
+### Stream Parser Configuration
+
+The widget can parse structured responses (JSON, XML, etc.) that stream in chunk by chunk, extracting the `text` field for display. By default, it uses a schema-stream based JSON parser. You can provide a custom parser to handle different formats, structures, or parsing strategies.
+
+**Key benefits of the unified stream parser:**
+- **Format detection**: Automatically detects if content matches your parser's format
+- **Extensible**: Handle JSON, XML, or any custom structured format
+- **Incremental parsing**: Extract text as it streams in, not just when complete
+
+**Using built-in parsers with ESM/Modules:**
+
+```javascript
+import { initAgentWidget, createPlainTextParser, createJsonStreamParser, createXmlParser } from 'vanilla-agent';
+
+const controller = initAgentWidget({
+  target: '#chat-root',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    streamParser: createJsonStreamParser // Use JSON parser
+    // Or: createXmlParser for XML, createPlainTextParser for plain text (default)
+  }
+});
+```
+
+**Using built-in parsers with CDN Script Tags:**
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js"></script>
+<script>
+  window.AgentWidget.initAgentWidget({
+    target: '#chat-root',
+    config: {
+      apiUrl: '/api/chat/dispatch',
+      streamParser: window.AgentWidget.createJsonStreamParser // JSON parser
+      // Or: window.AgentWidget.createXmlParser for XML
+      // Or: window.AgentWidget.createPlainTextParser for plain text (default)
+    }
+  });
+</script>
+```
+
+**Using with automatic installer script:**
+
+```html
+<script>
+  window.siteAgentConfig = {
+    target: 'body',
+    config: {
+      apiUrl: '/api/chat/dispatch',
+      // Note: streamParser must be set after the script loads, or use a function
+      streamParser: function() {
+        return window.AgentWidget.createJsonStreamParser();
+      }
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"></script>
+```
+
+Alternatively, you can set it after the script loads:
+
+```html
+<script>
+  window.siteAgentConfig = {
+    target: 'body',
+    config: {
+      apiUrl: '/api/chat/dispatch'
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"></script>
+<script>
+  // Set parser after AgentWidget is loaded
+  if (window.siteAgentConfig && window.AgentWidget) {
+    window.siteAgentConfig.config.streamParser = window.AgentWidget.createJsonStreamParser;
+  }
+</script>
+```
+
+**Custom JSON parser example:**
+
+```javascript
+const jsonParser = () => {
+  let extractedText = null;
+  
+  return {
+    // Extract text field from JSON as it streams in
+    // Return null if not JSON or text not available yet
+    processChunk(accumulatedContent) {
+      const trimmed = accumulatedContent.trim();
+      // Return null if not JSON format
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return null;
+      }
+      
+      const match = accumulatedContent.match(/"text"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/);
+      if (match) {
+        extractedText = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+        return extractedText;
+      }
+      return null;
+    },
+    
+    getExtractedText() {
+      return extractedText;
+    }
+  };
+};
+
+const controller = initAgentWidget({
+  target: '#chat-root',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    streamParser: jsonParser
+  }
+});
+```
+
+**Custom XML parser example:**
+
+```javascript
+const xmlParser = () => {
+  let extractedText = null;
+  
+  return {
+    processChunk(accumulatedContent) {
+      // Return null if not XML format
+      if (!accumulatedContent.trim().startsWith('<')) {
+        return null;
+      }
+      
+      // Extract text from <text>...</text> tags
+      const match = accumulatedContent.match(/<text[^>]*>([\s\S]*?)<\/text>/);
+      if (match) {
+        extractedText = match[1];
+        return extractedText;
+      }
+      return null;
+    },
+    
+    getExtractedText() {
+      return extractedText;
+    }
+  };
+};
+```
+
+**Parser interface:**
+
+```typescript
+interface AgentWidgetStreamParser {
+  // Process a chunk and return extracted text (if available)
+  // Return null if the content doesn't match this parser's format or text is not yet available
+  processChunk(accumulatedContent: string): Promise<string | null> | string | null;
+  
+  // Get the currently extracted text (may be partial)
+  getExtractedText(): string | null;
+  
+  // Optional cleanup when parsing is complete
+  close?(): Promise<void> | void;
+}
+```
+
+The parser's `processChunk` method is called for each chunk. If the content matches your parser's format, return the extracted text. If it doesn't match (or text isn't available yet), return `null` and the content will be treated as plain text. This allows you to display the text value as it streams in without showing raw structured characters.
 
 ### Optional proxy server
 

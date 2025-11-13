@@ -443,6 +443,7 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
     "div",
     "tvw-flex tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-gap-6 tvw-overflow-y-auto tvw-bg-cw-container tvw-px-6 tvw-py-6"
   );
+  body.id = "vanilla-agent-scroll-container";
   const introCard = createElement(
     "div",
     "tvw-rounded-2xl tvw-bg-cw-surface tvw-p-6 tvw-shadow-sm"

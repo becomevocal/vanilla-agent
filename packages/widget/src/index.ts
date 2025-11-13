@@ -10,7 +10,9 @@ export type {
   AgentWidgetInitOptions,
   AgentWidgetMessage,
   AgentWidgetLauncherConfig,
-  AgentWidgetEvent
+  AgentWidgetEvent,
+  AgentWidgetStreamParser,
+  AgentWidgetStreamParserResult
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
@@ -28,6 +30,12 @@ export {
   escapeHtml,
   directivePostprocessor
 } from "./postprocessors";
+export { 
+  createPlainTextParser,
+  createJsonStreamParser,
+  createRegexJsonParser,
+  createXmlParser
+} from "./utils/formatting";
 export type { AgentWidgetInitHandle };
 
 // Plugin system exports

@@ -1,16 +1,5 @@
-import { AgentWidgetReasoning, AgentWidgetToolCall } from "../types";
-import { SchemaStream } from "schema-stream";
-import { z } from "zod";
-
-// Export schema for use in client.ts
-export const actionResponseSchema = z.object({
-  action: z.string().optional(),
-  text: z.string().optional(),
-  page: z.string().optional(),
-  element: z.string().optional(),
-  items: z.array(z.any()).optional(),
-  on_load_text: z.string().optional()
-});
+import { AgentWidgetReasoning, AgentWidgetToolCall, AgentWidgetStreamParser, AgentWidgetStreamParserResult } from "../types";
+import { parse as parsePartialJson, STR, OBJ } from "partial-json";
 
 export const formatUnknownValue = (value: unknown): string => {
   if (value === null) return "null";
@@ -86,80 +75,97 @@ export const describeToolTitle = (tool: AgentWidgetToolCall) => {
 };
 
 /**
- * Creates a schema-stream parser instance for extracting text from JSON streams.
- * This maintains state across chunks for incremental parsing.
+ * Creates a regex-based parser for extracting text from JSON streams.
+ * This is a simpler alternative to schema-stream that uses regex to extract
+ * the 'text' field incrementally as JSON streams in.
+ * 
+ * This can be used as an alternative parser option.
  */
-export const createJsonParser = () => {
+const createRegexJsonParserInternal = (): {
+  processChunk(accumulatedContent: string): Promise<AgentWidgetStreamParserResult | string | null>;
+  getExtractedText(): string | null;
+  close?(): Promise<void>;
+} => {
   let extractedText: string | null = null;
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let lastProcessedLength = 0;
+  let processedLength = 0;
   
-  const parser = new SchemaStream(actionResponseSchema, {
-    onKeyComplete({ completedPaths }) {
-      // Check if text field has been completed
-      const textCompleted = completedPaths.some(
-        path => path.length > 0 && path[path.length - 1] === 'text'
-      );
-      if (textCompleted) {
-        // Try to get the value from the stub
-        const stub = parser.getSchemaStub(actionResponseSchema);
-        if (stub && typeof stub.text === "string" && stub.text) {
-          extractedText = stub.text;
-        }
+  // Regex-based extraction for incremental JSON parsing
+  const extractTextFromIncompleteJson = (jsonString: string): string | null => {
+    // Look for "text": "value" pattern, handling incomplete strings
+    // Match: "text": " followed by any characters (including incomplete)
+    const textFieldRegex = /"text"\s*:\s*"((?:[^"\\]|\\.|")*?)"/;
+    const match = jsonString.match(textFieldRegex);
+    
+    if (match && match[1]) {
+      // Unescape the string value
+      try {
+        // Replace escaped characters
+        let unescaped = match[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+        return unescaped;
+      } catch {
+        return match[1];
       }
     }
-  });
+    
+    // Also try to match incomplete text field (text field that hasn't closed yet)
+    // Look for "text": " followed by content that may not be closed
+    const incompleteTextFieldRegex = /"text"\s*:\s*"((?:[^"\\]|\\.)*)/;
+    const incompleteMatch = jsonString.match(incompleteTextFieldRegex);
+    
+    if (incompleteMatch && incompleteMatch[1]) {
+      // Unescape the partial string value
+      try {
+        let unescaped = incompleteMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+        return unescaped;
+      } catch {
+        return incompleteMatch[1];
+      }
+    }
+    
+    return null;
+  };
   
   return {
-    parser,
     getExtractedText: () => extractedText,
-    processChunk: async (accumulatedContent: string): Promise<string | null> => {
-      // Only process the new portion of content to avoid duplicating data
-      const newContent = accumulatedContent.slice(lastProcessedLength);
-      if (newContent.length === 0) {
-        return extractedText;
+    processChunk: async (accumulatedContent: string): Promise<AgentWidgetStreamParserResult | string | null> => {
+      // Skip if no new content
+      if (accumulatedContent.length <= processedLength) {
+        return extractedText ? { text: extractedText, raw: accumulatedContent } : extractedText;
       }
       
-      lastProcessedLength = accumulatedContent.length;
-      
-      // Create a new transform stream for this processing (schema-stream processes full JSON)
-      const transformStream = parser.parse();
-      const readable = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(accumulatedContent));
-          controller.close();
-        }
-      });
-      
-      const transformed = readable.pipeThrough(transformStream);
-      const reader = transformed.getReader();
-      
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            try {
-              const decoded = decoder.decode(value as AllowSharedBufferSource);
-              const parsed = JSON.parse(decoded);
-              if (parsed && typeof parsed === "object" && typeof parsed.text === "string") {
-                extractedText = parsed.text;
-                return parsed.text;
-              }
-            } catch {
-              // Continue reading
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
+      // Validate that the accumulated content looks like valid JSON
+      const trimmed = accumulatedContent.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return null;
       }
       
-      return extractedText;
+      // Try to extract text field using regex
+      const extracted = extractTextFromIncompleteJson(accumulatedContent);
+      if (extracted !== null) {
+        extractedText = extracted;
+      }
+      
+      // Update processed length
+      processedLength = accumulatedContent.length;
+      
+      // Return both the extracted text and raw JSON
+      return extractedText ? { 
+        text: extractedText,
+        raw: accumulatedContent 
+      } : extractedText;
     },
     close: async () => {
-      // No cleanup needed for per-chunk streams
+      // No cleanup needed for regex-based parser
     }
   };
 };
@@ -184,6 +190,138 @@ export const extractTextFromJson = (jsonString: string): string | null => {
   }
   return null;
 };
+
+/**
+ * Plain text parser - passes through text as-is without any parsing.
+ * This is the default parser.
+ */
+export const createPlainTextParser = (): AgentWidgetStreamParser => {
+  const parser: AgentWidgetStreamParser = {
+    processChunk: (accumulatedContent: string): string | null => {
+      // Always return null to indicate this isn't a structured format
+      // Content will be displayed as plain text
+      return null;
+    },
+    getExtractedText: (): string | null => {
+      return null;
+    }
+  };
+  // Mark this as a plain text parser
+  (parser as any).__isPlainTextParser = true;
+  return parser;
+};
+
+/**
+ * JSON parser using regex-based extraction.
+ * Extracts the 'text' field from JSON responses using regex patterns.
+ * This is a simpler regex-based alternative to createJsonStreamParser.
+ * Less robust for complex/malformed JSON but has no external dependencies.
+ */
+export const createRegexJsonParser = (): AgentWidgetStreamParser => {
+  const regexParser = createRegexJsonParserInternal();
+  
+  return {
+    processChunk: async (accumulatedContent: string): Promise<AgentWidgetStreamParserResult | string | null> => {
+      // Only process if it looks like JSON
+      const trimmed = accumulatedContent.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return null;
+      }
+      return regexParser.processChunk(accumulatedContent);
+    },
+    getExtractedText: regexParser.getExtractedText.bind(regexParser),
+    close: regexParser.close?.bind(regexParser)
+  };
+};
+
+/**
+ * JSON stream parser using partial-json library.
+ * Extracts the 'text' field from JSON responses using the partial-json library,
+ * which is specifically designed for parsing incomplete JSON from LLMs.
+ * This is the recommended parser as it's more robust than regex.
+ * 
+ * Library: https://github.com/promplate/partial-json-parser-js
+ */
+export const createJsonStreamParser = (): AgentWidgetStreamParser => {
+  let extractedText: string | null = null;
+  let processedLength = 0;
+  
+  return {
+    getExtractedText: () => extractedText,
+    processChunk: (accumulatedContent: string): AgentWidgetStreamParserResult | string | null => {
+      // Validate that the accumulated content looks like JSON
+      const trimmed = accumulatedContent.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return null;
+      }
+      
+      // Skip if no new content
+      if (accumulatedContent.length <= processedLength) {
+        return extractedText ? { text: extractedText, raw: accumulatedContent } : extractedText;
+      }
+      
+      try {
+        // Parse partial JSON - allow partial strings and objects
+        // STR | OBJ allows incomplete strings and objects during streaming
+        const parsed = parsePartialJson(accumulatedContent, STR | OBJ);
+        
+        // Extract text field if available
+        if (parsed && typeof parsed === "object" && typeof parsed.text === "string") {
+          extractedText = parsed.text;
+        }
+      } catch (error) {
+        // If parsing fails completely, keep the last extracted text
+        // This can happen with very malformed JSON
+      }
+      
+      // Update processed length
+      processedLength = accumulatedContent.length;
+      
+      // Return both the extracted text and raw JSON
+      return extractedText ? { 
+        text: extractedText,
+        raw: accumulatedContent 
+      } : extractedText;
+    },
+    close: () => {
+      // No cleanup needed
+    }
+  };
+};
+
+/**
+ * XML stream parser.
+ * Extracts text from <text>...</text> tags in XML responses.
+ */
+export const createXmlParser = (): AgentWidgetStreamParser => {
+  let extractedText: string | null = null;
+  
+  return {
+    processChunk: (accumulatedContent: string): AgentWidgetStreamParserResult | string | null => {
+      // Return null if not XML format
+      const trimmed = accumulatedContent.trim();
+      if (!trimmed.startsWith('<')) {
+        return null;
+      }
+      
+      // Extract text from <text>...</text> tags
+      // Handle both <text>content</text> and <text attr="value">content</text>
+      const match = accumulatedContent.match(/<text[^>]*>([\s\S]*?)<\/text>/);
+      if (match && match[1]) {
+        extractedText = match[1];
+        // For XML, we typically don't need the raw content for middleware
+        // but we can include it for consistency
+        return { text: extractedText, raw: accumulatedContent };
+      }
+      
+      return null;
+    },
+    getExtractedText: (): string | null => {
+      return extractedText;
+    }
+  };
+};
+
 
 
 

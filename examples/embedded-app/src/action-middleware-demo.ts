@@ -5,6 +5,8 @@ import {
   initAgentWidget,
   type AgentWidgetMessage,
   type AgentWidgetConfig,
+  type AgentWidgetStreamParser,
+  type AgentWidgetStreamParserResult,
   markdownPostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
@@ -19,6 +21,7 @@ import {
   saveExecutedActionId,
   checkNavigationFlag
 } from "./middleware";
+import { createJsonStreamParser } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -87,12 +90,57 @@ if (navMessage) {
 let allMessages: AgentWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
 // Load previously executed action IDs from localStorage
 let processedActionIds = new Set<string>(loadExecutedActionIds());
+// Store raw JSON for action parsing (map by message ID)
+let rawJsonByMessageId = new Map<string, string>();
+
+// Store the last raw JSON globally (will be associated with message ID in postprocessMessage)
+let lastRawJson: string | null = null;
+
+// Create a custom parser that wraps the JSON parser and stores raw content
+const createActionAwareParser = (): AgentWidgetStreamParser => {
+  const baseParser = createJsonStreamParser();
+  
+  return {
+    processChunk: (accumulatedContent: string): AgentWidgetStreamParserResult | string | null | Promise<AgentWidgetStreamParserResult | string | null> => {
+      // Call the base parser
+      const result = baseParser.processChunk(accumulatedContent);
+      
+      // Handle async result
+      if (result instanceof Promise) {
+        return result.then((resolvedResult) => {
+          // Store the raw JSON for action parsing
+          if (resolvedResult && typeof resolvedResult === 'object' && 'raw' in resolvedResult && resolvedResult.raw) {
+            lastRawJson = resolvedResult.raw;
+            console.log("[Parser] Stored raw JSON, length:", resolvedResult.raw.length);
+          }
+          return resolvedResult;
+        });
+      }
+      
+      // Handle synchronous result
+      if (result && typeof result === 'object' && 'raw' in result && result.raw) {
+        lastRawJson = result.raw;
+        console.log("[Parser] Stored raw JSON, length:", result.raw.length);
+      }
+      
+      return result;
+    },
+    getExtractedText: () => baseParser.getExtractedText(),
+    close: () => {
+      // Clear the raw JSON when parsing is complete
+      lastRawJson = null;
+      return baseParser.close?.();
+    }
+  };
+};
 
 // Create a custom config with middleware hooks
 const config: AgentWidgetConfig = {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
+  clearChatHistoryStorageKey: "vanilla-agent-action-middleware",  // Automatically clear localStorage on clear chat
+  streamParser: createActionAwareParser,  // Use our custom parser that provides both text and raw
   launcher: {
     ...DEFAULT_WIDGET_CONFIG.launcher,
     enabled: true,
@@ -149,57 +197,33 @@ const config: AgentWidgetConfig = {
     const isRegularAssistant = message.role === "assistant" && 
       message.variant !== "reasoning" && message.variant !== "tool";
     
-    console.log("[Action Middleware] Checking message:", {
-      role: message.role,
-      variant: message.variant,
-      isRegularAssistant,
-      textPreview: text.substring(0, 50)
-    });
-    
     if (isRegularAssistant) {
-      // Check if text looks like JSON (contains { and })
-      const trimmed = text.trim();
-      const looksLikeJson = trimmed.startsWith('{') || text.includes('{');
+      // The parser stores raw JSON in lastRawJson
+      // During streaming, capture it and associate with this message
+      if (streaming && lastRawJson) {
+        // Store the raw JSON for this message for action parsing
+        rawJsonByMessageId.set(message.id, lastRawJson);
+        console.log("[Action Middleware] Associated raw JSON with message:", message.id, "length:", lastRawJson.length);
+      }
       
-      console.log("[Action Middleware] Assistant message detected:", {
-        role: message.role,
-        variant: message.variant,
-        looksLikeJson,
-        streaming
-      });
-      
-      if (streaming) {
-        // During streaming, suppress ALL content that contains {
-        // This catches JSON even if it's just the first chunk "{"
-        if (looksLikeJson) {
-          console.log("[Action Middleware] Suppressing JSON during streaming");
-          return ""; // Suppress rendering during streaming
-        }
-        console.log("[Action Middleware] Not JSON during streaming, returning as-is");
-        return text;
-      } else {
-        // Streaming is complete - parse the JSON and extract text
-        // The text parameter should be the full JSON from step_complete
-        console.log("[Action Middleware] Streaming complete, text:", text.substring(0, 200));
+      if (!streaming) {
+        // Streaming complete - check if we have a stored raw JSON for action parsing
+        const storedRawJson = rawJsonByMessageId.get(message.id);
         
-        // Always try to parse if it looks like JSON
-        if (looksLikeJson) {
-          const action = parseActionResponse(text);
+        if (storedRawJson) {
+          console.log("[Action Middleware] Parsing action from stored raw JSON");
+          const action = parseActionResponse(storedRawJson);
           console.log("[Action Middleware] Parsed action:", action);
           
           if (action) {
             // Only execute once when streaming completes
-            // Check both in-memory Set and localStorage to prevent re-execution
             if (!processedActionIds.has(message.id)) {
               processedActionIds.add(message.id);
-              saveExecutedActionId(message.id); // Persist to localStorage
-              console.log("[Action Middleware] Executing action for message:", message.id, action.action);
+              saveExecutedActionId(message.id);
+              console.log("[Action Middleware] Executing action:", action.action);
               
-              // For nav_then_click, add a small delay to ensure processedActionIds is set
-              // before navigation happens (which prevents duplicate executions)
-              // For other actions, use a small delay
+              // Execute with a small delay
               if (action.action === "nav_then_click") {
-                // Add delay to ensure processedActionIds is set before navigation
                 setTimeout(() => {
                   executeAction(action, () => {});
                 }, 100);
@@ -208,11 +232,9 @@ const config: AgentWidgetConfig = {
                   executeAction(action, () => {});
                 }, 300);
               }
-            } else {
-              console.log("[Action Middleware] Action already processed for message:", message.id, "- skipping execution");
             }
             
-            // Return the text portion for display with markdown parsing
+            // Extract display text from action
             let displayText = "";
             if (action.action === "message") {
               displayText = action.text;
@@ -221,31 +243,18 @@ const config: AgentWidgetConfig = {
             }
             
             if (displayText) {
-              console.log("[Action Middleware] Returning message text:", displayText);
-              // Apply markdown parsing to convert markdown links to HTML
+              console.log("[Action Middleware] Returning extracted message text");
               return markdownPostprocessor(displayText);
             }
             
-            // If no text to display, return empty string
-            return "";
-          } else {
-            console.error("[Action Middleware] Failed to parse JSON action response:", text);
-            // Return empty string to suppress invalid JSON
             return "";
           }
         }
-        
-        // If it doesn't look like JSON, return as-is with markdown parsing
-        console.log("[Action Middleware] Doesn't look like JSON, returning as-is");
-        return markdownPostprocessor(text);
       }
     }
     
-    // For non-assistant messages or if no action detected, return as-is with markdown parsing
-    console.log("[Action Middleware] Not assistant message or has variant, returning as-is", {
-      role: message.role,
-      variant: message.variant
-    });
+    // For streaming of non-JSON or no action: return text as-is (the parser already extracted any needed text)
+    // For non-assistant messages: return as-is
     return markdownPostprocessor(text);
   },
   debug: true
@@ -266,6 +275,14 @@ const widgetController = initAgentWidget({
   }
 });
 
+// Clear in-memory arrays when chat is cleared
+// (localStorage is automatically cleared via clearChatHistoryStorageKey config option)
+window.addEventListener("vanilla-agent:clear-chat", () => {
+  console.log("[Action Middleware] Clear chat event received, clearing in-memory state");
+  allMessages = [];
+  processedActionIds.clear();
+  rawJsonByMessageId.clear();
+});
+
 // Expose controller for debugging
 (window as any).widgetController = widgetController;
-

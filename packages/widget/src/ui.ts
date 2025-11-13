@@ -16,6 +16,9 @@ import { enhanceWithForms } from "./components/forms";
 import { pluginRegistry } from "./plugins/registry";
 import { mergeWithDefaults } from "./defaults";
 
+// Default localStorage key for chat history (automatically cleared on clear chat)
+const DEFAULT_CHAT_HISTORY_STORAGE_KEY = "vanilla-agent-chat-history";
+
 type Controller = {
   update: (config: AgentWidgetConfig) => void;
   destroy: () => void;
@@ -153,6 +156,74 @@ export const createAgentExperience = (
     });
   };
 
+  // Track ongoing smooth scroll animation
+  let smoothScrollRAF: number | null = null;
+
+  // Get the scrollable container using its unique ID
+  const getScrollableContainer = (): HTMLElement => {
+    // Use the unique ID for reliable selection
+    const scrollable = wrapper.querySelector('#vanilla-agent-scroll-container') as HTMLElement;
+    // Fallback to body if ID not found (shouldn't happen, but safe fallback)
+    return scrollable || body;
+  };
+
+  // Custom smooth scroll animation with easing
+  const smoothScrollToBottom = (element: HTMLElement, duration = 500) => {
+    const start = element.scrollTop;
+    const clientHeight = element.clientHeight;
+    // Recalculate target dynamically to handle layout changes
+    let target = element.scrollHeight;
+    let distance = target - start;
+
+    // Check if already at bottom: scrollTop + clientHeight should be >= scrollHeight
+    // Add a small threshold (2px) to account for rounding/subpixel differences
+    const isAtBottom = start + clientHeight >= target - 2;
+    
+    // If already at bottom or very close, skip animation to prevent glitch
+    if (isAtBottom || Math.abs(distance) < 5) {
+      return;
+    }
+
+    // Cancel any ongoing smooth scroll animation
+    if (smoothScrollRAF !== null) {
+      cancelAnimationFrame(smoothScrollRAF);
+      smoothScrollRAF = null;
+    }
+
+    const startTime = performance.now();
+
+    // Easing function: ease-out cubic for smooth deceleration
+    const easeOutCubic = (t: number): number => {
+      return 1 - Math.pow(1 - t, 3);
+    };
+
+    const animate = (currentTime: number) => {
+      // Recalculate target each frame in case scrollHeight changed
+      const currentTarget = element.scrollHeight;
+      if (currentTarget !== target) {
+        target = currentTarget;
+        distance = target - start;
+      }
+
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+      
+      const currentScroll = start + distance * eased;
+      element.scrollTop = currentScroll;
+
+      if (progress < 1) {
+        smoothScrollRAF = requestAnimationFrame(animate);
+      } else {
+        // Ensure we end exactly at the target
+        element.scrollTop = element.scrollHeight;
+        smoothScrollRAF = null;
+      }
+    };
+
+    smoothScrollRAF = requestAnimationFrame(animate);
+  };
+
 
   // Message rendering with plugin support
   const renderMessagesWithPlugins = (
@@ -237,8 +308,9 @@ export const createAgentExperience = (
 
     // Add standalone typing indicator only if streaming but no assistant message is streaming yet
     // (This shows while waiting for the stream to start)
+    // Check for ANY streaming assistant message, even if empty (to avoid duplicate bubbles)
     const hasStreamingAssistantMessage = messages.some(
-      (msg) => msg.role === "assistant" && msg.streaming && msg.content && msg.content.trim()
+      (msg) => msg.role === "assistant" && msg.streaming
     );
 
     if (isStreaming && messages.some((msg) => msg.role === "user") && !hasStreamingAssistantMessage) {
@@ -269,7 +341,16 @@ export const createAgentExperience = (
     }
 
     container.appendChild(fragment);
-    container.scrollTop = container.scrollHeight;
+    // Defer scroll to next frame for smoother animation and to prevent jolt
+    // This allows the browser to update layout (e.g., typing indicator removal) before scrolling
+    // Use double RAF to ensure layout has fully settled before starting scroll animation
+    // Get the scrollable container using its unique ID (#vanilla-agent-scroll-container)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const scrollableContainer = getScrollableContainer();
+        smoothScrollToBottom(scrollableContainer);
+      });
+    });
   };
 
   const updateOpenState = () => {
@@ -793,6 +874,28 @@ export const createAgentExperience = (
     clearChatButton.addEventListener("click", () => {
       // Clear messages in session (this will trigger onMessagesChanged which re-renders)
       session.clearMessages();
+
+      // Always clear the default localStorage key
+      try {
+        localStorage.removeItem(DEFAULT_CHAT_HISTORY_STORAGE_KEY);
+        if (config.debug) {
+          console.log(`[AgentWidget] Cleared default localStorage key: ${DEFAULT_CHAT_HISTORY_STORAGE_KEY}`);
+        }
+      } catch (error) {
+        console.error("[AgentWidget] Failed to clear default localStorage:", error);
+      }
+
+      // Also clear custom localStorage key if configured
+      if (config.clearChatHistoryStorageKey && config.clearChatHistoryStorageKey !== DEFAULT_CHAT_HISTORY_STORAGE_KEY) {
+        try {
+          localStorage.removeItem(config.clearChatHistoryStorageKey);
+          if (config.debug) {
+            console.log(`[AgentWidget] Cleared custom localStorage key: ${config.clearChatHistoryStorageKey}`);
+          }
+        } catch (error) {
+          console.error("[AgentWidget] Failed to clear custom localStorage:", error);
+        }
+      }
 
       // Dispatch custom event for external handlers (e.g., localStorage clearing in examples)
       const clearEvent = new CustomEvent("vanilla-agent:clear-chat", {
@@ -1601,6 +1704,28 @@ export const createAgentExperience = (
     clearChat() {
       // Clear messages in session (this will trigger onMessagesChanged which re-renders)
       session.clearMessages();
+
+      // Always clear the default localStorage key
+      try {
+        localStorage.removeItem(DEFAULT_CHAT_HISTORY_STORAGE_KEY);
+        if (config.debug) {
+          console.log(`[AgentWidget] Cleared default localStorage key: ${DEFAULT_CHAT_HISTORY_STORAGE_KEY}`);
+        }
+      } catch (error) {
+        console.error("[AgentWidget] Failed to clear default localStorage:", error);
+      }
+
+      // Also clear custom localStorage key if configured
+      if (config.clearChatHistoryStorageKey && config.clearChatHistoryStorageKey !== DEFAULT_CHAT_HISTORY_STORAGE_KEY) {
+        try {
+          localStorage.removeItem(config.clearChatHistoryStorageKey);
+          if (config.debug) {
+            console.log(`[AgentWidget] Cleared custom localStorage key: ${config.clearChatHistoryStorageKey}`);
+          }
+        } catch (error) {
+          console.error("[AgentWidget] Failed to clear custom localStorage:", error);
+        }
+      }
 
       // Dispatch custom event for external handlers (e.g., localStorage clearing in examples)
       const clearEvent = new CustomEvent("vanilla-agent:clear-chat", {

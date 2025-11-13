@@ -112,25 +112,32 @@ export function formatPageContext(elements: PageElement[]): string {
  * Returns null if JSON cannot be parsed or is incomplete
  */
 export function parseActionResponse(text: string): ActionResponse | null {
+  console.log("[parseActionResponse] Called with text:", text ? text.substring(0, 200) : "NULL");
+  
   if (!text || typeof text !== "string") {
+    console.log("[parseActionResponse] Invalid input - not a string or empty");
     return null;
   }
 
   try {
     // Try to extract JSON from markdown code blocks if present
     let jsonText = text.trim();
+    console.log("[parseActionResponse] Trimmed text:", jsonText.substring(0, 200));
     
     // Remove markdown code blocks
     const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
+      console.log("[parseActionResponse] Found markdown code block");
       jsonText = codeBlockMatch[1].trim();
     }
     
     // Find the first opening brace
     const firstBraceIndex = jsonText.indexOf('{');
     if (firstBraceIndex === -1) {
+      console.log("[parseActionResponse] No opening brace found");
       return null;
     }
+    console.log("[parseActionResponse] Found opening brace at index:", firstBraceIndex);
     
     // Start from the first opening brace and find the matching closing brace
     let braceCount = 0;
@@ -149,13 +156,17 @@ export function parseActionResponse(text: string): ActionResponse | null {
     }
     
     if (jsonEndIndex === -1) {
+      console.log("[parseActionResponse] No matching closing brace found");
       return null; // No matching closing brace found
     }
+    console.log("[parseActionResponse] Found closing brace at index:", jsonEndIndex);
     
     // Extract the JSON substring
     jsonText = jsonText.substring(firstBraceIndex, jsonEndIndex + 1);
+    console.log("[parseActionResponse] Extracted JSON:", jsonText);
     
     const parsed = JSON.parse(jsonText);
+    console.log("[parseActionResponse] Parsed JSON:", parsed);
     
     // Validate action type
     if (
@@ -219,21 +230,65 @@ export function executeAction(
   action: ActionResponse,
   onMessage: (text: string) => void
 ): void {
+  console.log("[executeAction] Called with action:", action);
+  
   if (action.action === "message") {
     // Just display the message
+    console.log("[executeAction] Executing 'message' action");
     onMessage(action.text);
   } else if (action.action === "message_and_click") {
     // Display message and click element
+    console.log("[executeAction] Executing 'message_and_click' action");
+    console.log("[executeAction] Looking for element:", action.element);
+    console.log("[executeAction] Message to display:", action.text);
     onMessage(action.text);
     
     // Find and click the element
-    const element = document.querySelector(action.element);
-    if (element && element instanceof HTMLElement) {
-      setTimeout(() => {
-        element.click();
-      }, 500); // Small delay to ensure message is visible
-    } else {
-      console.warn(`Element not found: ${action.element}`);
+    // First, let's check if the selector is valid by testing it
+    try {
+      const element = document.querySelector(action.element);
+      console.log("[executeAction] querySelector result:", {
+        found: !!element,
+        tagName: element?.tagName,
+        className: element?.className,
+        id: element?.id,
+        elementRef: element
+      });
+      
+      // Also try to find all elements matching individual class parts
+      const classNames = action.element.replace(/\./g, '').split(' ').filter(Boolean);
+      console.log("[executeAction] Parsed class names:", classNames);
+      const elementsWithAllClasses = Array.from(document.querySelectorAll('[class*="' + classNames[0] + '"]'))
+        .filter(el => classNames.every(cn => el.className.includes(cn)));
+      console.log("[executeAction] Elements with all classes:", elementsWithAllClasses.length);
+      
+      if (element && element instanceof HTMLElement) {
+        console.log("[executeAction] Will click element in 500ms");
+        setTimeout(() => {
+          console.log("[executeAction] About to click element");
+          console.log("[executeAction] Element is visible:", element.offsetParent !== null);
+          console.log("[executeAction] Element is enabled:", !(element as HTMLButtonElement).disabled);
+          element.click();
+          console.log("[executeAction] Element.click() called successfully");
+          
+          // Verify the click was registered
+          setTimeout(() => {
+            console.log("[executeAction] Post-click verification - element still exists:", document.body.contains(element));
+          }, 100);
+        }, 500); // Small delay to ensure message is visible
+      } else {
+        console.warn(`[executeAction] Element not found with selector: ${action.element}`);
+        console.log("[executeAction] Attempting to find similar elements...");
+        const allButtons = document.querySelectorAll('button');
+        console.log(`[executeAction] Total buttons on page: ${allButtons.length}`);
+        allButtons.forEach((btn, idx) => {
+          if (btn.className.includes('AddToCartButton')) {
+            console.log(`[executeAction] Button ${idx}: ${btn.className}`);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("[executeAction] Error querying element:", error);
     }
   } else if (action.action === "checkout") {
     // Display message and create Stripe checkout
@@ -366,6 +421,18 @@ export function loadExecutedActionIds(): Set<string> {
     console.error("Failed to load executed action IDs:", error);
   }
   return new Set();
+}
+
+/**
+ * Clears chat history and executed action IDs from localStorage
+ */
+export function clearChatHistory(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log("[Middleware] Cleared chat history from localStorage");
+  } catch (error) {
+    console.error("Failed to clear chat history:", error);
+  }
 }
 
 /**
