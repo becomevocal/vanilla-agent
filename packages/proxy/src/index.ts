@@ -58,14 +58,34 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
 const withCors =
   (allowedOrigins: string[] | undefined) =>
     async (c: Context, next: () => Promise<void>) => {
-      const origin = c.req.header("origin") ?? "*";
+      const origin = c.req.header("origin");
+      const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+      
+      // Determine the CORS origin to allow
+      let corsOrigin: string;
+      if (!allowedOrigins || allowedOrigins.length === 0) {
+        // No restrictions - allow any origin (or use the request origin)
+        corsOrigin = origin || "*";
+      } else if (allowedOrigins.includes(origin || "")) {
+        // Origin is in the allowed list
+        corsOrigin = origin || "*";
+      } else if (isDevelopment && origin) {
+        // In development, allow the actual origin even if not in the list
+        // This helps with local development where ports might vary
+        corsOrigin = origin;
+      } else {
+        // Production: origin not allowed - reject by not setting CORS headers
+        // Return error for preflight, or continue without CORS headers
+        if (c.req.method === "OPTIONS") {
+          return c.json({ error: "CORS policy violation: origin not allowed" }, 403);
+        }
+        // For non-preflight requests, continue but browser will block due to missing CORS headers
+        await next();
+        return;
+      }
+
       const headers: Record<string, string> = {
-        "Access-Control-Allow-Origin":
-          allowedOrigins && allowedOrigins.length
-            ? allowedOrigins.includes(origin)
-              ? origin
-              : allowedOrigins[0]
-            : origin,
+        "Access-Control-Allow-Origin": corsOrigin,
         "Access-Control-Allow-Headers":
           c.req.header("access-control-request-headers") ??
           "Content-Type, Authorization",
