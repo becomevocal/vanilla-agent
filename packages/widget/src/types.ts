@@ -272,6 +272,31 @@ export type AgentWidgetConfig = {
    * ```
    */
   clearChatHistoryStorageKey?: string;
+  /**
+   * Built-in parser type selector. Provides an easy way to choose a parser without importing functions.
+   * If both `parserType` and `streamParser` are provided, `streamParser` takes precedence.
+   * 
+   * - `"plain"` - Plain text parser (default). Passes through text as-is.
+   * - `"json"` - JSON parser using partial-json. Extracts `text` field from JSON objects incrementally.
+   * - `"regex-json"` - Regex-based JSON parser. Less robust but faster fallback for simple JSON.
+   * - `"xml"` - XML parser. Extracts text content from XML tags.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   parserType: "json"  // Use built-in JSON parser
+   * }
+   * ```
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   parserType: "json",
+   *   streamParser: () => customParser()  // Custom parser overrides parserType
+   * }
+   * ```
+   */
+  parserType?: "plain" | "json" | "regex-json" | "xml";
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

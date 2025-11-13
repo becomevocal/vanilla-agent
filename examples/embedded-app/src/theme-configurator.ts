@@ -330,8 +330,9 @@ const STORAGE_KEY = "vanilla-agent-widget-config";
 function saveConfigToLocalStorage(config: AgentWidgetConfig) {
   try {
     // Determine parser type for storage
-    let parserType: "plain" | "json" | "regex-json" | "xml" = "plain";
-    if (config.streamParser) {
+    // If parserType is already set, use it; otherwise infer from streamParser
+    let parserType: "plain" | "json" | "regex-json" | "xml" = config.parserType ?? "plain";
+    if (!config.parserType && config.streamParser) {
       const parserStr = config.streamParser.toString();
       if (parserStr.includes("createJsonStreamParser")) {
         parserType = "json";
@@ -347,7 +348,7 @@ function saveConfigToLocalStorage(config: AgentWidgetConfig) {
       postprocessMessage: undefined, // Can't serialize functions
       streamParser: undefined, // Can't serialize functions
       initialMessages: undefined, // Don't persist sample messages
-      _parserType: parserType // Store parser preference separately
+      parserType: parserType // Store parser preference
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
   } catch (error) {
@@ -362,23 +363,14 @@ function loadConfigFromLocalStorage(): AgentWidgetConfig | null {
       const parsed = JSON.parse(saved);
       const defaults = getDefaultConfig();
       
-      // Restore parser based on stored preference
-      let streamParser = defaults.streamParser;
-      const parserType = (parsed as any)._parserType;
-      if (parserType === "json") {
-        streamParser = createJsonStreamParser;
-      } else if (parserType === "regex-json") {
-        streamParser = createRegexJsonParser;
-      } else if (parserType === "xml") {
-        streamParser = createXmlParser;
-      } else {
-        streamParser = createPlainTextParser;
-      }
+      // Handle legacy _parserType for backward compatibility
+      const parserType = parsed.parserType ?? (parsed as any)._parserType;
       
       return {
         ...defaults,
         ...parsed,
-        streamParser, // Restore parser function
+        parserType, // parserType will be used by the client to select the parser
+        // Don't restore streamParser - let the client handle parserType
         theme: {
           ...defaults.theme,
           ...parsed.theme

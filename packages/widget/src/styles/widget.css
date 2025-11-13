@@ -836,6 +836,23 @@ form:focus-within textarea {
   border-radius: 0.375rem;
 }
 
+/* Ensure all links in chat bubbles have underlines */
+#vanilla-agent-root .tvw-rounded-2xl a {
+  text-decoration: underline;
+}
+
+#vanilla-agent-root .tvw-rounded-2xl a:visited {
+  text-decoration: underline;
+}
+
+#vanilla-agent-root .tvw-rounded-2xl a:hover {
+  text-decoration: underline;
+}
+
+#vanilla-agent-root .tvw-rounded-2xl a:active {
+  text-decoration: underline;
+}
+
 /* Ensure links in user messages match the text color */
 #vanilla-agent-root .tvw-text-white a,
 #vanilla-agent-root .tvw-text-white a:visited,

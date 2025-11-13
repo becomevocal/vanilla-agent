@@ -1,5 +1,11 @@
 import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent, AgentWidgetStreamParser } from "./types";
-import { extractTextFromJson, createPlainTextParser } from "./utils/formatting";
+import { 
+  extractTextFromJson, 
+  createPlainTextParser,
+  createJsonStreamParser,
+  createRegexJsonParser,
+  createXmlParser
+} from "./utils/formatting";
 
 type DispatchOptions = {
   messages: AgentWidgetMessage[];
@@ -9,6 +15,23 @@ type DispatchOptions = {
 type SSEHandler = (event: AgentWidgetEvent) => void;
 
 const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
+
+/**
+ * Maps parserType string to the corresponding parser factory function
+ */
+function getParserFromType(parserType?: "plain" | "json" | "regex-json" | "xml"): () => AgentWidgetStreamParser {
+  switch (parserType) {
+    case "json":
+      return createJsonStreamParser;
+    case "regex-json":
+      return createRegexJsonParser;
+    case "xml":
+      return createXmlParser;
+    case "plain":
+    default:
+      return createPlainTextParser;
+  }
+}
 
 export class AgentWidgetClient {
   private readonly apiUrl: string;
@@ -23,8 +46,8 @@ export class AgentWidgetClient {
       ...config.headers
     };
     this.debug = Boolean(config.debug);
-    // Use custom stream parser from config, or fall back to plain text parser
-    this.createStreamParser = config.streamParser ?? createPlainTextParser;
+    // Use custom stream parser if provided, otherwise use parserType, or fall back to plain text parser
+    this.createStreamParser = config.streamParser ?? getParserFromType(config.parserType);
   }
 
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {

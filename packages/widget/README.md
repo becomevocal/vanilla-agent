@@ -405,6 +405,7 @@ This ensures all configuration values are set to sensible defaults while allowin
 | `initialMessages` | `AgentWidgetMessage[]` | Seed the conversation transcript. |
 | `suggestionChips` | `string[]` | Render quick reply buttons above the composer. |
 | `postprocessMessage` | `(ctx) => string` | Transform message text before it renders (return HTML). Combine with `markdownPostprocessor` for rich output. |
+| `parserType` | `"plain" \| "json" \| "regex-json" \| "xml"` | Built-in parser type selector. Easy way to choose a parser without importing functions. Options: `"plain"` (default), `"json"` (partial-json), `"regex-json"` (regex-based), `"xml"`. If both `parserType` and `streamParser` are provided, `streamParser` takes precedence. |
 | `streamParser` | `() => AgentWidgetStreamParser` | Custom stream parser for detecting formats and extracting text from streaming responses. Handles JSON, XML, or custom formats. See [Stream Parser Configuration](#stream-parser-configuration) below. |
 | `clearChatHistoryStorageKey` | `string` | Additional localStorage key to clear when the clear chat button is clicked. The widget automatically clears `"vanilla-agent-chat-history"` by default. Use this option to clear additional keys (e.g., if you're using a custom storage key). |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
@@ -415,14 +416,30 @@ All options are safe to mutate via `initAgentWidget(...).update(newConfig)`.
 
 ### Stream Parser Configuration
 
-The widget can parse structured responses (JSON, XML, etc.) that stream in chunk by chunk, extracting the `text` field for display. By default, it uses a schema-stream based JSON parser. You can provide a custom parser to handle different formats, structures, or parsing strategies.
+The widget can parse structured responses (JSON, XML, etc.) that stream in chunk by chunk, extracting the `text` field for display. By default, it uses a plain text parser. You can easily select a built-in parser using `parserType`, or provide a custom parser via `streamParser`.
 
 **Key benefits of the unified stream parser:**
 - **Format detection**: Automatically detects if content matches your parser's format
 - **Extensible**: Handle JSON, XML, or any custom structured format
 - **Incremental parsing**: Extract text as it streams in, not just when complete
 
-**Using built-in parsers with ESM/Modules:**
+**Quick start with `parserType` (recommended):**
+
+The easiest way to use a built-in parser is with the `parserType` option:
+
+```javascript
+import { initAgentWidget } from 'vanilla-agent';
+
+const controller = initAgentWidget({
+  target: '#chat-root',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    parserType: 'json'  // Options: 'plain', 'json', 'regex-json', 'xml'
+  }
+});
+```
+
+**Using built-in parsers with `streamParser` (ESM/Modules):**
 
 ```javascript
 import { initAgentWidget, createPlainTextParser, createJsonStreamParser, createXmlParser } from 'vanilla-agent';
@@ -455,6 +472,23 @@ const controller = initAgentWidget({
 ```
 
 **Using with automatic installer script:**
+
+```html
+<script>
+  window.siteAgentConfig = {
+    target: 'body',
+    config: {
+      apiUrl: '/api/chat/dispatch',
+      parserType: 'json'  // Simple way to select parser - no function imports needed!
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"></script>
+```
+
+**Alternative: Using `streamParser` with installer script:**
+
+If you need a custom parser, you can still use `streamParser`:
 
 ```html
 <script>
