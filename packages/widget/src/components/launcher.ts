@@ -159,7 +159,7 @@ export const createLauncherButton = (
         : positionMap["bottom-right"];
 
     const base =
-      "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-launcher tvw-bg-cw-surface tvw-py-2.5 tvw-pl-3 tvw-pr-3 tvw-shadow-lg tvw-border tvw-border-gray-200 tvw-transition hover:tvw-translate-y-[-2px] tvw-cursor-pointer";
+      "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-launcher tvw-bg-cw-surface tvw-py-2.5 tvw-pl-3 tvw-pr-3 tvw-shadow-lg tvw-border tvw-border-gray-200 tvw-transition hover:tvw-translate-y-[-2px] tvw-cursor-pointer tvw-z-50";
 
     button.className = `${base} ${positionClass}`;
   };
