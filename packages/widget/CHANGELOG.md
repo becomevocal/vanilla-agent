@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.4.0
+
+### Minor Changes
+
+- implement stream parsing plugin system
+
 ## 1.3.0
 
 ### Minor Changes
