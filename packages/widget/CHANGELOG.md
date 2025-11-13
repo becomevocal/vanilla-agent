@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.5.0
+
+### Minor Changes
+
+- add z-index to launcher
+
 ## 1.4.0
 
 ### Minor Changes
