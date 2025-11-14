@@ -5,11 +5,7 @@ import "./theme-configurator.css";
 import {
   createAgentExperience,
   markdownPostprocessor,
-  DEFAULT_WIDGET_CONFIG,
-  createPlainTextParser,
-  createJsonStreamParser,
-  createRegexJsonParser,
-  createXmlParser
+  DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import type { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "vanilla-agent";
 import { parseActionResponse } from "./middleware";
@@ -19,6 +15,8 @@ const proxyUrl =
   import.meta.env.VITE_PROXY_URL ?
     `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch` :
     `http://localhost:${proxyPort}/api/chat/dispatch`;
+
+type ParserType = "plain" | "json" | "regex-json" | "xml";
 
 // Typography presets
 const TYPOGRAPHY_PRESETS = {
@@ -244,7 +242,7 @@ const CLOSE_BUTTON_PRESETS = {
 const getDefaultConfig = (): AgentWidgetConfig => ({
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
-  streamParser: createPlainTextParser,
+  parserType: "plain",
   // Add theme editor specific properties
   initialMessages: [
     {
@@ -331,7 +329,7 @@ function saveConfigToLocalStorage(config: AgentWidgetConfig) {
   try {
     // Determine parser type for storage
     // If parserType is already set, use it; otherwise infer from streamParser
-    let parserType: "plain" | "json" | "regex-json" | "xml" = config.parserType ?? "plain";
+    let parserType: ParserType = config.parserType ?? "plain";
     if (!config.parserType && config.streamParser) {
       const parserStr = config.streamParser.toString();
       if (parserStr.includes("createJsonStreamParser")) {
@@ -348,7 +346,7 @@ function saveConfigToLocalStorage(config: AgentWidgetConfig) {
       postprocessMessage: undefined, // Can't serialize functions
       streamParser: undefined, // Can't serialize functions
       initialMessages: undefined, // Don't persist sample messages
-      parserType: parserType // Store parser preference
+      parserType // Store parser preference
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
   } catch (error) {
@@ -370,7 +368,7 @@ function loadConfigFromLocalStorage(): AgentWidgetConfig | null {
         ...defaults,
         ...parsed,
         parserType, // parserType will be used by the client to select the parser
-        // Don't restore streamParser - let the client handle parserType
+        streamParser: undefined, // Let parserType drive parser selection
         theme: {
           ...defaults.theme,
           ...parsed.theme
@@ -398,10 +396,11 @@ if (savedConfig) {
   widgetController.update(currentConfig);
 }
 
-// Helper function to get parser type from config (used by setupOtherOptionsControls)
-function getParserTypeFromConfig(config: AgentWidgetConfig): "plain" | "json" | "regex-json" | "xml" {
-  if (!config.streamParser) return "plain";
-  const parserStr = config.streamParser.toString();
+function detectParserTypeFromStreamParser(
+  streamParser?: AgentWidgetConfig["streamParser"]
+): ParserType | null {
+  if (!streamParser) return null;
+  const parserStr = streamParser.toString();
   if (parserStr.includes("createJsonStreamParser")) {
     return "json";
   }
@@ -411,7 +410,23 @@ function getParserTypeFromConfig(config: AgentWidgetConfig): "plain" | "json" | 
   if (parserStr.includes("createXmlParser")) {
     return "xml";
   }
-  return "plain";
+  if (parserStr.includes("createPlainTextParser")) {
+    return "plain";
+  }
+  return null;
+}
+
+// Helper function to get parser type from config (used by setupOtherOptionsControls)
+function getParserTypeFromConfig(config: AgentWidgetConfig): ParserType {
+  return config.parserType ?? detectParserTypeFromStreamParser(config.streamParser) ?? "plain";
+}
+
+function hasCustomStreamParser(config: AgentWidgetConfig): boolean {
+  return Boolean(
+    config.streamParser &&
+    !detectParserTypeFromStreamParser(config.streamParser) &&
+    !config.parserType
+  );
 }
 
 // Helper to get input element
@@ -2310,29 +2325,13 @@ function setupOtherOptionsControls() {
   streamParserSelect.value = getParserTypeFromConfig(currentConfig);
 
   const updateOtherOptions = () => {
-    // Get the appropriate parser function based on selection
-    let streamParser: (() => any) | undefined;
-    switch (streamParserSelect.value) {
-      case "json":
-        streamParser = createJsonStreamParser;
-        break;
-      case "regex-json":
-        streamParser = createRegexJsonParser;
-        break;
-      case "xml":
-        streamParser = createXmlParser;
-        break;
-      case "plain":
-      default:
-        streamParser = createPlainTextParser;
-        break;
-    }
-    
-    const newConfig = {
+    const parserType = streamParserSelect.value as ParserType;
+    const newConfig: AgentWidgetConfig = {
       ...currentConfig,
       apiUrl: apiUrlInput.value,
       flowId: flowIdInput.value || undefined,
-      streamParser
+      parserType,
+      streamParser: undefined // rely on parserType for built-in parsers
     };
     debouncedUpdate(newConfig);
   };
@@ -2431,33 +2430,12 @@ function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual
 }
 
 function generateESMCode(config: any): string {
-  // Determine which parser is being used
-  const getParserImport = (): string => {
-    if (!config.streamParser) return "";
-    const parserStr = config.streamParser.toString();
-    if (parserStr.includes("createJsonStreamParser")) {
-      return "createJsonStreamParser";
-    }
-    if (parserStr.includes("createRegexJsonParser")) {
-      return "createRegexJsonParser";
-    }
-    if (parserStr.includes("createXmlParser")) {
-      return "createXmlParser";
-    }
-    if (parserStr.includes("createPlainTextParser")) {
-      return "createPlainTextParser";
-    }
-    return "";
-  };
-  
-  const parserImport = getParserImport();
-  const needsParserImport = parserImport && parserImport !== "createPlainTextParser";
+  const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
+  const shouldEmitParserType = parserType !== "plain";
   
   const lines: string[] = [
     "import 'vanilla-agent/widget.css';",
-    needsParserImport 
-      ? `import { initAgentWidget, markdownPostprocessor, ${parserImport} } from 'vanilla-agent';`
-      : "import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';",
+    "import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';",
     "",
     "initAgentWidget({",
     "  target: 'body',",
@@ -2466,10 +2444,7 @@ function generateESMCode(config: any): string {
 
   if (config.apiUrl) lines.push(`    apiUrl: "${config.apiUrl}",`);
   if (config.flowId) lines.push(`    flowId: "${config.flowId}",`);
-  
-  if (needsParserImport) {
-    lines.push(`    streamParser: ${parserImport},`);
-  }
+  if (shouldEmitParserType) lines.push(`    parserType: "${parserType}",`);
 
   if (config.theme) {
     lines.push("    theme: {");
@@ -2527,23 +2502,9 @@ function generateESMCode(config: any): string {
 }
 
 function generateScriptInstallerCode(config: any): string {
-  // Helper to get parser function code
-  const getParserCode = (): string => {
-    if (!config.streamParser) return "";
-    const parserStr = config.streamParser.toString();
-    if (parserStr.includes("createJsonStreamParser")) {
-      return `streamParser: function() { return window.AgentWidget.createJsonStreamParser(); },`;
-    }
-    if (parserStr.includes("createRegexJsonParser")) {
-      return `streamParser: function() { return window.AgentWidget.createRegexJsonParser(); },`;
-    }
-    if (parserStr.includes("createXmlParser")) {
-      return `streamParser: function() { return window.AgentWidget.createXmlParser(); },`;
-    }
-    // Plain text is default, no need to specify
-    return "";
-  };
-  
+  const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
+  const shouldEmitParserType = parserType !== "plain";
+
   const lines: string[] = [
     "<script>",
     "  window.siteAgentConfig = {",
@@ -2553,9 +2514,7 @@ function generateScriptInstallerCode(config: any): string {
 
   if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
   if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
-  
-  const parserCode = getParserCode();
-  if (parserCode) lines.push(`      ${parserCode}`);
+  if (shouldEmitParserType) lines.push(`      parserType: "${parserType}",`);
 
   if (config.theme) {
     lines.push("      theme: {");
@@ -2614,23 +2573,9 @@ function generateScriptInstallerCode(config: any): string {
 }
 
 function generateScriptManualCode(config: any): string {
-  // Helper to get parser function code
-  const getParserCode = (): string => {
-    if (!config.streamParser) return "";
-    const parserStr = config.streamParser.toString();
-    if (parserStr.includes("createJsonStreamParser")) {
-      return `      streamParser: window.AgentWidget.createJsonStreamParser,`;
-    }
-    if (parserStr.includes("createRegexJsonParser")) {
-      return `      streamParser: window.AgentWidget.createRegexJsonParser,`;
-    }
-    if (parserStr.includes("createXmlParser")) {
-      return `      streamParser: window.AgentWidget.createXmlParser,`;
-    }
-    // Plain text is default, no need to specify
-    return "";
-  };
-  
+  const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
+  const shouldEmitParserType = parserType !== "plain";
+
   const lines: string[] = [
     "<!-- Load CSS -->",
     "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/widget.css\" />",
@@ -2647,9 +2592,7 @@ function generateScriptManualCode(config: any): string {
 
   if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
   if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
-  
-  const parserCode = getParserCode();
-  if (parserCode) lines.push(parserCode);
+  if (shouldEmitParserType) lines.push(`      parserType: "${parserType}",`);
 
   if (config.theme) {
     lines.push("      theme: {");
