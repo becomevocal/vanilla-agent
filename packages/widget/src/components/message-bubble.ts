@@ -41,6 +41,7 @@ export const createStandardBubble = (
   transform: MessageTransform
 ): HTMLElement => {
   const classes = [
+    "vanilla-message-bubble",
     "tvw-max-w-[85%]",
     "tvw-rounded-2xl",
     "tvw-text-sm",
@@ -50,6 +51,7 @@ export const createStandardBubble = (
 
   if (message.role === "user") {
     classes.push(
+      "vanilla-message-user-bubble",
       "tvw-ml-auto",
       "tvw-bg-cw-accent",
       "tvw-text-white",
@@ -58,6 +60,7 @@ export const createStandardBubble = (
     );
   } else {
     classes.push(
+      "vanilla-message-assistant-bubble",
       "tvw-bg-cw-surface",
       "tvw-border",
       "tvw-border-cw-message-border",

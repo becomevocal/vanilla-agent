@@ -11,6 +11,8 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
   const bubble = createElement(
     "div",
     [
+      "vanilla-message-bubble",
+      "vanilla-reasoning-bubble",
       "tvw-w-full",
       "tvw-max-w-[85%]",
       "tvw-rounded-2xl",

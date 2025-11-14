@@ -797,7 +797,7 @@ form:focus-within textarea {
 }
 
 /* Markdown content overflow handling */
-#vanilla-agent-root pre {
+.vanilla-message-bubble pre {
   overflow-x: auto;
   max-width: 100%;
   word-wrap: break-word;
@@ -812,7 +812,7 @@ form:focus-within textarea {
   border: 1px solid #e5e7eb;
 }
 
-#vanilla-agent-root code {
+.vanilla-message-bubble code {
   word-break: break-word;
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -821,14 +821,14 @@ form:focus-within textarea {
   font-size: 0.875em;
 }
 
-#vanilla-agent-root pre code {
+.vanilla-message-bubble pre code {
   font-size: inherit;
   background-color: transparent;
   padding: 0;
   border-radius: 0;
 }
 
-#vanilla-agent-root img {
+.vanilla-message-bubble img {
   max-width: 100%;
   height: auto;
   display: block;
@@ -837,27 +837,27 @@ form:focus-within textarea {
 }
 
 /* Ensure all links in chat bubbles have underlines */
-#vanilla-agent-root .tvw-rounded-2xl a {
+.vanilla-message-bubble a {
   text-decoration: underline;
 }
 
-#vanilla-agent-root .tvw-rounded-2xl a:visited {
+.vanilla-message-bubble a:visited {
   text-decoration: underline;
 }
 
-#vanilla-agent-root .tvw-rounded-2xl a:hover {
+.vanilla-message-bubble a:hover {
   text-decoration: underline;
 }
 
-#vanilla-agent-root .tvw-rounded-2xl a:active {
+.vanilla-message-bubble a:active {
   text-decoration: underline;
 }
 
 /* Ensure links in user messages match the text color */
-#vanilla-agent-root .tvw-text-white a,
-#vanilla-agent-root .tvw-text-white a:visited,
-#vanilla-agent-root .tvw-text-white a:hover,
-#vanilla-agent-root .tvw-text-white a:active {
+.vanilla-message-user-bubble a,
+.vanilla-message-user-bubble a:visited,
+.vanilla-message-user-bubble a:hover,
+.vanilla-message-user-bubble a:active {
   color: inherit;
   text-decoration: underline;
 }
