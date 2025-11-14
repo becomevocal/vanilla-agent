@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.6.0
+
+### Minor Changes
+
+- added event handlers and middleware hooks
+
 ## 1.5.0
 
 ### Minor Changes
