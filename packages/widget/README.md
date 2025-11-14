@@ -556,11 +556,15 @@ const jsonParser = () => {
   };
 };
 
-const controller = initAgentWidget({
+initAgentWidget({
   target: '#chat-root',
   config: {
     apiUrl: '/api/chat/dispatch',
-    streamParser: jsonParser
+    streamParser: jsonParser,
+    postprocessMessage: ({ text, raw }) => {
+      // raw contains the structured payload (JSON, XML, etc.)
+      return markdownPostprocessor(text);
+    }
   }
 });
 ```
@@ -610,7 +614,7 @@ interface AgentWidgetStreamParser {
 }
 ```
 
-The parser's `processChunk` method is called for each chunk. If the content matches your parser's format, return the extracted text. If it doesn't match (or text isn't available yet), return `null` and the content will be treated as plain text. This allows you to display the text value as it streams in without showing raw structured characters.
+The parser's `processChunk` method is called for each chunk. If the content matches your parser's format, return the extracted text and the raw payload. Built-in parsers already do this, so action handlers and middleware can read the original structured content without re-implementing a parser. Return `null` if the chunk isn't ready yet—the widget will keep waiting or fall back to plain text.
 
 ### Optional proxy server
 

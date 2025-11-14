@@ -1,4 +1,12 @@
-import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent, AgentWidgetStreamParser } from "./types";
+import {
+  AgentWidgetConfig,
+  AgentWidgetMessage,
+  AgentWidgetEvent,
+  AgentWidgetStreamParser,
+  AgentWidgetContextProvider,
+  AgentWidgetRequestMiddleware,
+  AgentWidgetRequestPayload
+} from "./types";
 import { 
   extractTextFromJson, 
   createPlainTextParser,
@@ -38,6 +46,8 @@ export class AgentWidgetClient {
   private readonly headers: Record<string, string>;
   private readonly debug: boolean;
   private readonly createStreamParser: () => AgentWidgetStreamParser;
+  private readonly contextProviders: AgentWidgetContextProvider[];
+  private readonly requestMiddleware?: AgentWidgetRequestMiddleware;
 
   constructor(private config: AgentWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
@@ -48,6 +58,8 @@ export class AgentWidgetClient {
     this.debug = Boolean(config.debug);
     // Use custom stream parser if provided, otherwise use parserType, or fall back to plain text parser
     this.createStreamParser = config.streamParser ?? getParserFromType(config.parserType);
+    this.contextProviders = config.contextProviders ?? [];
+    this.requestMiddleware = config.requestMiddleware;
   }
 
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {
@@ -58,23 +70,7 @@ export class AgentWidgetClient {
 
     onEvent({ type: "status", status: "connecting" });
 
-    // Build simplified payload with just messages and optional flowId
-    // Sort by createdAt to ensure chronological order (not local sequence)
-    const body = {
-      messages: options.messages
-        .slice()
-        .sort((a, b) => {
-          const timeA = new Date(a.createdAt).getTime();
-          const timeB = new Date(b.createdAt).getTime();
-          return timeA - timeB;
-        })
-        .map((message) => ({
-          role: message.role,
-          content: message.content,
-          createdAt: message.createdAt
-        })),
-      ...(this.config.flowId && { flowId: this.config.flowId })
-    };
+    const body = await this.buildPayload(options.messages);
 
     if (this.debug) {
       // eslint-disable-next-line no-console
@@ -102,6 +98,73 @@ export class AgentWidgetClient {
     } finally {
       onEvent({ type: "status", status: "idle" });
     }
+  }
+
+  private async buildPayload(
+    messages: AgentWidgetMessage[]
+  ): Promise<AgentWidgetRequestPayload> {
+    const normalizedMessages = messages
+      .slice()
+      .sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return timeA - timeB;
+      })
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+        createdAt: message.createdAt
+      }));
+
+    const payload: AgentWidgetRequestPayload = {
+      messages: normalizedMessages,
+      ...(this.config.flowId && { flowId: this.config.flowId })
+    };
+
+    if (this.contextProviders.length) {
+      const contextAggregate: Record<string, unknown> = {};
+      await Promise.all(
+        this.contextProviders.map(async (provider) => {
+          try {
+            const result = await provider({
+              messages,
+              config: this.config
+            });
+            if (result && typeof result === "object") {
+              Object.assign(contextAggregate, result);
+            }
+          } catch (error) {
+            if (typeof console !== "undefined") {
+              // eslint-disable-next-line no-console
+              console.warn("[AgentWidget] Context provider failed:", error);
+            }
+          }
+        })
+      );
+
+      if (Object.keys(contextAggregate).length) {
+        payload.context = contextAggregate;
+      }
+    }
+
+    if (this.requestMiddleware) {
+      try {
+        const result = await this.requestMiddleware({
+          payload: { ...payload },
+          config: this.config
+        });
+        if (result && typeof result === "object") {
+          return result as AgentWidgetRequestPayload;
+        }
+      } catch (error) {
+        if (typeof console !== "undefined") {
+          // eslint-disable-next-line no-console
+          console.error("[AgentWidget] Request middleware error:", error);
+        }
+      }
+    }
+
+    return payload;
   }
 
   private async streamResponse(
@@ -577,6 +640,7 @@ export class AgentWidgetClient {
             // Accumulate raw content for structured format parsing
             const rawBuffer = rawContentBuffers.get(assistant.id) ?? "";
             const accumulatedRaw = rawBuffer + chunk;
+            assistant.rawContent = accumulatedRaw;
             
             // Use stream parser to parse
             if (!streamParsers.has(assistant.id)) {
@@ -601,6 +665,7 @@ export class AgentWidgetClient {
               // Clear any raw buffer/parser since we're in plain text mode
               rawContentBuffers.delete(assistant.id);
               streamParsers.delete(assistant.id);
+              assistant.rawContent = undefined;
               emitMessage(assistant);
               continue;
             }
@@ -629,6 +694,7 @@ export class AgentWidgetClient {
                     currentAssistant.content += chunk;
                     rawContentBuffers.delete(currentAssistant.id);
                     streamParsers.delete(currentAssistant.id);
+                    currentAssistant.rawContent = undefined;
                     emitMessage(currentAssistant);
                   }
                 }
@@ -638,6 +704,7 @@ export class AgentWidgetClient {
                 assistant.content += chunk;
                 rawContentBuffers.delete(assistant.id);
                 streamParsers.delete(assistant.id);
+                assistant.rawContent = undefined;
                 emitMessage(assistant);
               });
             } else {
@@ -656,6 +723,7 @@ export class AgentWidgetClient {
                 // Clear any raw buffer/parser if we were in structured format mode
                 rawContentBuffers.delete(assistant.id);
                 streamParsers.delete(assistant.id);
+                assistant.rawContent = undefined;
                 emitMessage(assistant);
               }
               // Otherwise wait for more chunks (incomplete structured format)
@@ -674,6 +742,7 @@ export class AgentWidgetClient {
               // Check if we have raw content buffer that needs final processing
               const rawBuffer = rawContentBuffers.get(assistant.id);
               const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
+              assistant.rawContent = contentToProcess;
               
               // Try to extract text from final structured content
               const parser = streamParsers.get(assistant.id);
@@ -759,6 +828,7 @@ export class AgentWidgetClient {
                 // No extracted text yet - try to extract from final content
                 const rawBuffer = rawContentBuffers.get(assistant.id);
                 const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
+                assistant.rawContent = contentToProcess;
                 
                 // Try fast path first
                 const extractedText = extractTextFromJson(contentToProcess);
@@ -848,6 +918,7 @@ export class AgentWidgetClient {
             // Check if we have raw content buffer that needs final processing
             const rawBuffer = rawContentBuffers.get(assistant.id);
             const stringContent = rawBuffer ?? ensureStringContent(finalContent);
+            assistant.rawContent = stringContent;
             // Try to extract text from structured content
             let displayContent = ensureStringContent(finalContent);
             const parser = streamParsers.get(assistant.id);

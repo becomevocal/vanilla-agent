@@ -133,6 +133,21 @@ export class AgentWidgetSession {
     this.callbacks.onMessagesChanged([...this.messages]);
   }
 
+  public hydrateMessages(messages: AgentWidgetMessage[]) {
+    this.abortController?.abort();
+    this.abortController = null;
+    this.messages = this.sortMessages(
+      messages.map((message) => ({
+        ...message,
+        streaming: false,
+        sequence: message.sequence ?? this.nextSequence()
+      }))
+    );
+    this.setStreaming(false);
+    this.setStatus("idle");
+    this.callbacks.onMessagesChanged([...this.messages]);
+  }
+
   private handleEvent = (event: AgentWidgetEvent) => {
     if (event.type === "message") {
       this.upsertMessage(event.message);

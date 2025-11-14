@@ -140,7 +140,9 @@ const createRegexJsonParserInternal = (): {
     processChunk: async (accumulatedContent: string): Promise<AgentWidgetStreamParserResult | string | null> => {
       // Skip if no new content
       if (accumulatedContent.length <= processedLength) {
-        return extractedText ? { text: extractedText, raw: accumulatedContent } : extractedText;
+        return extractedText !== null
+          ? { text: extractedText, raw: accumulatedContent }
+          : null;
       }
       
       // Validate that the accumulated content looks like valid JSON
@@ -159,10 +161,14 @@ const createRegexJsonParserInternal = (): {
       processedLength = accumulatedContent.length;
       
       // Return both the extracted text and raw JSON
-      return extractedText ? { 
-        text: extractedText,
-        raw: accumulatedContent 
-      } : extractedText;
+      if (extractedText !== null) {
+        return {
+          text: extractedText,
+          raw: accumulatedContent
+        };
+      }
+
+      return null;
     },
     close: async () => {
       // No cleanup needed for regex-based parser
@@ -257,7 +263,9 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
       
       // Skip if no new content
       if (accumulatedContent.length <= processedLength) {
-        return extractedText ? { text: extractedText, raw: accumulatedContent } : extractedText;
+        return extractedText !== null
+          ? { text: extractedText, raw: accumulatedContent }
+          : null;
       }
       
       try {
@@ -278,10 +286,14 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
       processedLength = accumulatedContent.length;
       
       // Return both the extracted text and raw JSON
-      return extractedText ? { 
-        text: extractedText,
-        raw: accumulatedContent 
-      } : extractedText;
+      if (extractedText !== null) {
+        return {
+          text: extractedText,
+          raw: accumulatedContent
+        };
+      }
+
+      return null;
     },
     close: () => {
       // No cleanup needed

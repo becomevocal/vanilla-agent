@@ -5,6 +5,7 @@ export type MessageTransform = (context: {
   text: string;
   message: AgentWidgetMessage;
   streaming: boolean;
+  raw?: string;
 }) => string;
 
 // Create typing indicator element
@@ -77,7 +78,8 @@ export const createStandardBubble = (
   contentDiv.innerHTML = transform({
     text: message.content,
     message,
-    streaming: Boolean(message.streaming)
+    streaming: Boolean(message.streaming),
+    raw: message.rawContent
   });
   bubble.appendChild(contentDiv);
 

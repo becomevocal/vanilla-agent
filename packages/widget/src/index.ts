@@ -25,6 +25,12 @@ export {
   type AgentWidgetSessionStatus
 } from "./session";
 export { AgentWidgetClient } from "./client";
+export { createLocalStorageAdapter } from "./utils/storage";
+export {
+  createActionManager,
+  defaultActionHandlers,
+  defaultJsonActionParser
+} from "./utils/actions";
 export {
   markdownPostprocessor,
   escapeHtml,

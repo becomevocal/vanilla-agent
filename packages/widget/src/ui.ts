@@ -1,6 +1,14 @@
 import { escapeHtml } from "./postprocessors";
 import { AgentWidgetSession, AgentWidgetSessionStatus } from "./session";
-import { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "./types";
+import {
+  AgentWidgetConfig,
+  AgentWidgetMessage,
+  AgentWidgetEvent,
+  AgentWidgetStorageAdapter,
+  AgentWidgetStoredState,
+  AgentWidgetControllerEventMap,
+  AgentWidgetVoiceStateEvent
+} from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
@@ -15,9 +23,29 @@ import { createSuggestions } from "./components/suggestions";
 import { enhanceWithForms } from "./components/forms";
 import { pluginRegistry } from "./plugins/registry";
 import { mergeWithDefaults } from "./defaults";
+import { createEventBus } from "./utils/events";
+import {
+  createActionManager,
+  defaultActionHandlers,
+  defaultJsonActionParser
+} from "./utils/actions";
 
 // Default localStorage key for chat history (automatically cleared on clear chat)
 const DEFAULT_CHAT_HISTORY_STORAGE_KEY = "vanilla-agent-chat-history";
+const VOICE_STATE_RESTORE_WINDOW = 30 * 1000;
+
+const ensureRecord = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  return { ...(value as Record<string, unknown>) };
+};
+
+const stripStreamingFromMessages = (messages: AgentWidgetMessage[]) =>
+  messages.map((message) => ({
+    ...message,
+    streaming: false
+  }));
 
 type Controller = {
   update: (config: AgentWidgetConfig) => void;
@@ -31,23 +59,58 @@ type Controller = {
   startVoiceRecognition: () => boolean;
   stopVoiceRecognition: () => boolean;
   injectTestMessage: (event: AgentWidgetEvent) => void;
+  getMessages: () => AgentWidgetMessage[];
+  getStatus: () => AgentWidgetSessionStatus;
+  getPersistentMetadata: () => Record<string, unknown>;
+  updatePersistentMetadata: (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => void;
+  on: <K extends keyof AgentWidgetControllerEventMap>(
+    event: K,
+    handler: (payload: AgentWidgetControllerEventMap[K]) => void
+  ) => () => void;
+  off: <K extends keyof AgentWidgetControllerEventMap>(
+    event: K,
+    handler: (payload: AgentWidgetControllerEventMap[K]) => void
+  ) => void;
 };
 
-const buildPostprocessor = (cfg?: AgentWidgetConfig): MessageTransform => {
-  if (cfg?.postprocessMessage) {
-    return (context) =>
-      cfg.postprocessMessage!({
-        text: context.text,
+const buildPostprocessor = (
+  cfg: AgentWidgetConfig | undefined,
+  actionManager?: ReturnType<typeof createActionManager>
+): MessageTransform => {
+  return (context) => {
+    let nextText = context.text ?? "";
+    const rawPayload = context.message.rawContent ?? null;
+
+    if (actionManager) {
+      const actionOverride = actionManager.process({
+        text: nextText,
+        raw: rawPayload ?? nextText,
         message: context.message,
         streaming: context.streaming
       });
-  }
-  return ({ text }) => escapeHtml(text);
+      if (actionOverride !== null) {
+        nextText = actionOverride;
+      }
+    }
+
+    if (cfg?.postprocessMessage) {
+      return cfg.postprocessMessage({
+        ...context,
+        text: nextText,
+        raw: rawPayload ?? context.text ?? ""
+      });
+    }
+
+    return escapeHtml(nextText);
+  };
 };
 
 export const createAgentExperience = (
   mount: HTMLElement,
-  initialConfig?: AgentWidgetConfig
+  initialConfig?: AgentWidgetConfig,
+  runtimeOptions?: { debugTools?: boolean }
 ): Controller => {
   // Tailwind config uses important: "#vanilla-agent-root", so ensure mount has this ID
   if (!mount.id || mount.id !== "vanilla-agent-root") {
@@ -59,13 +122,70 @@ export const createAgentExperience = (
 
   // Get plugins for this instance
   const plugins = pluginRegistry.getForInstance(config.plugins);
+  const eventBus = createEventBus<AgentWidgetControllerEventMap>();
+
+  const storageAdapter: AgentWidgetStorageAdapter | undefined =
+    config.storageAdapter;
+  let persistentMetadata: Record<string, unknown> = {};
+  let pendingStoredState: Promise<AgentWidgetStoredState | null> | null = null;
+
+  if (storageAdapter?.load) {
+    try {
+      const storedState = storageAdapter.load();
+      if (storedState && typeof (storedState as Promise<any>).then === "function") {
+        pendingStoredState = storedState as Promise<AgentWidgetStoredState | null>;
+      } else if (storedState) {
+        const immediateState = storedState as AgentWidgetStoredState;
+        if (immediateState.metadata) {
+          persistentMetadata = ensureRecord(immediateState.metadata);
+        }
+        if (immediateState.messages?.length) {
+          config = { ...config, initialMessages: immediateState.messages };
+        }
+      }
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("[AgentWidget] Failed to load stored state:", error);
+      }
+    }
+  }
+
+  const getMetadata = () => persistentMetadata;
+  const updateMetadata = (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => {
+    const next = updater({ ...persistentMetadata }) ?? {};
+    persistentMetadata = next;
+    persistState();
+  };
+
+  const resolvedActionParsers =
+    config.actionParsers && config.actionParsers.length
+      ? config.actionParsers
+      : [defaultJsonActionParser];
+
+  const resolvedActionHandlers =
+    config.actionHandlers && config.actionHandlers.length
+      ? config.actionHandlers
+      : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick];
+
+  let actionManager = createActionManager({
+    parsers: resolvedActionParsers,
+    handlers: resolvedActionHandlers,
+    getMetadata,
+    updateMetadata,
+    emit: eventBus.emit,
+    documentRef: typeof document !== "undefined" ? document : null
+  });
+  actionManager.syncFromMetadata();
 
   let launcherEnabled = config.launcher?.enabled ?? true;
   let autoExpand = config.launcher?.autoExpand ?? false;
   let prevAutoExpand = autoExpand;
   let prevLauncherEnabled = launcherEnabled;
   let open = launcherEnabled ? autoExpand : true;
-  let postprocess = buildPostprocessor(config);
+  let postprocess = buildPostprocessor(config, actionManager);
   let showReasoning = config.features?.showReasoning ?? true;
   let showToolCalls = config.features?.showToolCalls ?? true;
   
@@ -121,6 +241,77 @@ export const createAgentExperience = (
   const AUTO_SCROLL_BLOCK_TIME = 2000;
   const USER_SCROLL_THRESHOLD = 5;
   const BOTTOM_THRESHOLD = 50;
+  const messageState = new Map<
+    string,
+    { streaming?: boolean; role: AgentWidgetMessage["role"] }
+  >();
+  const voiceState = {
+    active: false,
+    manuallyDeactivated: false,
+    lastUserMessageWasVoice: false
+  };
+  const voiceAutoResumeMode = config.voiceRecognition?.autoResume ?? false;
+  const emitVoiceState = (source: AgentWidgetVoiceStateEvent["source"]) => {
+    eventBus.emit("voice:state", {
+      active: voiceState.active,
+      source,
+      timestamp: Date.now()
+    });
+  };
+  const persistVoiceMetadata = () => {
+    updateMetadata((prev) => ({
+      ...prev,
+      voiceState: {
+        active: voiceState.active,
+        timestamp: Date.now(),
+        manuallyDeactivated: voiceState.manuallyDeactivated
+      }
+    }));
+  };
+  const maybeRestoreVoiceFromMetadata = () => {
+    if (config.voiceRecognition?.enabled === false) return;
+    const rawVoiceState = ensureRecord((persistentMetadata as any).voiceState);
+    const wasActive = Boolean(rawVoiceState.active);
+    const timestamp = Number(rawVoiceState.timestamp ?? 0);
+    voiceState.manuallyDeactivated = Boolean(rawVoiceState.manuallyDeactivated);
+    if (wasActive && Date.now() - timestamp < VOICE_STATE_RESTORE_WINDOW) {
+      setTimeout(() => {
+        if (!voiceState.active) {
+          voiceState.manuallyDeactivated = false;
+          startVoiceRecognition("restore");
+        }
+      }, 1000);
+    }
+  };
+
+  const getMessagesForPersistence = () =>
+    session ? stripStreamingFromMessages(session.getMessages()) : [];
+
+  function persistState(messagesOverride?: AgentWidgetMessage[]) {
+    if (!storageAdapter?.save || !session) return;
+    const payload = {
+      messages: messagesOverride
+        ? stripStreamingFromMessages(messagesOverride)
+        : getMessagesForPersistence(),
+      metadata: persistentMetadata
+    };
+    try {
+      const result = storageAdapter.save(payload);
+      if (result instanceof Promise) {
+        result.catch((error) => {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to persist state:", error);
+          }
+        });
+      }
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("[AgentWidget] Failed to persist state:", error);
+      }
+    }
+  }
 
   const scheduleAutoScroll = (force = false) => {
     if (!shouldAutoScroll) return;
@@ -222,6 +413,38 @@ export const createAgentExperience = (
     };
 
     smoothScrollRAF = requestAnimationFrame(animate);
+  };
+
+  const trackMessages = (messages: AgentWidgetMessage[]) => {
+    const nextState = new Map<
+      string,
+      { streaming?: boolean; role: AgentWidgetMessage["role"] }
+    >();
+
+    messages.forEach((message) => {
+      const previous = messageState.get(message.id);
+      nextState.set(message.id, {
+        streaming: message.streaming,
+        role: message.role
+      });
+
+      if (!previous && message.role === "assistant") {
+        eventBus.emit("assistant:message", message);
+      }
+
+      if (
+        message.role === "assistant" &&
+        previous?.streaming &&
+        message.streaming === false
+      ) {
+        eventBus.emit("assistant:complete", message);
+      }
+    });
+
+    messageState.clear();
+    nextState.forEach((value, key) => {
+      messageState.set(key, value);
+    });
   };
 
 
@@ -445,6 +668,13 @@ export const createAgentExperience = (
         }
       }
       scheduleAutoScroll(!isStreaming);
+      trackMessages(messages);
+
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((msg) => msg.role === "user");
+      voiceState.lastUserMessageWasVoice = Boolean(lastUserMessage?.viaVoice);
+      persistState(messages);
     },
     onStatusChanged(status) {
       const currentStatusConfig = config.statusIndicator ?? {};
@@ -469,6 +699,26 @@ export const createAgentExperience = (
       }
     }
   });
+
+  if (pendingStoredState) {
+    pendingStoredState
+      .then((state) => {
+        if (!state) return;
+        if (state.metadata) {
+          persistentMetadata = ensureRecord(state.metadata);
+          actionManager.syncFromMetadata();
+        }
+        if (state.messages?.length) {
+          session.hydrateMessages(state.messages);
+        }
+      })
+      .catch((error) => {
+        if (typeof console !== "undefined") {
+          // eslint-disable-next-line no-console
+          console.error("[AgentWidget] Failed to hydrate stored state:", error);
+        }
+      });
+  }
 
   const handleSubmit = (event: Event) => {
     event.preventDefault();
@@ -500,7 +750,9 @@ export const createAgentExperience = (
     return (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition || null;
   };
 
-  const startVoiceRecognition = () => {
+  const startVoiceRecognition = (
+    source: AgentWidgetVoiceStateEvent["source"] = "user"
+  ) => {
     if (isRecording || session.isStreaming()) return;
 
     const SpeechRecognitionClass = getSpeechRecognitionClass();
@@ -579,6 +831,12 @@ export const createAgentExperience = (
     try {
       speechRecognition.start();
       isRecording = true;
+      voiceState.active = true;
+      if (source !== "system") {
+        voiceState.manuallyDeactivated = false;
+      }
+      emitVoiceState(source);
+      persistVoiceMetadata();
       if (micButton) {
         // Store original styles
         originalMicStyles = {
@@ -612,11 +870,13 @@ export const createAgentExperience = (
         micButton.setAttribute("aria-label", "Stop voice recognition");
       }
     } catch (error) {
-      stopVoiceRecognition();
+      stopVoiceRecognition("system");
     }
   };
 
-  const stopVoiceRecognition = () => {
+  const stopVoiceRecognition = (
+    source: AgentWidgetVoiceStateEvent["source"] = "user"
+  ) => {
     if (!isRecording) return;
 
     isRecording = false;
@@ -633,6 +893,10 @@ export const createAgentExperience = (
       }
       speechRecognition = null;
     }
+
+    voiceState.active = false;
+    emitVoiceState(source);
+    persistVoiceMetadata();
 
     if (micButton) {
       micButton.classList.remove("tvw-voice-recording");
@@ -754,14 +1018,18 @@ export const createAgentExperience = (
     if (isRecording) {
       // Stop recording and submit
       const finalValue = textarea.value.trim();
-      stopVoiceRecognition();
+      voiceState.manuallyDeactivated = true;
+      persistVoiceMetadata();
+      stopVoiceRecognition("user");
       if (finalValue) {
         textarea.value = "";
         session.sendMessage(finalValue);
       }
     } else {
       // Start recording
-      startVoiceRecognition();
+      voiceState.manuallyDeactivated = false;
+      persistVoiceMetadata();
+      startVoiceRecognition("user");
     }
   };
 
@@ -769,12 +1037,26 @@ export const createAgentExperience = (
     micButton.addEventListener("click", handleMicButtonClick);
 
     destroyCallbacks.push(() => {
-      stopVoiceRecognition();
+      stopVoiceRecognition("system");
       if (micButton) {
         micButton.removeEventListener("click", handleMicButtonClick);
       }
     });
   }
+
+  const autoResumeUnsub = eventBus.on("assistant:complete", () => {
+    if (!voiceAutoResumeMode) return;
+    if (voiceState.active || voiceState.manuallyDeactivated) return;
+    if (voiceAutoResumeMode === "assistant" && !voiceState.lastUserMessageWasVoice) {
+      return;
+    }
+    setTimeout(() => {
+      if (!voiceState.active && !voiceState.manuallyDeactivated) {
+        startVoiceRecognition("auto");
+      }
+    }, 600);
+  });
+  destroyCallbacks.push(autoResumeUnsub);
 
   const toggleOpen = () => {
     setOpenState(!open);
@@ -792,6 +1074,7 @@ export const createAgentExperience = (
   updateCopy();
   setComposerDisabled(session.isStreaming());
   scheduleAutoScroll(true);
+  maybeRestoreVoiceFromMetadata();
 
   const recalcPanelHeight = () => {
     if (!launcherEnabled) {
@@ -902,6 +1185,27 @@ export const createAgentExperience = (
         detail: { timestamp: new Date().toISOString() }
       });
       window.dispatchEvent(clearEvent);
+
+      if (storageAdapter?.clear) {
+        try {
+          const result = storageAdapter.clear();
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              if (typeof console !== "undefined") {
+                // eslint-disable-next-line no-console
+                console.error("[AgentWidget] Failed to clear storage adapter:", error);
+              }
+            });
+          }
+        } catch (error) {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to clear storage adapter:", error);
+          }
+        }
+      }
+      persistentMetadata = {};
+      actionManager.syncFromMetadata();
     });
   };
 
@@ -925,7 +1229,7 @@ export const createAgentExperience = (
     });
   }
 
-  return {
+  const controller: Controller = {
     update(nextConfig: AgentWidgetConfig) {
       const previousToolCallConfig = config.toolCall;
       config = { ...config, ...nextConfig };
@@ -1387,7 +1691,25 @@ export const createAgentExperience = (
         }
       }
 
-      postprocess = buildPostprocessor(config);
+      const nextParsers =
+        config.actionParsers && config.actionParsers.length
+          ? config.actionParsers
+          : [defaultJsonActionParser];
+      const nextHandlers =
+        config.actionHandlers && config.actionHandlers.length
+          ? config.actionHandlers
+          : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick];
+
+      actionManager = createActionManager({
+        parsers: nextParsers,
+        handlers: nextHandlers,
+        getMetadata,
+        updateMetadata,
+        emit: eventBus.emit,
+        documentRef: typeof document !== "undefined" ? document : null
+      });
+
+      postprocess = buildPostprocessor(config, actionManager);
       session.updateConfig(config);
       renderMessagesWithPlugins(
         messagesWrapper,
@@ -1732,6 +2054,27 @@ export const createAgentExperience = (
         detail: { timestamp: new Date().toISOString() }
       });
       window.dispatchEvent(clearEvent);
+
+      if (storageAdapter?.clear) {
+        try {
+          const result = storageAdapter.clear();
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              if (typeof console !== "undefined") {
+                // eslint-disable-next-line no-console
+                console.error("[AgentWidget] Failed to clear storage adapter:", error);
+              }
+            });
+          }
+        } catch (error) {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to clear storage adapter:", error);
+          }
+        }
+      }
+      persistentMetadata = {};
+      actionManager.syncFromMetadata();
     },
     setMessage(message: string): boolean {
       if (!textarea) return false;
@@ -1773,13 +2116,17 @@ export const createAgentExperience = (
         setOpenState(true);
       }
       
-      startVoiceRecognition();
+      voiceState.manuallyDeactivated = false;
+      persistVoiceMetadata();
+      startVoiceRecognition("user");
       return true;
     },
     stopVoiceRecognition(): boolean {
       if (!isRecording) return false;
       
-      stopVoiceRecognition();
+      voiceState.manuallyDeactivated = true;
+      persistVoiceMetadata();
+      stopVoiceRecognition("user");
       return true;
     },
     injectTestMessage(event: AgentWidgetEvent) {
@@ -1788,6 +2135,26 @@ export const createAgentExperience = (
         setOpenState(true);
       }
       session.injectTestEvent(event);
+    },
+    getMessages() {
+      return session.getMessages();
+    },
+    getStatus() {
+      return session.getStatus();
+    },
+    getPersistentMetadata() {
+      return { ...persistentMetadata };
+    },
+    updatePersistentMetadata(
+      updater: (prev: Record<string, unknown>) => Record<string, unknown>
+    ) {
+      updateMetadata(updater);
+    },
+    on(event, handler) {
+      return eventBus.on(event, handler);
+    },
+    off(event, handler) {
+      eventBus.off(event, handler);
     },
     destroy() {
       destroyCallbacks.forEach((cb) => cb());
@@ -1798,6 +2165,33 @@ export const createAgentExperience = (
       }
     }
   };
+
+  const shouldExposeDebugApi =
+    (runtimeOptions?.debugTools ?? false) || Boolean(config.debug);
+
+  if (shouldExposeDebugApi && typeof window !== "undefined") {
+    const previousDebug = (window as any).AgentWidgetBrowser;
+    const debugApi = {
+      controller,
+      getMessages: controller.getMessages,
+      getStatus: controller.getStatus,
+      getMetadata: controller.getPersistentMetadata,
+      updateMetadata: controller.updatePersistentMetadata,
+      clearHistory: () => controller.clearChat(),
+      setVoiceActive: (active: boolean) =>
+        active
+          ? controller.startVoiceRecognition()
+          : controller.stopVoiceRecognition()
+    };
+    (window as any).AgentWidgetBrowser = debugApi;
+    destroyCallbacks.push(() => {
+      if ((window as any).AgentWidgetBrowser === debugApi) {
+        (window as any).AgentWidgetBrowser = previousDebug;
+      }
+    });
+  }
+
+  return controller;
 };
 
 export type AgentWidgetController = Controller;

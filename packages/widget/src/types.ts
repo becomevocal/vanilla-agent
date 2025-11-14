@@ -1,5 +1,104 @@
 import type { AgentWidgetPlugin } from "./plugins/types";
 
+export type AgentWidgetContextProviderContext = {
+  messages: AgentWidgetMessage[];
+  config: AgentWidgetConfig;
+};
+
+export type AgentWidgetContextProvider = (
+  context: AgentWidgetContextProviderContext
+) =>
+  | Record<string, unknown>
+  | void
+  | Promise<Record<string, unknown> | void>;
+
+export type AgentWidgetRequestPayloadMessage = {
+  role: AgentWidgetMessageRole;
+  content: string;
+  createdAt: string;
+};
+
+export type AgentWidgetRequestPayload = {
+  messages: AgentWidgetRequestPayloadMessage[];
+  flowId?: string;
+  context?: Record<string, unknown>;
+};
+
+export type AgentWidgetRequestMiddlewareContext = {
+  payload: AgentWidgetRequestPayload;
+  config: AgentWidgetConfig;
+};
+
+export type AgentWidgetRequestMiddleware = (
+  context: AgentWidgetRequestMiddlewareContext
+) => AgentWidgetRequestPayload | void | Promise<AgentWidgetRequestPayload | void>;
+
+export type AgentWidgetParsedAction = {
+  type: string;
+  payload: Record<string, unknown>;
+  raw?: unknown;
+};
+
+export type AgentWidgetActionParserInput = {
+  text: string;
+  message: AgentWidgetMessage;
+};
+
+export type AgentWidgetActionParser = (
+  input: AgentWidgetActionParserInput
+) => AgentWidgetParsedAction | null | undefined;
+
+export type AgentWidgetActionHandlerResult = {
+  handled?: boolean;
+  displayText?: string;
+};
+
+export type AgentWidgetActionContext = {
+  message: AgentWidgetMessage;
+  metadata: Record<string, unknown>;
+  updateMetadata: (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => void;
+  document: Document | null;
+};
+
+export type AgentWidgetActionHandler = (
+  action: AgentWidgetParsedAction,
+  context: AgentWidgetActionContext
+) => AgentWidgetActionHandlerResult | void;
+
+export type AgentWidgetStoredState = {
+  messages?: AgentWidgetMessage[];
+  metadata?: Record<string, unknown>;
+};
+
+export interface AgentWidgetStorageAdapter {
+  load?: () =>
+    | AgentWidgetStoredState
+    | null
+    | Promise<AgentWidgetStoredState | null>;
+  save?: (state: AgentWidgetStoredState) => void | Promise<void>;
+  clear?: () => void | Promise<void>;
+}
+
+export type AgentWidgetVoiceStateEvent = {
+  active: boolean;
+  source: "user" | "auto" | "restore" | "system";
+  timestamp: number;
+};
+
+export type AgentWidgetActionEventPayload = {
+  action: AgentWidgetParsedAction;
+  message: AgentWidgetMessage;
+};
+
+export type AgentWidgetControllerEventMap = {
+  "assistant:message": AgentWidgetMessage;
+  "assistant:complete": AgentWidgetMessage;
+  "voice:state": AgentWidgetVoiceStateEvent;
+  "action:detected": AgentWidgetActionEventPayload;
+};
+
 export type AgentWidgetFeatureFlags = {
   showReasoning?: boolean;
   showToolCalls?: boolean;
@@ -136,6 +235,7 @@ export type AgentWidgetVoiceRecognitionConfig = {
   recordingBackgroundColor?: string;
   recordingBorderColor?: string;
   showRecordingIndicator?: boolean;
+  autoResume?: boolean | "assistant";
 };
 
 export type AgentWidgetToolCallConfig = {
@@ -182,7 +282,9 @@ export interface AgentWidgetStreamParserResult {
   text: string | null;
   
   /**
-   * Optional: The raw accumulated content (useful for middleware that needs the original format)
+   * The raw accumulated content. Built-in parsers always populate this so
+   * downstream middleware (action handlers, logging, etc.) can
+   * inspect/parse the original structured payload.
    */
   raw?: string;
 }
@@ -239,8 +341,14 @@ export type AgentWidgetConfig = {
     text: string;
     message: AgentWidgetMessage;
     streaming: boolean;
+    raw?: string;
   }) => string;
   plugins?: AgentWidgetPlugin[];
+  contextProviders?: AgentWidgetContextProvider[];
+  requestMiddleware?: AgentWidgetRequestMiddleware;
+  actionParsers?: AgentWidgetActionParser[];
+  actionHandlers?: AgentWidgetActionHandler[];
+  storageAdapter?: AgentWidgetStorageAdapter;
   /**
    * Custom stream parser for extracting text from streaming structured responses.
    * Handles incremental parsing of JSON, XML, or other formats.
@@ -353,6 +461,11 @@ export type AgentWidgetMessage = {
   toolCall?: AgentWidgetToolCall;
   tools?: AgentWidgetToolCall[];
   viaVoice?: boolean;
+  /**
+   * Raw structured payload for this message (e.g., JSON action response).
+   * Populated automatically when structured parsers run.
+   */
+  rawContent?: string;
 };
 
 export type AgentWidgetEvent =
@@ -366,4 +479,5 @@ export type AgentWidgetInitOptions = {
   useShadowDom?: boolean;
   onReady?: () => void;
   windowKey?: string; // If provided, stores the controller on window[windowKey] for global access
+  debugTools?: boolean;
 };

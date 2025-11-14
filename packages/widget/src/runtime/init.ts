@@ -113,46 +113,18 @@ export const initAgentWidget = (
     mountStyles(host);
   }
 
-  let controller = createAgentExperience(mount, options.config);
+  let controller = createAgentExperience(mount, options.config, {
+    debugTools: options.debugTools
+  });
   options.onReady?.();
 
   const handle: AgentWidgetInitHandle = {
+    ...controller,
     host,
-    update(nextConfig: AgentWidgetConfig) {
-      controller.update(nextConfig);
-    },
-    open() {
-      controller.open();
-    },
-    close() {
-      controller.close();
-    },
-    toggle() {
-      controller.toggle();
-    },
-    clearChat() {
-      controller.clearChat();
-    },
-    setMessage(message: string) {
-      return controller.setMessage(message);
-    },
-    submitMessage(message?: string) {
-      return controller.submitMessage(message);
-    },
-    startVoiceRecognition() {
-      return controller.startVoiceRecognition();
-    },
-    stopVoiceRecognition() {
-      return controller.stopVoiceRecognition();
-    },
-    injectTestMessage(event: AgentWidgetEvent) {
-      controller.injectTestMessage(event);
-    },
     destroy() {
       controller.destroy();
       host.remove();
-      // Clean up window reference if it was set
-      if (options.windowKey && typeof window !== 'undefined') {
+      if (options.windowKey && typeof window !== "undefined") {
         delete (window as any)[options.windowKey];
       }
     }
