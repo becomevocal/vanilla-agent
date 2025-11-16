@@ -111,6 +111,117 @@ export const defaultActionHandlers: Record<
       handled: true,
       displayText: asString(payload.text)
     };
+  },
+  navThenClick: (action, context) => {
+    if (action.type !== "nav_then_click") return;
+
+    const payload = action.payload as Record<string, unknown>;
+    const page = asString(payload.page);
+    const onLoadText = asString(
+      payload.on_load_text ?? (payload as Record<string, unknown>).onLoadText
+    );
+
+    if (!page) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn("[AgentWidget] nav_then_click action missing page property");
+      }
+      return {
+        handled: true,
+        displayText: ""
+      };
+    }
+
+    const navigationContext = {
+      page,
+      onLoadText,
+      messageId: context.message.id,
+      triggeredAt: Date.now()
+    };
+
+    try {
+      context.updateMetadata((prev) => ({
+        ...prev,
+        pendingNavigation: navigationContext
+      }));
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn("[AgentWidget] Failed to persist navigation metadata:", error);
+      }
+    }
+
+    const doc = context.document;
+    const win =
+      doc?.defaultView ?? (typeof window !== "undefined" ? window : null);
+
+    if (!win) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[AgentWidget] nav_then_click handler requires a browser environment"
+        );
+      }
+      return {
+        handled: true,
+        displayText: ""
+      };
+    }
+
+    const NAVIGATION_FLAG_KEY = "vanilla-agent-nav-flag";
+    const NAVIGATION_DEBOUNCE_KEY = "vanilla-agent-last-nav-time";
+    const NAVIGATION_DEBOUNCE_MS = 2000;
+
+    try {
+      win.localStorage?.setItem(
+        NAVIGATION_FLAG_KEY,
+        JSON.stringify(navigationContext)
+      );
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn("[AgentWidget] Failed to persist navigation flag:", error);
+      }
+    }
+
+    let shouldNavigate = true;
+    try {
+      const lastNavRaw = win.sessionStorage?.getItem(NAVIGATION_DEBOUNCE_KEY);
+      const now = Date.now();
+      if (lastNavRaw) {
+        const lastNav = Number(lastNavRaw);
+        if (!Number.isNaN(lastNav) && now - lastNav < NAVIGATION_DEBOUNCE_MS) {
+          shouldNavigate = false;
+        }
+      }
+      if (shouldNavigate) {
+        win.sessionStorage?.setItem(NAVIGATION_DEBOUNCE_KEY, String(now));
+      }
+    } catch {
+      // Ignore storage errors (e.g., Safari private mode)
+    }
+
+    if (shouldNavigate) {
+      setTimeout(() => {
+        try {
+          const targetUrl =
+            page.startsWith("http://") || page.startsWith("https://")
+              ? page
+              : new URL(page, win.location.origin).toString();
+          win.location.assign(targetUrl);
+        } catch (error) {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to navigate to page:", error);
+          }
+        }
+      }, 300);
+    }
+
+    return {
+      handled: true,
+      displayText: ""
+    };
   }
 };
 

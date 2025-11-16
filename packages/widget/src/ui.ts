@@ -33,6 +33,8 @@ import {
 // Default localStorage key for chat history (automatically cleared on clear chat)
 const DEFAULT_CHAT_HISTORY_STORAGE_KEY = "vanilla-agent-chat-history";
 const VOICE_STATE_RESTORE_WINDOW = 30 * 1000;
+const NAVIGATION_FLAG_STORAGE_KEY = "vanilla-agent-nav-flag";
+const NAVIGATION_FLAG_MAX_AGE_MS = 60 * 1000;
 
 const ensureRecord = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object") {
@@ -160,15 +162,19 @@ export const createAgentExperience = (
     persistState();
   };
 
-  const resolvedActionParsers =
-    config.actionParsers && config.actionParsers.length
-      ? config.actionParsers
-      : [defaultJsonActionParser];
+    const resolvedActionParsers =
+      config.actionParsers && config.actionParsers.length
+        ? config.actionParsers
+        : [defaultJsonActionParser];
 
-  const resolvedActionHandlers =
-    config.actionHandlers && config.actionHandlers.length
-      ? config.actionHandlers
-      : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick];
+    const resolvedActionHandlers =
+      config.actionHandlers && config.actionHandlers.length
+        ? config.actionHandlers
+        : [
+            defaultActionHandlers.navThenClick,
+            defaultActionHandlers.message,
+            defaultActionHandlers.messageAndClick
+          ];
 
   let actionManager = createActionManager({
     parsers: resolvedActionParsers,
@@ -224,10 +230,173 @@ export const createAgentExperience = (
   panel.appendChild(container);
   mount.appendChild(wrapper);
 
-  const destroyCallbacks: Array<() => void> = [];
-  const suggestionsManager = createSuggestions(suggestions);
-  let closeHandler: (() => void) | null = null;
-  let session: AgentWidgetSession;
+    const destroyCallbacks: Array<() => void> = [];
+    const suggestionsManager = createSuggestions(suggestions);
+    let closeHandler: (() => void) | null = null;
+    let session: AgentWidgetSession;
+    let navigationMessageRestored = false;
+
+    const sanitizeNavigationData = (
+      value: unknown
+    ):
+      | {
+          onLoadText: string;
+          page?: string;
+          messageId?: string;
+          triggeredAt?: number;
+        }
+      | null => {
+      if (!value || typeof value !== "object") return null;
+      const record = value as Record<string, unknown>;
+      const rawText =
+        typeof record.onLoadText === "string"
+          ? record.onLoadText
+          : typeof record.on_load_text === "string"
+            ? record.on_load_text
+            : "";
+      const onLoadText =
+        typeof rawText === "string"
+          ? rawText
+          : rawText == null
+            ? ""
+            : String(rawText);
+      if (!onLoadText.trim()) return null;
+
+      const triggeredSource =
+        record.triggeredAt ?? record.timestamp ?? (record as any).triggered_at;
+      let triggeredAt: number | undefined;
+      if (typeof triggeredSource === "number" && Number.isFinite(triggeredSource)) {
+        triggeredAt = triggeredSource;
+      } else if (typeof triggeredSource === "string" && triggeredSource.trim()) {
+        const parsed = Number(triggeredSource);
+        if (!Number.isNaN(parsed) && Number.isFinite(parsed)) {
+          triggeredAt = parsed;
+        }
+      }
+
+      const page =
+        typeof record.page === "string" && record.page ? record.page : undefined;
+      const messageId =
+        typeof record.messageId === "string" && record.messageId
+          ? record.messageId
+          : undefined;
+
+      return {
+        onLoadText,
+        page,
+        messageId,
+        triggeredAt
+      };
+    };
+
+    const clearPendingNavigationMetadata = () => {
+      const hasPending =
+        persistentMetadata &&
+        Object.prototype.hasOwnProperty.call(
+          persistentMetadata,
+          "pendingNavigation"
+        );
+      if (!hasPending) return;
+      try {
+        updateMetadata((prev) => {
+          if (
+            !prev ||
+            typeof prev !== "object" ||
+            !(prev as Record<string, unknown>).pendingNavigation
+          ) {
+            return prev;
+          }
+          const next = { ...prev };
+          delete (next as Record<string, unknown>).pendingNavigation;
+          return next;
+        });
+      } catch (error) {
+        if (typeof console !== "undefined") {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[AgentWidget] Failed to clear navigation metadata:",
+            error
+          );
+        }
+      }
+    };
+
+    const maybeRestoreNavigationMessage = () => {
+      if (navigationMessageRestored || !session) return;
+
+      let navData: ReturnType<typeof sanitizeNavigationData> | null = null;
+      const now = Date.now();
+
+      if (typeof window !== "undefined") {
+        try {
+          const rawFlag = window.localStorage?.getItem(NAVIGATION_FLAG_STORAGE_KEY);
+          if (rawFlag) {
+            window.localStorage?.removeItem(NAVIGATION_FLAG_STORAGE_KEY);
+            const parsed = JSON.parse(rawFlag);
+            navData = sanitizeNavigationData(parsed);
+          }
+        } catch (error) {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[AgentWidget] Failed to restore navigation flag from storage:",
+              error
+            );
+          }
+          try {
+            window.localStorage?.removeItem(NAVIGATION_FLAG_STORAGE_KEY);
+          } catch {
+            // Ignore storage cleanup errors
+          }
+        }
+      }
+
+      if (!navData) {
+        navData = sanitizeNavigationData(
+          (persistentMetadata as Record<string, unknown>).pendingNavigation
+        );
+      }
+
+      if (!navData) {
+        return;
+      }
+
+      const isRecent =
+        !navData.triggeredAt || now - navData.triggeredAt <= NAVIGATION_FLAG_MAX_AGE_MS;
+      if (!isRecent) {
+        clearPendingNavigationMetadata();
+        return;
+      }
+
+      const navMessageId = navData.messageId
+        ? `${navData.messageId}-nav-confirmation`
+        : `nav-confirmation-${now}`;
+
+      const existingMessages = session.getMessages();
+      const alreadyPresent = existingMessages.some(
+        (msg) =>
+          msg.id === navMessageId ||
+          (navData.messageId && msg.id === navData.messageId) ||
+          msg.content === navData.onLoadText
+      );
+
+      if (!alreadyPresent) {
+        session.injectTestEvent({
+          type: "message",
+          message: {
+            id: navMessageId,
+            role: "assistant",
+            content: navData.onLoadText,
+            createdAt: new Date().toISOString(),
+            sequence: Date.now(),
+            variant: "assistant"
+          }
+        });
+      }
+
+      navigationMessageRestored = true;
+      clearPendingNavigationMetadata();
+    };
   let isStreaming = false;
   let shouldAutoScroll = true;
   let lastScrollTop = 0;
@@ -652,73 +821,97 @@ export const createAgentExperience = (
     textarea.style.fontWeight = fontWeight;
   };
 
-  session = new AgentWidgetSession(config, {
-    onMessagesChanged(messages) {
-      renderMessagesWithPlugins(messagesWrapper, messages, postprocess);
-      // Re-render suggestions to hide them after first user message
-      // Pass messages directly to avoid calling session.getMessages() during construction
-      if (session) {
-        const hasUserMessage = messages.some((msg) => msg.role === "user");
-        if (hasUserMessage) {
-          // Hide suggestions if user message exists
-          suggestionsManager.render([], session, textarea, messages);
-        } else {
-          // Show suggestions if no user message yet
-          suggestionsManager.render(config.suggestionChips, session, textarea, messages);
+    session = new AgentWidgetSession(config, {
+      onMessagesChanged(messages) {
+        renderMessagesWithPlugins(messagesWrapper, messages, postprocess);
+        // Re-render suggestions to hide them after first user message
+        // Pass messages directly to avoid calling session.getMessages() during construction
+        if (session) {
+          const hasUserMessage = messages.some((msg) => msg.role === "user");
+          if (hasUserMessage) {
+            // Hide suggestions if user message exists
+            suggestionsManager.render([], session, textarea, messages);
+          } else {
+            // Show suggestions if no user message yet
+            suggestionsManager.render(
+              config.suggestionChips,
+              session,
+              textarea,
+              messages
+            );
+          }
+        }
+        scheduleAutoScroll(!isStreaming);
+        trackMessages(messages);
+
+        const lastUserMessage = [...messages]
+          .reverse()
+          .find((msg) => msg.role === "user");
+        voiceState.lastUserMessageWasVoice = Boolean(lastUserMessage?.viaVoice);
+        persistState(messages);
+      },
+      onStatusChanged(status) {
+        const currentStatusConfig = config.statusIndicator ?? {};
+        const getCurrentStatusText = (
+          status: AgentWidgetSessionStatus
+        ): string => {
+          if (status === "idle")
+            return currentStatusConfig.idleText ?? statusCopy.idle;
+          if (status === "connecting")
+            return currentStatusConfig.connectingText ?? statusCopy.connecting;
+          if (status === "connected")
+            return currentStatusConfig.connectedText ?? statusCopy.connected;
+          if (status === "error")
+            return currentStatusConfig.errorText ?? statusCopy.error;
+          return statusCopy[status];
+        };
+        statusText.textContent = getCurrentStatusText(status);
+      },
+      onStreamingChanged(streaming) {
+        isStreaming = streaming;
+        setComposerDisabled(streaming);
+        // Re-render messages to show/hide typing indicator
+        if (session) {
+          renderMessagesWithPlugins(
+            messagesWrapper,
+            session.getMessages(),
+            postprocess
+          );
+        }
+        if (!streaming) {
+          scheduleAutoScroll(true);
         }
       }
-      scheduleAutoScroll(!isStreaming);
-      trackMessages(messages);
+    });
 
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find((msg) => msg.role === "user");
-      voiceState.lastUserMessageWasVoice = Boolean(lastUserMessage?.viaVoice);
-      persistState(messages);
-    },
-    onStatusChanged(status) {
-      const currentStatusConfig = config.statusIndicator ?? {};
-      const getCurrentStatusText = (status: AgentWidgetSessionStatus): string => {
-        if (status === "idle") return currentStatusConfig.idleText ?? statusCopy.idle;
-        if (status === "connecting") return currentStatusConfig.connectingText ?? statusCopy.connecting;
-        if (status === "connected") return currentStatusConfig.connectedText ?? statusCopy.connected;
-        if (status === "error") return currentStatusConfig.errorText ?? statusCopy.error;
-        return statusCopy[status];
-      };
-      statusText.textContent = getCurrentStatusText(status);
-    },
-    onStreamingChanged(streaming) {
-      isStreaming = streaming;
-      setComposerDisabled(streaming);
-      // Re-render messages to show/hide typing indicator
-      if (session) {
-        renderMessagesWithPlugins(messagesWrapper, session.getMessages(), postprocess);
-      }
-      if (!streaming) {
-        scheduleAutoScroll(true);
-      }
+    if (!pendingStoredState) {
+      maybeRestoreNavigationMessage();
     }
-  });
 
-  if (pendingStoredState) {
-    pendingStoredState
-      .then((state) => {
-        if (!state) return;
-        if (state.metadata) {
-          persistentMetadata = ensureRecord(state.metadata);
-          actionManager.syncFromMetadata();
-        }
-        if (state.messages?.length) {
-          session.hydrateMessages(state.messages);
-        }
-      })
-      .catch((error) => {
-        if (typeof console !== "undefined") {
-          // eslint-disable-next-line no-console
-          console.error("[AgentWidget] Failed to hydrate stored state:", error);
-        }
-      });
-  }
+    if (pendingStoredState) {
+      pendingStoredState
+        .then((state) => {
+          if (!state) return;
+          if (state.metadata) {
+            persistentMetadata = ensureRecord(state.metadata);
+            actionManager.syncFromMetadata();
+          }
+          if (state.messages?.length) {
+            session.hydrateMessages(state.messages);
+          }
+          maybeRestoreNavigationMessage();
+        })
+        .catch((error) => {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error(
+              "[AgentWidget] Failed to hydrate stored state:",
+              error
+            );
+          }
+          maybeRestoreNavigationMessage();
+        });
+    }
 
   const handleSubmit = (event: Event) => {
     event.preventDefault();
