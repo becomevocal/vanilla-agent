@@ -820,15 +820,18 @@ export class AgentWidgetClient {
             if (parser) {
               // First check if parser already extracted text during streaming
               const currentExtractedText = parser.getExtractedText();
+              const rawBuffer = rawContentBuffers.get(assistant.id);
+              const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
+              
+              // Always set rawContent so action parsers can access the raw JSON
+              assistant.rawContent = contentToProcess;
+              
               if (currentExtractedText !== null && currentExtractedText.trim() !== "") {
                 // We already have extracted text from streaming - use it
                 assistant.content = currentExtractedText;
                 hasExtractedText = true;
               } else {
                 // No extracted text yet - try to extract from final content
-                const rawBuffer = rawContentBuffers.get(assistant.id);
-                const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
-                assistant.rawContent = contentToProcess;
                 
                 // Try fast path first
                 const extractedText = extractTextFromJson(contentToProcess);
@@ -885,6 +888,12 @@ export class AgentWidgetClient {
                   }
                 }
               }
+            }
+            
+            // Ensure rawContent is set even if there's no parser (for action parsing)
+            if (!assistant.rawContent) {
+              const rawBuffer = rawContentBuffers.get(assistant.id);
+              assistant.rawContent = rawBuffer ?? ensureStringContent(finalContent);
             }
             
             // Only show raw content if we never extracted any text and no buffer was used
