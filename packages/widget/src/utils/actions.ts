@@ -132,42 +132,43 @@ export const createActionManager = (options: ActionManagerOptions) => {
     );
   };
 
-  const persistProcessedIds = () => {
-    const latestIds = Array.from(processedIds);
-    options.updateMetadata((prev) => ({
-      ...prev,
-      processedActionMessageIds: latestIds
-    }));
-  };
+    const persistProcessedIds = () => {
+      const latestIds = Array.from(processedIds);
+      options.updateMetadata((prev) => ({
+        ...prev,
+        processedActionMessageIds: latestIds
+      }));
+    };
 
-  const process = (context: ActionManagerProcessContext): string | null => {
-    if (
-      context.streaming ||
-      context.message.role !== "assistant" ||
-      !context.text ||
-      processedIds.has(context.message.id)
-    ) {
-      return null;
-    }
+    const process = (context: ActionManagerProcessContext): string | null => {
+      const parseSource =
+        (typeof context.raw === "string" && context.raw) ||
+        (typeof context.message.rawContent === "string" &&
+          context.message.rawContent) ||
+        (typeof context.text === "string" && context.text) ||
+        null;
 
-    const parseSource =
-      (typeof context.raw === "string" && context.raw) ||
-      (typeof context.message.rawContent === "string" &&
-        context.message.rawContent) ||
-      (typeof context.text === "string" && context.text) ||
-      null;
+      if (
+        context.streaming ||
+        context.message.role !== "assistant" ||
+        processedIds.has(context.message.id)
+      ) {
+        return null;
+      }
 
-    if (
-      !parseSource &&
-      typeof context.text === "string" &&
-      context.text.trim().startsWith("{") &&
-      typeof console !== "undefined"
-    ) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[AgentWidget] Structured response detected but no raw payload was provided. Ensure your stream parser returns { text, raw }."
-      );
-    }
+      if (!parseSource) {
+        if (
+          typeof context.text === "string" &&
+          context.text.trim().startsWith("{") &&
+          typeof console !== "undefined"
+        ) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[AgentWidget] Structured response detected but no raw payload was provided. Ensure your stream parser returns { text, raw }."
+          );
+        }
+        return null;
+      }
 
     const action = parseSource
       ? options.parsers.reduce<AgentWidgetParsedAction | null>(
