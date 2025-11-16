@@ -111,6 +111,53 @@ export const defaultActionHandlers: Record<
       handled: true,
       displayText: asString(payload.text)
     };
+  },
+  navThenClick: (action, context) => {
+    if (action.type !== "nav_then_click") return;
+    const payload = action.payload as Record<string, unknown>;
+    const page = asString(payload.page);
+    const onLoadText = asString(payload.on_load_text);
+    
+    if (!page) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn("[AgentWidget] nav_then_click action missing 'page' parameter");
+      }
+      return {
+        handled: true,
+        displayText: onLoadText || ""
+      };
+    }
+
+    // Store the on_load_text in localStorage/sessionStorage to show after navigation
+    const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
+    const navFlag = {
+      onLoadText,
+      timestamp: Date.now()
+    };
+    
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(NAV_FLAG_KEY, JSON.stringify(navFlag));
+      }
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.warn("[AgentWidget] Failed to save navigation flag:", error);
+      }
+    }
+
+    // Navigate after a short delay
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.location.href = page;
+      }
+    }, 500);
+
+    return {
+      handled: true,
+      displayText: "" // Don't show text since we're navigating away
+    };
   }
 };
 

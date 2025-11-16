@@ -168,7 +168,7 @@ export const createAgentExperience = (
   const resolvedActionHandlers =
     config.actionHandlers && config.actionHandlers.length
       ? config.actionHandlers
-      : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick];
+      : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick, defaultActionHandlers.navThenClick];
 
   let actionManager = createActionManager({
     parsers: resolvedActionParsers,
@@ -1698,7 +1698,7 @@ export const createAgentExperience = (
       const nextHandlers =
         config.actionHandlers && config.actionHandlers.length
           ? config.actionHandlers
-          : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick];
+          : [defaultActionHandlers.message, defaultActionHandlers.messageAndClick, defaultActionHandlers.navThenClick];
 
       actionManager = createActionManager({
         parsers: nextParsers,
