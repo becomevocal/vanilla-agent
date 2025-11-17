@@ -55,6 +55,71 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
   ]
 };
 
+/**
+ * Replace variables in flow configuration for virtual flows
+ */
+function replaceVariablesInFlow(
+  flowConfig: TravrseFlowConfig,
+  messages: Array<{ role: string; content: string }>,
+  metadata: Record<string, unknown>
+): TravrseFlowConfig {
+  // Create a deep copy of the flow config
+  const config = JSON.parse(JSON.stringify(flowConfig)) as TravrseFlowConfig;
+
+  // Get the last user message for {{user_message}} replacement
+  const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user')?.content || '';
+
+  // Convert messages to the expected format for {{messages}} replacement
+  const messagesJson = JSON.stringify(messages);
+
+  // Helper function to replace variables in a string
+  function replaceInString(str: string): string {
+    if (typeof str !== 'string') return str;
+
+    let result = str;
+
+    // Replace {{user_message}}
+    result = result.replace(/\{\{user_message\}\}/g, lastUserMessage);
+
+    // Replace {{messages}}
+    result = result.replace(/\{\{messages\}\}/g, messagesJson);
+
+    // Replace {{record.metadata.*}} patterns
+    result = result.replace(/\{\{record\.metadata\.([^}]+)\}\}/g, (match, key) => {
+      const value = metadata[key];
+      if (value === undefined) return match; // Keep original if not found
+      return typeof value === 'string' ? value : JSON.stringify(value);
+    });
+
+    // Also support {{_record.metadata.*}} pattern for backward compatibility
+    result = result.replace(/\{\{_record\.metadata\.([^}]+)\}\}/g, (match, key) => {
+      const value = metadata[key];
+      if (value === undefined) return match; // Keep original if not found
+      return typeof value === 'string' ? value : JSON.stringify(value);
+    });
+
+    return result;
+  }
+
+  // Recursively replace variables in the config object
+  function replaceInObject(obj: any): any {
+    if (typeof obj === 'string') {
+      return replaceInString(obj);
+    } else if (Array.isArray(obj)) {
+      return obj.map(replaceInObject);
+    } else if (obj && typeof obj === 'object') {
+      const result: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = replaceInObject(value);
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  return replaceInObject(config);
+}
+
 const withCors =
   (allowedOrigins: string[] | undefined) =>
     async (c: Context, next: () => Promise<void>) => {
@@ -171,7 +236,8 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
         id: flowId
       }
     } else {
-      travrsePayload.flow = flowConfig;
+      // For virtual flows, perform client-side variable replacement
+      travrsePayload.flow = replaceVariablesInFlow(flowConfig, formattedMessages, clientPayload.metadata || {});
     }
 
     // Development logging
@@ -232,6 +298,9 @@ export * from "./flows/index.js";
 
 // Export utility functions
 export * from "./utils/index.js";
+
+// Export internal functions for testing
+export { replaceVariablesInFlow };
 
 export default createChatProxyApp;
 
