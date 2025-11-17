@@ -10,17 +10,20 @@ import {
 
 // Sample environment variables (.env file):
 // PORT=43111
+// UPSTREAM_URL=https://api.travrse.ai/v1/dispatch
 // FLOW_ID_FORM_DIRECTIVE=flow_01abc123...
 // FLOW_ID_SHOPPING_ASSISTANT=flow_02def456...
 // STRIPE_SECRET_KEY=sk_test_...
 // FRONTEND_URL=http://localhost:5173
 
 const preferredPort = Number(process.env.PORT ?? 43111);
+const upstreamUrl = process.env.UPSTREAM_URL || undefined;
 
 // Default chat proxy - basic conversational assistant
 const app = createChatProxyApp({
   path: "/api/chat/dispatch",
-  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"]
+  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
+  upstreamUrl
 });
 
 // Directive-enabled proxy for interactive form demo
@@ -29,7 +32,8 @@ const directiveApp = createChatProxyApp({
   path: "/api/chat/dispatch-directive",
   allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
   flowId: process.env.FLOW_ID_FORM_DIRECTIVE || undefined,
-  flowConfig: process.env.FLOW_ID_FORM_DIRECTIVE ? undefined : FORM_DIRECTIVE_FLOW
+  flowConfig: process.env.FLOW_ID_FORM_DIRECTIVE ? undefined : FORM_DIRECTIVE_FLOW,
+  upstreamUrl
 });
 
 // Action middleware proxy - returns JSON actions for page interaction
@@ -38,7 +42,8 @@ const actionApp = createChatProxyApp({
   path: "/api/chat/dispatch-action",
   allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
   flowId: process.env.FLOW_ID_SHOPPING_ASSISTANT || undefined,
-  flowConfig: process.env.FLOW_ID_SHOPPING_ASSISTANT ? undefined : SHOPPING_ASSISTANT_FLOW
+  flowConfig: process.env.FLOW_ID_SHOPPING_ASSISTANT ? undefined : SHOPPING_ASSISTANT_FLOW,
+  upstreamUrl
 });
 
 // Mount both apps
