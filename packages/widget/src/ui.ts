@@ -7,7 +7,9 @@ import {
   AgentWidgetStorageAdapter,
   AgentWidgetStoredState,
   AgentWidgetControllerEventMap,
-  AgentWidgetVoiceStateEvent
+  AgentWidgetVoiceStateEvent,
+  AgentWidgetStateEvent,
+  AgentWidgetStateSnapshot
 } from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
@@ -73,6 +75,10 @@ type Controller = {
     event: K,
     handler: (payload: AgentWidgetControllerEventMap[K]) => void
   ) => void;
+  // State query methods
+  isOpen: () => boolean;
+  isVoiceActive: () => boolean;
+  getState: () => AgentWidgetStateSnapshot;
 };
 
 const buildPostprocessor = (
@@ -84,14 +90,18 @@ const buildPostprocessor = (
     const rawPayload = context.message.rawContent ?? null;
 
     if (actionManager) {
-      const actionOverride = actionManager.process({
+      const actionResult = actionManager.process({
         text: nextText,
         raw: rawPayload ?? nextText,
         message: context.message,
         streaming: context.streaming
       });
-      if (actionOverride !== null) {
-        nextText = actionOverride;
+      if (actionResult !== null) {
+        nextText = actionResult.text;
+        // Mark message as non-persistable if persist is false
+        if (!actionResult.persist) {
+          (context.message as any).__skipPersist = true;
+        }
       }
     }
 
@@ -285,7 +295,9 @@ export const createAgentExperience = (
   };
 
   const getMessagesForPersistence = () =>
-    session ? stripStreamingFromMessages(session.getMessages()) : [];
+    session 
+      ? stripStreamingFromMessages(session.getMessages()).filter(msg => !(msg as any).__skipPersist)
+      : [];
 
   function persistState(messagesOverride?: AgentWidgetMessage[]) {
     if (!storageAdapter?.save || !session) return;
@@ -597,15 +609,39 @@ export const createAgentExperience = (
     }
   };
 
-  const setOpenState = (nextOpen: boolean) => {
+  const setOpenState = (nextOpen: boolean, source: "user" | "auto" | "api" | "system" = "user") => {
     if (!launcherEnabled) return;
     if (open === nextOpen) return;
+    
+    const prevOpen = open;
     open = nextOpen;
     updateOpenState();
+    
     if (open) {
       recalcPanelHeight();
       scheduleAutoScroll(true);
     }
+    
+    // Emit widget state events
+    const stateEvent: AgentWidgetStateEvent = {
+      open,
+      source,
+      timestamp: Date.now()
+    };
+    
+    if (open && !prevOpen) {
+      eventBus.emit("widget:opened", stateEvent);
+    } else if (!open && prevOpen) {
+      eventBus.emit("widget:closed", stateEvent);
+    }
+    
+    // Emit general state snapshot
+    eventBus.emit("widget:state", {
+      open,
+      launcherEnabled,
+      voiceActive: voiceState.active,
+      streaming: session.isStreaming()
+    });
   };
 
   const setComposerDisabled = (disabled: boolean) => {
@@ -1059,7 +1095,7 @@ export const createAgentExperience = (
   destroyCallbacks.push(autoResumeUnsub);
 
   const toggleOpen = () => {
-    setOpenState(!open);
+    setOpenState(!open, "user");
   };
 
   let launcherButtonInstance = launcherEnabled
@@ -1271,11 +1307,11 @@ export const createAgentExperience = (
           updateOpenState();
         } else {
           // Launcher was just enabled - respect autoExpand setting
-          setOpenState(autoExpand);
+          setOpenState(autoExpand, "auto");
         }
       } else if (autoExpandChanged) {
         // autoExpand value changed - update state to match
-        setOpenState(autoExpand);
+        setOpenState(autoExpand, "auto");
       }
       // Otherwise, preserve current open state (user may have manually opened/closed)
 
@@ -2013,15 +2049,15 @@ export const createAgentExperience = (
     },
     open() {
       if (!launcherEnabled) return;
-      setOpenState(true);
+      setOpenState(true, "api");
     },
     close() {
       if (!launcherEnabled) return;
-      setOpenState(false);
+      setOpenState(false, "api");
     },
     toggle() {
       if (!launcherEnabled) return;
-      setOpenState(!open);
+      setOpenState(!open, "api");
     },
     clearChat() {
       // Clear messages in session (this will trigger onMessagesChanged which re-renders)
@@ -2082,7 +2118,7 @@ export const createAgentExperience = (
       
       // Auto-open widget if closed and launcher is enabled
       if (!open && launcherEnabled) {
-        setOpenState(true);
+        setOpenState(true, "system");
       }
       
       textarea.value = message;
@@ -2098,7 +2134,7 @@ export const createAgentExperience = (
       
       // Auto-open widget if closed and launcher is enabled
       if (!open && launcherEnabled) {
-        setOpenState(true);
+        setOpenState(true, "system");
       }
       
       textarea.value = "";
@@ -2113,7 +2149,7 @@ export const createAgentExperience = (
       
       // Auto-open widget if closed and launcher is enabled
       if (!open && launcherEnabled) {
-        setOpenState(true);
+        setOpenState(true, "system");
       }
       
       voiceState.manuallyDeactivated = false;
@@ -2132,7 +2168,7 @@ export const createAgentExperience = (
     injectTestMessage(event: AgentWidgetEvent) {
       // Auto-open widget if closed and launcher is enabled
       if (!open && launcherEnabled) {
-        setOpenState(true);
+        setOpenState(true, "system");
       }
       session.injectTestEvent(event);
     },
@@ -2155,6 +2191,21 @@ export const createAgentExperience = (
     },
     off(event, handler) {
       eventBus.off(event, handler);
+    },
+    // State query methods
+    isOpen(): boolean {
+      return launcherEnabled && open;
+    },
+    isVoiceActive(): boolean {
+      return voiceState.active;
+    },
+    getState(): AgentWidgetStateSnapshot {
+      return {
+        open: launcherEnabled && open,
+        launcherEnabled,
+        voiceActive: voiceState.active,
+        streaming: session.isStreaming()
+      };
     },
     destroy() {
       destroyCallbacks.forEach((cb) => cb());

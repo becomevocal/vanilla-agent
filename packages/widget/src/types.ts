@@ -51,6 +51,7 @@ export type AgentWidgetActionParser = (
 export type AgentWidgetActionHandlerResult = {
   handled?: boolean;
   displayText?: string;
+  persistMessage?: boolean; // If false, prevents message from being saved to history
 };
 
 export type AgentWidgetActionContext = {
@@ -92,11 +93,27 @@ export type AgentWidgetActionEventPayload = {
   message: AgentWidgetMessage;
 };
 
+export type AgentWidgetStateEvent = {
+  open: boolean;
+  source: "user" | "auto" | "api" | "system";
+  timestamp: number;
+};
+
+export type AgentWidgetStateSnapshot = {
+  open: boolean;
+  launcherEnabled: boolean;
+  voiceActive: boolean;
+  streaming: boolean;
+};
+
 export type AgentWidgetControllerEventMap = {
   "assistant:message": AgentWidgetMessage;
   "assistant:complete": AgentWidgetMessage;
   "voice:state": AgentWidgetVoiceStateEvent;
   "action:detected": AgentWidgetActionEventPayload;
+  "widget:opened": AgentWidgetStateEvent;
+  "widget:closed": AgentWidgetStateEvent;
+  "widget:state": AgentWidgetStateSnapshot;
 };
 
 export type AgentWidgetFeatureFlags = {

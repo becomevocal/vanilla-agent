@@ -140,7 +140,7 @@ export const createActionManager = (options: ActionManagerOptions) => {
     }));
   };
 
-  const process = (context: ActionManagerProcessContext): string | null => {
+  const process = (context: ActionManagerProcessContext): { text: string; persist: boolean } | null => {
     if (
       context.streaming ||
       context.message.role !== "assistant" ||
@@ -202,12 +202,11 @@ export const createActionManager = (options: ActionManagerOptions) => {
 
         if (!handlerResult) continue;
 
-        if (handlerResult.displayText !== undefined && handlerResult.handled) {
-          return handlerResult.displayText;
-        }
-
         if (handlerResult.handled) {
-          return "";
+          // persistMessage defaults to true if not specified
+          const persist = handlerResult.persistMessage !== false;
+          const displayText = handlerResult.displayText !== undefined ? handlerResult.displayText : "";
+          return { text: displayText, persist };
         }
       } catch (error) {
         if (typeof console !== "undefined") {
@@ -217,7 +216,7 @@ export const createActionManager = (options: ActionManagerOptions) => {
       }
     }
 
-    return "";
+    return { text: "", persist: true };
   };
 
   return {
