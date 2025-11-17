@@ -8,60 +8,140 @@ import {
   type AgentWidgetStreamParser,
   type AgentWidgetStreamParserResult,
   markdownPostprocessor,
-  DEFAULT_WIDGET_CONFIG
+  DEFAULT_WIDGET_CONFIG,
+  createLocalStorageAdapter,
+  defaultActionHandlers
 } from "vanilla-agent";
 import {
   collectPageContext,
   formatPageContext,
   parseActionResponse,
   executeAction,
-  saveChatHistory,
   loadChatHistory,
   loadExecutedActionIds,
   saveExecutedActionId,
-  checkNavigationFlag
+  checkNavigationFlag,
+  STORAGE_KEY
 } from "./middleware";
 import { createJsonStreamParser } from "vanilla-agent";
+// Import types directly from the widget package
+import type { 
+  AgentWidgetStorageAdapter, 
+  AgentWidgetStoredState, 
+  AgentWidgetRequestPayload 
+} from "../../../packages/widget/src/types";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
   import.meta.env.VITE_PROXY_URL ??
   `http://localhost:${proxyPort}/api/chat/dispatch-action`;
 
-// Intercept fetch to add DOM context to requests
-const originalFetch = window.fetch;
-window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+// Create a context provider that collects page context for metadata
+const pageContextProvider = () => {
+  const elements = collectPageContext();
+  const formattedContext = formatPageContext(elements);
   
-  // Only intercept our API endpoint
-  if (url.includes("/api/chat/dispatch-action") && init?.method === "POST") {
-    try {
-      const body = JSON.parse(init.body as string);
-      const messages = body.messages || [];
-      
-      // Collect page context
-      const elements = collectPageContext();
-      const pageContext = formatPageContext(elements);
-      
-      // Add page context to the last user message
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage.role === "user") {
-          lastMessage.content = `${lastMessage.content}\n\n---\n\n${pageContext}`;
-        }
-      }
-      
-      init.body = JSON.stringify(body);
-    } catch (e) {
-      console.error("Failed to modify request:", e);
-    }
-  }
-  
-  return originalFetch(input, init);
+  // Return context in a format suitable for metadata
+  return {
+    page_elements: elements.slice(0, 50), // Limit to first 50 elements
+    page_element_count: elements.length,
+    page_context: formattedContext,
+    page_url: window.location.href,
+    page_title: document.title,
+    timestamp: new Date().toISOString()
+  };
 };
 
 // Load chat history from localStorage
 let savedMessages = loadChatHistory();
+
+// Create a custom storage adapter that syncs our executedActionIds with widget SDK metadata
+// This wraps the widget SDK's storage adapter to sync our data structure
+const createSyncedStorageAdapter = () => {
+  const baseAdapter = createLocalStorageAdapter(STORAGE_KEY);
+  
+  return {
+    load: () => {
+      try {
+        // First try to load from widget SDK's format
+        const widgetState = baseAdapter.load?.();
+        if (widgetState && typeof widgetState === 'object' && !('then' in widgetState)) {
+          // Sync widget SDK's processedActionMessageIds with our executedActionIds
+          const state = widgetState as any as AgentWidgetStoredState;
+          const widgetProcessedIds = Array.isArray(state.metadata?.processedActionMessageIds)
+            ? state.metadata.processedActionMessageIds as string[]
+            : [];
+          
+          // Update our in-memory Set
+          widgetProcessedIds.forEach(id => processedActionIds.add(id));
+          
+          return state;
+        }
+        
+        // Fallback to our custom format
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return null;
+        
+        const parsed = JSON.parse(stored);
+        // Handle both StorageData structure and plain array
+        if (Array.isArray(parsed)) {
+          return {
+            messages: parsed,
+            metadata: {
+              processedActionMessageIds: []
+            }
+          };
+        }
+        
+        const data = parsed as { chatHistory: any[]; executedActionIds?: string[] };
+        const processedIds = data.executedActionIds || [];
+        
+        // Update our in-memory Set
+        processedIds.forEach(id => processedActionIds.add(id));
+        
+        return {
+          messages: data.chatHistory || [],
+          metadata: {
+            processedActionMessageIds: processedIds
+          }
+        };
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to load:", error);
+        return null;
+      }
+    },
+    save: (state: AgentWidgetStoredState) => {
+      try {
+        // Save using widget SDK's format, but also sync to our format
+        baseAdapter.save?.(state);
+        
+        // Also save to our custom format for backwards compatibility
+        const widgetProcessedIds = Array.isArray(state.metadata?.processedActionMessageIds)
+          ? state.metadata.processedActionMessageIds as string[]
+          : [];
+        
+        const data = {
+          chatHistory: state.messages || [],
+          executedActionIds: widgetProcessedIds
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        
+        // Update our in-memory Set
+        widgetProcessedIds.forEach(id => processedActionIds.add(id));
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to save:", error);
+      }
+    },
+    clear: () => {
+      try {
+        baseAdapter.clear?.();
+        processedActionIds.clear();
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to clear:", error);
+      }
+    }
+  };
+};
 
 // Check for navigation flag and auto-open if needed
 const navMessage = checkNavigationFlag();
@@ -86,10 +166,24 @@ if (navMessage) {
   }
 }
 
-// Track messages for saving and action execution
-let allMessages: AgentWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
-// Load previously executed action IDs from localStorage
+// Load previously executed action IDs from localStorage (for syncing with widget SDK metadata)
 let processedActionIds = new Set<string>(loadExecutedActionIds());
+console.log("[Action Middleware] Loaded processedActionIds:", Array.from(processedActionIds));
+console.log("[Action Middleware] Loaded savedMessages:", savedMessages.map(m => ({ id: m.id, role: m.role, hasRawContent: !!m.rawContent })));
+// Debug: Check localStorage structure
+try {
+  const stored = localStorage.getItem("vanilla-agent-action-middleware");
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    console.log("[Action Middleware] localStorage structure:", {
+      isArray: Array.isArray(parsed),
+      hasExecutedActionIds: !Array.isArray(parsed) && parsed.executedActionIds,
+      executedActionIdsCount: !Array.isArray(parsed) ? (parsed.executedActionIds?.length || 0) : 0
+    });
+  }
+} catch (e) {
+  console.error("[Action Middleware] Failed to inspect localStorage:", e);
+}
 // Store raw JSON for action parsing (map by message ID)
 let rawJsonByMessageId = new Map<string, string>();
 
@@ -141,6 +235,27 @@ const config: AgentWidgetConfig = {
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
   clearChatHistoryStorageKey: "vanilla-agent-action-middleware",  // Automatically clear localStorage on clear chat
   streamParser: createActionAwareParser,  // Use our custom parser that provides both text and raw
+  // Use widget SDK's default action handlers - they work with the action manager's built-in deduplication
+  actionHandlers: [
+    defaultActionHandlers.message,
+    defaultActionHandlers.messageAndClick
+  ],
+  // Use custom storage adapter that syncs our executedActionIds with widget SDK metadata
+  storageAdapter: createSyncedStorageAdapter(),
+  // Add context provider to send DOM content in metadata
+  contextProviders: [pageContextProvider],
+  // Move context to metadata in request (like sample.html)
+  requestMiddleware: ({ payload }) => {
+    if (payload.context) {
+      // Return a new payload with metadata instead of context
+      return {
+        ...payload,
+        metadata: payload.context,
+        context: undefined
+      } as AgentWidgetRequestPayload & { metadata?: Record<string, unknown> };
+    }
+    return payload;
+  },
   launcher: {
     ...DEFAULT_WIDGET_CONFIG.launcher,
     enabled: true,
@@ -178,80 +293,12 @@ const config: AgentWidgetConfig = {
       messageId: message.id
     });
     
-    // Track all messages
-    if (!streaming) {
-      const existingIndex = allMessages.findIndex(m => m.id === message.id);
-      if (existingIndex >= 0) {
-        allMessages[existingIndex] = { ...message, streaming: false };
-      } else {
-        allMessages.push({ ...message, streaming: false });
-      }
-      
-      // Save to localStorage periodically
-      saveChatHistory(allMessages);
-    }
+    // Note: Message persistence is handled automatically by the widget SDK's storage adapter
+    // No need to manually save here - the widget SDK saves messages and metadata automatically
     
-    // Parse and execute actions for assistant messages
-    // Check if this is a regular assistant message (not reasoning or tool)
-    // We process if role is "assistant" AND variant is NOT "reasoning" or "tool"
-    const isRegularAssistant = message.role === "assistant" && 
-      message.variant !== "reasoning" && message.variant !== "tool";
-    
-    if (isRegularAssistant) {
-      // The parser stores raw JSON in lastRawJson
-      // During streaming, capture it and associate with this message
-      if (streaming && lastRawJson) {
-        // Store the raw JSON for this message for action parsing
-        rawJsonByMessageId.set(message.id, lastRawJson);
-        console.log("[Action Middleware] Associated raw JSON with message:", message.id, "length:", lastRawJson.length);
-      }
-      
-      if (!streaming) {
-        // Streaming complete - check if we have a stored raw JSON for action parsing
-        const storedRawJson = rawJsonByMessageId.get(message.id);
-        
-        if (storedRawJson) {
-          console.log("[Action Middleware] Parsing action from stored raw JSON");
-          const action = parseActionResponse(storedRawJson);
-          console.log("[Action Middleware] Parsed action:", action);
-          
-          if (action) {
-            // Only execute once when streaming completes
-            if (!processedActionIds.has(message.id)) {
-              processedActionIds.add(message.id);
-              saveExecutedActionId(message.id);
-              console.log("[Action Middleware] Executing action:", action.action);
-              
-              // Execute with a small delay
-              if (action.action === "nav_then_click") {
-                setTimeout(() => {
-                  executeAction(action, () => {});
-                }, 100);
-              } else {
-                setTimeout(() => {
-                  executeAction(action, () => {});
-                }, 300);
-              }
-            }
-            
-            // Extract display text from action
-            let displayText = "";
-            if (action.action === "message") {
-              displayText = action.text;
-            } else if ("text" in action) {
-              displayText = action.text;
-            }
-            
-            if (displayText) {
-              console.log("[Action Middleware] Returning extracted message text");
-              return markdownPostprocessor(displayText);
-            }
-            
-            return "";
-          }
-        }
-      }
-    }
+    // Note: Action execution is now handled by the widget SDK's action manager and default handlers
+    // The widget SDK automatically prevents re-execution via processedActionMessageIds in metadata
+    // We only need to handle custom actions (like nav_then_click) if needed
     
     // For streaming of non-JSON or no action: return text as-is (the parser already extracted any needed text)
     // For non-assistant messages: return as-is
@@ -275,11 +322,10 @@ const widgetController = initAgentWidget({
   }
 });
 
-// Clear in-memory arrays when chat is cleared
+// Clear in-memory state when chat is cleared
 // (localStorage is automatically cleared via clearChatHistoryStorageKey config option)
 window.addEventListener("vanilla-agent:clear-chat", () => {
   console.log("[Action Middleware] Clear chat event received, clearing in-memory state");
-  allMessages = [];
   processedActionIds.clear();
   rawJsonByMessageId.clear();
 });

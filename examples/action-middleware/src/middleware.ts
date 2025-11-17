@@ -22,7 +22,7 @@ export type PageElement = {
   tagName: string;
 };
 
-const STORAGE_KEY = "vanilla-agent-action-middleware";
+export const STORAGE_KEY = "vanilla-agent-action-middleware";
 const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
 
 export interface StorageData {

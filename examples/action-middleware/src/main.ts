@@ -5,17 +5,21 @@ import {
   initAgentWidget,
   type AgentWidgetMessage,
   type AgentWidgetConfig,
-  DEFAULT_WIDGET_CONFIG
+  DEFAULT_WIDGET_CONFIG,
+  createLocalStorageAdapter,
+  defaultActionHandlers,
+  createJsonStreamParser
 } from "vanilla-agent";
 import {
   collectPageContext,
   formatPageContext,
   parseActionResponse,
   executeAction,
-  saveChatHistory,
   loadChatHistory,
-  checkNavigationFlag
+  checkNavigationFlag,
+  STORAGE_KEY
 } from "./middleware";
+import type { AgentWidgetStorageAdapter, AgentWidgetStoredState } from "vanilla-agent";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -63,32 +67,140 @@ const shouldAutoOpen = navMessage !== null;
 
 // If we have a navigation message, add it as an initial assistant message
 if (navMessage) {
-  const navMessageObj: AgentWidgetMessage = {
-    id: `nav-${Date.now()}`,
-    role: "assistant",
-    content: navMessage,
-    createdAt: new Date().toISOString(),
-    streaming: false
-  };
-  savedMessages = [...savedMessages, navMessageObj];
+  const navMessageExists = savedMessages.some(msg => 
+    msg.role === "assistant" && msg.content === navMessage
+  );
+  
+  if (!navMessageExists) {
+    const navMessageObj: AgentWidgetMessage = {
+      id: `nav-${Date.now()}`,
+      role: "assistant",
+      content: navMessage,
+      createdAt: new Date().toISOString(),
+      streaming: false
+    };
+    savedMessages = [...savedMessages, navMessageObj];
+  }
 }
 
-// Track messages for saving and action execution
-let allMessages: AgentWidgetMessage[] = savedMessages.length > 0 ? [...savedMessages] : [];
-let processedActionIds = new Set<string>();
+// Create a custom storage adapter that syncs with our data structure
+const createSyncedStorageAdapter = (): AgentWidgetStorageAdapter => {
+  const baseAdapter = createLocalStorageAdapter(STORAGE_KEY);
+  
+  return {
+    load: () => {
+      try {
+        // First try to load from widget SDK's format
+        const widgetState = baseAdapter.load?.();
+        if (widgetState) {
+          return widgetState;
+        }
+        
+        // Fallback to our custom format
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return null;
+        
+        const parsed = JSON.parse(stored);
+        // Handle both StorageData structure and plain array
+        if (Array.isArray(parsed)) {
+          return {
+            messages: parsed,
+            metadata: {
+              processedActionMessageIds: []
+            }
+          };
+        }
+        
+        const data = parsed as { chatHistory: any[] };
+        return {
+          messages: data.chatHistory || [],
+          metadata: {
+            processedActionMessageIds: []
+          }
+        };
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to load:", error);
+        return null;
+      }
+    },
+    save: (state: AgentWidgetStoredState) => {
+      try {
+        // Save using widget SDK's format
+        baseAdapter.save?.(state);
+        
+        // Also save to our custom format for backwards compatibility
+        const data = {
+          chatHistory: state.messages || []
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to save:", error);
+      }
+    },
+    clear: () => {
+      try {
+        baseAdapter.clear?.();
+      } catch (error) {
+        console.error("[Storage Adapter] Failed to clear:", error);
+      }
+    }
+  };
+};
 
 // Create a custom config with middleware hooks
 const config: AgentWidgetConfig = {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
   initialMessages: savedMessages.length > 0 ? savedMessages : undefined,
+  clearChatHistoryStorageKey: STORAGE_KEY,
+  streamParser: createJsonStreamParser, // Use JSON parser for structured responses
+  // Use widget SDK's default action handlers - they work with the action manager's built-in deduplication
+  actionHandlers: [
+    defaultActionHandlers.message,
+    defaultActionHandlers.messageAndClick,
+    // Custom handler for nav_then_click
+    (action, context) => {
+      if (action.type !== "nav_then_click") return;
+      
+      const payload = action.payload as { page: string; on_load_text: string };
+      const url = payload?.page;
+      const text = payload?.on_load_text || "Navigating...";
+      
+      if (!url) {
+        return { handled: true, displayText: text };
+      }
+      
+      // Save navigation flag and navigate
+      const navFlag = {
+        onLoadText: text,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("vanilla-agent-nav-flag", JSON.stringify(navFlag));
+      
+      // Navigate to the page (handle both absolute and relative URLs)
+      let targetUrl = url;
+      if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+        const baseUrl = window.location.origin;
+        targetUrl = new URL(targetUrl, baseUrl).toString();
+      }
+      
+      // Navigate after a short delay to allow message to render
+      setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 500);
+      
+      return { handled: true, displayText: text };
+    }
+  ],
+  // Use custom storage adapter that syncs with our data structure
+  storageAdapter: createSyncedStorageAdapter(),
   launcher: {
     ...DEFAULT_WIDGET_CONFIG.launcher,
     autoExpand: shouldAutoOpen,
     width: "min(920px, 95vw)",
     title: "Shopping Assistant",
     subtitle: "I can help you find products and add them to your cart",
-    iconText: "🛍️"
+    agentIconText: "🛍️"
   },
   theme: {
     ...DEFAULT_WIDGET_CONFIG.theme,
@@ -104,52 +216,6 @@ const config: AgentWidgetConfig = {
     "Show me available products",
     "Add an item to cart"
   ],
-  postprocessMessage: ({ text, streaming, message }) => {
-    // Track all messages
-    if (!streaming) {
-      const existingIndex = allMessages.findIndex(m => m.id === message.id);
-      if (existingIndex >= 0) {
-        allMessages[existingIndex] = { ...message, streaming: false };
-      } else {
-        allMessages.push({ ...message, streaming: false });
-      }
-      
-      // Save to localStorage periodically
-      saveChatHistory(allMessages);
-    }
-    
-    // Parse and execute actions for assistant messages
-    if (!streaming && message.role === "assistant" && !message.variant) {
-      // Only process each message once
-      if (!processedActionIds.has(message.id)) {
-        processedActionIds.add(message.id);
-        
-        // Parse JSON action response
-        const action = parseActionResponse(text);
-        
-        if (action) {
-          // Execute action after a short delay to ensure message is rendered
-          setTimeout(() => {
-            executeAction(action, (actionText) => {
-              // For nav actions, the page will reload, so this won't execute
-              // For message actions, the text is already in the message
-              // For message_and_click, the click happens automatically
-            });
-          }, 300);
-          
-          // Return the text portion for display
-          if (action.action === "message") {
-            return action.text;
-          } else if ("text" in action) {
-            return action.text;
-          }
-        }
-      }
-    }
-    
-    // During streaming, return as-is
-    return text;
-  },
   debug: true
 };
 

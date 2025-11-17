@@ -31,7 +31,7 @@ export type PageElement = {
   tagName: string;
 };
 
-const STORAGE_KEY = "vanilla-agent-action-middleware";
+export const STORAGE_KEY = "vanilla-agent-action-middleware";
 const NAV_FLAG_KEY = "vanilla-agent-nav-flag";
 const EXECUTED_ACTIONS_KEY = "vanilla-agent-executed-actions"; // Track which message IDs have had actions executed
 
@@ -372,10 +372,15 @@ export function executeAction(
 /**
  * Saves chat history to localStorage
  */
-export function saveChatHistory(messages: AgentWidgetMessage[]): void {
+export function saveChatHistory(messages: AgentWidgetMessage[], processedActionIds?: Set<string>): void {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const existingData: StorageData = stored ? JSON.parse(stored) : { chatHistory: [] };
+    
+    // Use provided processedActionIds if available, otherwise fall back to stored ones
+    const executedIds = processedActionIds 
+      ? Array.from(processedActionIds)
+      : (existingData.executedActionIds || []);
     
     const data: StorageData = {
       chatHistory: messages.map((msg) => ({
@@ -383,7 +388,7 @@ export function saveChatHistory(messages: AgentWidgetMessage[]): void {
         // Remove any non-serializable properties
         streaming: false
       })),
-      executedActionIds: existingData.executedActionIds || []
+      executedActionIds: executedIds
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -410,17 +415,24 @@ export function loadChatHistory(): AgentWidgetMessage[] {
 /**
  * Loads executed action IDs from localStorage
  */
-export function loadExecutedActionIds(): Set<string> {
+export function loadExecutedActionIds(): string[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const data: StorageData = JSON.parse(stored);
-      return new Set(data.executedActionIds || []);
+      const parsed = JSON.parse(stored);
+      // Handle both StorageData structure and plain array (for backwards compatibility)
+      if (Array.isArray(parsed)) {
+        // If it's just an array of messages, return empty array
+        console.warn("[Middleware] localStorage contains array instead of StorageData structure");
+        return [];
+      }
+      const data = parsed as StorageData;
+      return data.executedActionIds || [];
     }
   } catch (error) {
     console.error("Failed to load executed action IDs:", error);
   }
-  return new Set();
+  return [];
 }
 
 /**
