@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.7.0
+
+### Minor Changes
+
+- resolve test issues, simplify action middleware, and enable upstream url in proxy to be configured more easily
+
 ## 1.6.0
 
 ### Minor Changes
