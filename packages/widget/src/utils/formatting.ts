@@ -302,6 +302,91 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
 };
 
 /**
+ * Flexible JSON stream parser that can extract text from various field names.
+ * This parser looks for display text in multiple possible fields, making it
+ * compatible with different JSON response formats.
+ * 
+ * @param textExtractor Optional function to extract display text from parsed JSON.
+ *                      If not provided, looks for common text fields.
+ */
+export const createFlexibleJsonStreamParser = (
+  textExtractor?: (parsed: any) => string | null
+): AgentWidgetStreamParser => {
+  let extractedText: string | null = null;
+  let processedLength = 0;
+  
+  // Default text extractor that handles common patterns
+  const defaultExtractor = (parsed: any): string | null => {
+    if (!parsed || typeof parsed !== "object") return null;
+    
+    // Check for action-based text fields
+    if (parsed.action) {
+      switch (parsed.action) {
+        case 'nav_then_click':
+          return parsed.on_load_text || parsed.text || null;
+        case 'message':
+        case 'message_and_click':
+        case 'checkout':
+          return parsed.text || null;
+        default:
+          return parsed.text || parsed.display_text || parsed.message || null;
+      }
+    }
+    
+    // Fallback to common text field names
+    return parsed.text || parsed.display_text || parsed.message || parsed.content || null;
+  };
+  
+  const extractText = textExtractor || defaultExtractor;
+  
+  return {
+    getExtractedText: () => extractedText,
+    processChunk: (accumulatedContent: string): AgentWidgetStreamParserResult | string | null => {
+      // Validate that the accumulated content looks like JSON
+      const trimmed = accumulatedContent.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return null;
+      }
+      
+      // Skip if no new content
+      if (accumulatedContent.length <= processedLength) {
+        return extractedText !== null
+          ? { text: extractedText, raw: accumulatedContent }
+          : null;
+      }
+      
+      try {
+        // Parse partial JSON - allow partial strings and objects
+        // STR | OBJ allows incomplete strings and objects during streaming
+        const parsed = parsePartialJson(accumulatedContent, STR | OBJ);
+        
+        // Extract text using the provided or default extractor
+        const newText = extractText(parsed);
+        if (newText !== null) {
+          extractedText = newText;
+        }
+      } catch (error) {
+        // If parsing fails completely, keep the last extracted text
+        // This can happen with very malformed JSON
+      }
+      
+      // Update processed length
+      processedLength = accumulatedContent.length;
+      
+      // Always return the raw JSON for action parsing
+      // Text may be null during early streaming, that's ok
+      return {
+        text: extractedText || "",
+        raw: accumulatedContent
+      };
+    },
+    close: () => {
+      // No cleanup needed
+    }
+  };
+};
+
+/**
  * XML stream parser.
  * Extracts text from <text>...</text> tags in XML responses.
  */

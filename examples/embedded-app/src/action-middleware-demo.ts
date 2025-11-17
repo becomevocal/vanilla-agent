@@ -23,7 +23,7 @@ import {
   checkNavigationFlag,
   STORAGE_KEY
 } from "./middleware";
-import { createJsonStreamParser } from "vanilla-agent";
+import { createFlexibleJsonStreamParser } from "vanilla-agent";
 // Import types directly from the widget package
 import type { 
   AgentWidgetStorageAdapter, 
@@ -190,9 +190,26 @@ let rawJsonByMessageId = new Map<string, string>();
 // Store the last raw JSON globally (will be associated with message ID in postprocessMessage)
 let lastRawJson: string | null = null;
 
-// Create a custom parser that wraps the JSON parser and stores raw content
+// Create a custom parser that wraps the flexible JSON parser and stores raw content
 const createActionAwareParser = (): AgentWidgetStreamParser => {
-  const baseParser = createJsonStreamParser();
+  // Use the flexible parser with custom text extraction logic
+  const baseParser = createFlexibleJsonStreamParser((parsed) => {
+    if (!parsed || typeof parsed !== 'object') return null;
+    
+    // Custom text extraction based on action type
+    if (parsed.action === 'nav_then_click') {
+      return parsed.on_load_text || parsed.text || 'Navigating...';
+    } else if (parsed.action === 'message') {
+      return parsed.text || '';
+    } else if (parsed.action === 'message_and_click') {
+      return parsed.text || 'Processing...';
+    } else if (parsed.action === 'checkout') {
+      return parsed.text || 'Setting up checkout...';
+    }
+    
+    // Fallback to common text fields
+    return parsed.text || parsed.display_text || parsed.message || null;
+  });
   
   return {
     processChunk: (accumulatedContent: string): AgentWidgetStreamParserResult | string | null | Promise<AgentWidgetStreamParserResult | string | null> => {

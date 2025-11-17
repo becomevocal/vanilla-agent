@@ -39,6 +39,7 @@ export {
 export { 
   createPlainTextParser,
   createJsonStreamParser,
+  createFlexibleJsonStreamParser,
   createRegexJsonParser,
   createXmlParser
 } from "./utils/formatting";
