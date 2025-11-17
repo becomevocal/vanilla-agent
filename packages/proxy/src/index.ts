@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { handle } from "hono/vercel";
+import { processMessages, processFlowConfig } from "./utils/variable-replacement.js";
 
 export type TravrseFlowStep = {
   id: string;
@@ -146,17 +147,30 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       content: message.content
     }));
 
+    // Prepare record for variable replacement
+    const record = {
+      name: "Streaming Chat Widget",
+      type: "standalone",
+      metadata: clientPayload.metadata || {}
+    };
+
+    // Process messages to replace variable placeholders with actual values
+    // This handles cases like {{_record.metadata.shopping_elements}}
+    const processedMessages = processMessages(formattedMessages, record);
+
     // Determine which flow to use
     const flowId = clientPayload.flowId ?? options.flowId;
-    const flowConfig = options.flowConfig ?? DEFAULT_FLOW;
+    let flowConfig = options.flowConfig ?? DEFAULT_FLOW;
+    
+    // Process flow config to replace variables in prompt steps
+    // This ensures system prompts and user prompts have variables replaced
+    if (!flowId) {
+      flowConfig = processFlowConfig(flowConfig, record, processedMessages);
+    }
 
     const travrsePayload: Record<string, unknown> = {
-      record: {
-        name: "Streaming Chat Widget",
-        type: "standalone",
-        metadata: clientPayload.metadata || {}
-      },
-      messages: formattedMessages,
+      record,
+      messages: processedMessages,
       options: {
         stream_response: true,
         record_mode: "virtual",

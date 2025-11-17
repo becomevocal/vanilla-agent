@@ -1,5 +1,15 @@
 # vanilla-agent-proxy
 
+## 1.7.0
+
+### Minor Changes
+
+- Added variable replacement for messages and flow configs
+  - Implements client-side variable replacement for placeholders like `{{_record.metadata.key}}`
+  - Fixes issue where variables in messages were not being replaced before sending to LLM
+  - Added `replaceVariables`, `processMessages`, and `processFlowConfig` utilities
+  - Supports `{{_record.metadata.key}}`, `{{_record.key}}`, `{{messages}}`, and `{{user_message}}` variables
+
 ## 1.6.0
 
 ### Minor Changes
