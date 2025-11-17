@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { handle } from "hono/vercel";
+import { replaceVariables } from "./utils/variable-replacement.js";
 
 export type TravrseFlowStep = {
   id: string;
@@ -146,17 +147,31 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       content: message.content
     }));
 
+    // Get metadata for variable replacement
+    const metadata = clientPayload.metadata || {};
+
+    // Replace variables in messages (e.g., {{_record.metadata.shopping_elements}})
+    const messagesWithReplacedVariables = replaceVariables(
+      formattedMessages,
+      metadata
+    ) as Array<{ role: string; content: string }>;
+
     // Determine which flow to use
     const flowId = clientPayload.flowId ?? options.flowId;
     const flowConfig = options.flowConfig ?? DEFAULT_FLOW;
+
+    // Replace variables in flow config (system prompts, user prompts, etc.)
+    const flowConfigWithReplacedVariables = flowId
+      ? undefined
+      : (replaceVariables(flowConfig, metadata) as TravrseFlowConfig);
 
     const travrsePayload: Record<string, unknown> = {
       record: {
         name: "Streaming Chat Widget",
         type: "standalone",
-        metadata: clientPayload.metadata || {}
+        metadata: metadata
       },
-      messages: formattedMessages,
+      messages: messagesWithReplacedVariables,
       options: {
         stream_response: true,
         record_mode: "virtual",
@@ -165,13 +180,13 @@ export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
       }
     };
 
-    // Use flow ID if provided, otherwise use flow config
+    // Use flow ID if provided, otherwise use flow config with replaced variables
     if (flowId) {
       travrsePayload.flow = {
         id: flowId
       }
     } else {
-      travrsePayload.flow = flowConfig;
+      travrsePayload.flow = flowConfigWithReplacedVariables;
     }
 
     // Development logging
