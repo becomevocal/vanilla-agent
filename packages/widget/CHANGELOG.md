@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.8.0
+
+### Minor Changes
+
+- Widget state events, message persistance control, and shop demo styling
+
 ## 1.7.0
 
 ### Minor Changes

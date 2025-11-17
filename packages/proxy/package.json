@@ -1,6 +1,6 @@
 {
   "name": "vanilla-agent-proxy",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Proxy server for vanilla-agent widget - handles flow configuration and forwards requests to Travrse or other AI backends.",
   "type": "module",
   "main": "dist/index.cjs",
