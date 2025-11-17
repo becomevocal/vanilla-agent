@@ -45,8 +45,10 @@ describe("JSON Stream Parser", () => {
       accumulatedContent += chunk;
       const result = parser.processChunk(accumulatedContent);
       
-      if (result !== null) {
-        extractedTexts.push(result);
+      // Extract text from result (can be string or object with text property)
+      const text = typeof result === 'string' ? result : result?.text ?? null;
+      if (text !== null) {
+        extractedTexts.push(text);
       }
       
       // Also check getExtractedText
@@ -101,7 +103,9 @@ describe("JSON Stream Parser", () => {
     const parser = createJsonStreamParser();
     const result = parser.processChunk(completeJson);
     
-    expect(result).toBe("Hello world!");
+    // Extract text from result (can be string or object with text property)
+    const text = typeof result === 'string' ? result : result?.text ?? null;
+    expect(text).toBe("Hello world!");
     expect(parser.getExtractedText()).toBe("Hello world!");
   });
 
@@ -146,7 +150,9 @@ describe("JSON Stream Parser", () => {
     for (const chunk of textChunks) {
       accumulated += chunk;
       const result = parser.processChunk(accumulated);
-      allExtractedTexts.push(result);
+      // Extract text from result (can be string or object with text property)
+      const text = typeof result === 'string' ? result : result?.text ?? null;
+      allExtractedTexts.push(text);
     }
 
     // Should have many non-null results (incremental updates)
