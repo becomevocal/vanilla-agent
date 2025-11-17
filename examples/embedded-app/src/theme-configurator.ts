@@ -2224,6 +2224,121 @@ function setupSuggestionChipsControls() {
   const chipsList = getInput<HTMLDivElement>("suggestion-chips-list");
   const addButton = getInput<HTMLButtonElement>("add-suggestion-chip");
 
+  // Typography controls
+  const fontFamilySelect = getInput<HTMLSelectElement>("suggestion-chips-font-family");
+  const fontWeightSlider = getInput<HTMLInputElement>("suggestion-chips-font-weight-slider");
+  const fontWeightInput = getInput<HTMLInputElement>("suggestion-chips-font-weight");
+
+  // Padding controls
+  const paddingXSlider = getInput<HTMLInputElement>("suggestion-chips-padding-x-slider");
+  const paddingXInput = getInput<HTMLInputElement>("suggestion-chips-padding-x");
+  const paddingYSlider = getInput<HTMLInputElement>("suggestion-chips-padding-y-slider");
+  const paddingYInput = getInput<HTMLInputElement>("suggestion-chips-padding-y");
+
+  // Set initial values
+  const chipsConfig = currentConfig.suggestionChipsConfig ?? {};
+  fontFamilySelect.value = chipsConfig.fontFamily ?? "sans-serif";
+  const initialFontWeight = chipsConfig.fontWeight ?? "500";
+  const fontWeightNum = parseInt(initialFontWeight, 10) || 500;
+  fontWeightSlider.value = String(fontWeightNum);
+  fontWeightInput.value = String(fontWeightNum);
+  paddingXInput.value = chipsConfig.paddingX ?? "12px";
+  paddingYInput.value = chipsConfig.paddingY ?? "6px";
+
+  // Update paddingX slider from input value
+  const paddingXNum = parseInt(paddingXInput.value.replace(/[^\d]/g, ''), 10) || 12;
+  paddingXSlider.value = String(Math.min(64, Math.max(0, paddingXNum)));
+  const paddingYNum = parseInt(paddingYInput.value.replace(/[^\d]/g, ''), 10) || 6;
+  paddingYSlider.value = String(Math.min(32, Math.max(0, paddingYNum)));
+
+  const updateSuggestionChipsConfig = () => {
+    const fontWeightValue = fontWeightInput.value.trim();
+    const fontWeightNum = parseInt(fontWeightValue, 10);
+    
+    const newConfig = {
+      ...currentConfig,
+      suggestionChipsConfig: {
+        fontFamily: fontFamilySelect.value as "sans-serif" | "serif" | "mono",
+        fontWeight: isNaN(fontWeightNum) ? undefined : String(fontWeightNum),
+        paddingX: paddingXInput.value.trim() || undefined,
+        paddingY: paddingYInput.value.trim() || undefined,
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  // Typography event listeners
+  fontFamilySelect.addEventListener("change", updateSuggestionChipsConfig);
+  
+  let isUpdatingFontWeight = false;
+  fontWeightSlider.addEventListener("input", () => {
+    if (isUpdatingFontWeight) return;
+    isUpdatingFontWeight = true;
+    const value = fontWeightSlider.value;
+    fontWeightInput.value = value;
+    updateSuggestionChipsConfig();
+    isUpdatingFontWeight = false;
+  });
+
+  fontWeightInput.addEventListener("input", () => {
+    if (isUpdatingFontWeight) return;
+    const value = fontWeightInput.value.trim();
+    if (!value) return;
+    const numValue = parseInt(value.replace(/[^\d]/g, ''), 10);
+    if (isNaN(numValue)) return;
+    const clampedValue = Math.max(100, Math.min(900, numValue));
+    fontWeightSlider.value = String(clampedValue);
+    fontWeightInput.value = String(clampedValue);
+    updateSuggestionChipsConfig();
+  });
+
+  // Padding event listeners
+  let isUpdatingPaddingX = false;
+  paddingXSlider.addEventListener("input", () => {
+    if (isUpdatingPaddingX) return;
+    isUpdatingPaddingX = true;
+    paddingXInput.value = `${paddingXSlider.value}px`;
+    updateSuggestionChipsConfig();
+    isUpdatingPaddingX = false;
+  });
+
+  paddingXInput.addEventListener("input", () => {
+    if (isUpdatingPaddingX) return;
+    isUpdatingPaddingX = true;
+    const value = paddingXInput.value.trim();
+    if (value) {
+      const numValue = parseInt(value.replace(/[^\d]/g, ''), 10);
+      if (!isNaN(numValue)) {
+        paddingXSlider.value = String(Math.min(64, Math.max(0, numValue)));
+      }
+    }
+    updateSuggestionChipsConfig();
+    isUpdatingPaddingX = false;
+  });
+
+  let isUpdatingPaddingY = false;
+  paddingYSlider.addEventListener("input", () => {
+    if (isUpdatingPaddingY) return;
+    isUpdatingPaddingY = true;
+    paddingYInput.value = `${paddingYSlider.value}px`;
+    updateSuggestionChipsConfig();
+    isUpdatingPaddingY = false;
+  });
+
+  paddingYInput.addEventListener("input", () => {
+    if (isUpdatingPaddingY) return;
+    isUpdatingPaddingY = true;
+    const value = paddingYInput.value.trim();
+    if (value) {
+      const numValue = parseInt(value.replace(/[^\d]/g, ''), 10);
+      if (!isNaN(numValue)) {
+        paddingYSlider.value = String(Math.min(32, Math.max(0, numValue)));
+      }
+    }
+    updateSuggestionChipsConfig();
+    isUpdatingPaddingY = false;
+  });
+
   const renderChips = (chipsToRender?: string[]) => {
     // Use provided chips or fall back to currentConfig
     const chips = chipsToRender ?? currentConfig.suggestionChips ?? [];
@@ -2490,6 +2605,23 @@ function generateESMCode(config: any): string {
     lines.push("    ],");
   }
 
+  if (config.suggestionChipsConfig) {
+    lines.push("    suggestionChipsConfig: {");
+    if (config.suggestionChipsConfig.fontFamily) {
+      lines.push(`      fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
+    }
+    if (config.suggestionChipsConfig.fontWeight) {
+      lines.push(`      fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    }
+    if (config.suggestionChipsConfig.paddingX) {
+      lines.push(`      paddingX: "${config.suggestionChipsConfig.paddingX}",`);
+    }
+    if (config.suggestionChipsConfig.paddingY) {
+      lines.push(`      paddingY: "${config.suggestionChipsConfig.paddingY}",`);
+    }
+    lines.push("    },");
+  }
+
   if (config.debug) {
     lines.push(`    debug: ${config.debug},`);
   }
@@ -2558,6 +2690,23 @@ function generateScriptInstallerCode(config: any): string {
       lines.push(`        "${chip}",`);
     });
     lines.push("      ],");
+  }
+
+  if (config.suggestionChipsConfig) {
+    lines.push("      suggestionChipsConfig: {");
+    if (config.suggestionChipsConfig.fontFamily) {
+      lines.push(`        fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
+    }
+    if (config.suggestionChipsConfig.fontWeight) {
+      lines.push(`        fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    }
+    if (config.suggestionChipsConfig.paddingX) {
+      lines.push(`        paddingX: "${config.suggestionChipsConfig.paddingX}",`);
+    }
+    if (config.suggestionChipsConfig.paddingY) {
+      lines.push(`        paddingY: "${config.suggestionChipsConfig.paddingY}",`);
+    }
+    lines.push("      },");
   }
 
   if (config.debug) {
@@ -2636,6 +2785,23 @@ function generateScriptManualCode(config: any): string {
       lines.push(`        "${chip}",`);
     });
     lines.push("      ],");
+  }
+
+  if (config.suggestionChipsConfig) {
+    lines.push("      suggestionChipsConfig: {");
+    if (config.suggestionChipsConfig.fontFamily) {
+      lines.push(`        fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
+    }
+    if (config.suggestionChipsConfig.fontWeight) {
+      lines.push(`        fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    }
+    if (config.suggestionChipsConfig.paddingX) {
+      lines.push(`        paddingX: "${config.suggestionChipsConfig.paddingX}",`);
+    }
+    if (config.suggestionChipsConfig.paddingY) {
+      lines.push(`        paddingY: "${config.suggestionChipsConfig.paddingY}",`);
+    }
+    lines.push("      },");
   }
 
   if (config.debug) {

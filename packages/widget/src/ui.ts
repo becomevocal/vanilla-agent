@@ -664,7 +664,7 @@ export const createAgentExperience = (
           suggestionsManager.render([], session, textarea, messages);
         } else {
           // Show suggestions if no user message yet
-          suggestionsManager.render(config.suggestionChips, session, textarea, messages);
+          suggestionsManager.render(config.suggestionChips, session, textarea, messages, config.suggestionChipsConfig);
         }
       }
       scheduleAutoScroll(!isStreaming);
@@ -1070,7 +1070,7 @@ export const createAgentExperience = (
     mount.appendChild(launcherButtonInstance.element);
   }
   updateOpenState();
-  suggestionsManager.render(config.suggestionChips, session, textarea);
+  suggestionsManager.render(config.suggestionChips, session, textarea, undefined, config.suggestionChipsConfig);
   updateCopy();
   setComposerDisabled(session.isStreaming());
   scheduleAutoScroll(true);
@@ -1716,7 +1716,7 @@ export const createAgentExperience = (
         session.getMessages(),
         postprocess
       );
-      suggestionsManager.render(config.suggestionChips, session, textarea);
+      suggestionsManager.render(config.suggestionChips, session, textarea, undefined, config.suggestionChipsConfig);
       updateCopy();
       setComposerDisabled(session.isStreaming());
       

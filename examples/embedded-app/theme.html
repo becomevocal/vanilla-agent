@@ -1008,6 +1008,38 @@
             <!-- Dynamically populated -->
           </div>
           <button type="button" id="add-suggestion-chip" class="add-button">+ Add Suggestion</button>
+          
+          <div class="form-group" style="margin-top: 24px;">
+            <label for="suggestion-chips-font-family">Font Family</label>
+            <select id="suggestion-chips-font-family">
+              <option value="sans-serif">Sans Serif</option>
+              <option value="serif">Serif</option>
+              <option value="mono">Monospace</option>
+            </select>
+            <p class="color-description">Font family for suggestion chips</p>
+          </div>
+          <div class="form-group">
+            <label for="suggestion-chips-font-weight">Font Weight</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="suggestion-chips-font-weight-slider" min="100" max="900" step="100" />
+              <input type="text" id="suggestion-chips-font-weight" placeholder="e.g., 400, 500, 700" />
+            </div>
+            <p class="color-description">Font weight for suggestion chips (100-900)</p>
+          </div>
+          <div class="form-group">
+            <label for="suggestion-chips-padding-x">Padding X (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="suggestion-chips-padding-x-slider" min="0" max="64" step="1" />
+              <input type="text" id="suggestion-chips-padding-x" value="12px" placeholder="e.g., 12px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="suggestion-chips-padding-y">Padding Y (CSS)</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="suggestion-chips-padding-y-slider" min="0" max="32" step="1" />
+              <input type="text" id="suggestion-chips-padding-y" value="6px" placeholder="e.g., 6px, 0.5rem" />
+            </div>
+          </div>
           </div>
         </section>
 

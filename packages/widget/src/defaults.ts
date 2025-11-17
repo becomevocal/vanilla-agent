@@ -128,6 +128,12 @@ export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
     "Tell me about your features",
     "How does this work?",
   ],
+  suggestionChipsConfig: {
+    fontFamily: "sans-serif",
+    fontWeight: "500",
+    paddingX: "12px",
+    paddingY: "6px",
+  },
   debug: false,
 };
 
@@ -176,5 +182,9 @@ export function mergeWithDefaults(
       ...config.features,
     },
     suggestionChips: config.suggestionChips ?? DEFAULT_WIDGET_CONFIG.suggestionChips,
+    suggestionChipsConfig: {
+      ...DEFAULT_WIDGET_CONFIG.suggestionChipsConfig,
+      ...config.suggestionChipsConfig,
+    },
   };
 }

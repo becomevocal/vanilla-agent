@@ -258,6 +258,13 @@ export type AgentWidgetToolCallConfig = {
   labelTextColor?: string;
 };
 
+export type AgentWidgetSuggestionChipsConfig = {
+  fontFamily?: "sans-serif" | "serif" | "mono";
+  fontWeight?: string;
+  paddingX?: string;
+  paddingY?: string;
+};
+
 /**
  * Interface for pluggable stream parsers that extract text from streaming responses.
  * Parsers handle incremental parsing to extract text values from structured formats (JSON, XML, etc.).
@@ -330,6 +337,7 @@ export type AgentWidgetConfig = {
   launcher?: AgentWidgetLauncherConfig;
   initialMessages?: AgentWidgetMessage[];
   suggestionChips?: string[];
+  suggestionChipsConfig?: AgentWidgetSuggestionChipsConfig;
   debug?: boolean;
   formEndpoint?: string;
   launcherWidth?: string;
