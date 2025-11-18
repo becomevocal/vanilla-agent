@@ -224,7 +224,9 @@ export const createAgentExperience = (
     introTitle,
     introSubtitle,
     closeButton,
-    iconHolder
+    iconHolder,
+    headerTitle,
+    headerSubtitle
   } = panelElements;
   
   // Use mutable references for mic button so we can update them dynamically
@@ -1293,6 +1295,14 @@ export const createAgentExperience = (
 
       if (launcherButtonInstance) {
         launcherButtonInstance.update(config);
+      }
+
+      // Update panel header title and subtitle
+      if (headerTitle && config.launcher?.title !== undefined) {
+        headerTitle.textContent = config.launcher.title;
+      }
+      if (headerSubtitle && config.launcher?.subtitle !== undefined) {
+        headerSubtitle.textContent = config.launcher.subtitle;
       }
 
       // Only update open state if launcher enabled state changed or autoExpand value changed

@@ -67,6 +67,8 @@ export interface PanelElements {
   clearChatButton: HTMLButtonElement | null;
   clearChatButtonWrapper: HTMLElement | null;
   iconHolder: HTMLElement;
+  headerTitle: HTMLElement;
+  headerSubtitle: HTMLElement;
 }
 
 export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelElements => {
@@ -789,7 +791,9 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
     closeButtonWrapper,
     clearChatButton,
     clearChatButtonWrapper,
-    iconHolder
+    iconHolder,
+    headerTitle: title,
+    headerSubtitle: subtitle
   };
 };
 
