@@ -359,6 +359,252 @@ The script build exposes a `window.AgentWidget` global with `initAgentWidget()` 
 - `window.AgentWidget.markdownPostprocessor()` - Markdown postprocessor
 - `window.AgentWidget.directivePostprocessor()` - Directive postprocessor
 
+### React Framework Integration
+
+The widget is fully compatible with React frameworks. Use the ESM imports to integrate it as a client component.
+
+#### Framework Compatibility
+
+| Framework | Compatible | Implementation Notes |
+|-----------|------------|---------------------|
+| **Vite** | ✅ Yes | No special requirements - works out of the box |
+| **Create React App** | ✅ Yes | No special requirements - works out of the box |
+| **Next.js** | ✅ Yes | Requires `'use client'` directive (App Router) |
+| **Remix** | ✅ Yes | Use dynamic import or `useEffect` guard for SSR |
+| **Gatsby** | ✅ Yes | Use in `wrapRootElement` or check `typeof window !== 'undefined'` |
+| **Astro** | ✅ Yes | Use `client:load` or `client:only="react"` directive |
+
+#### Quick Start with Vite or Create React App
+
+For client-side-only React frameworks (Vite, CRA), create a component:
+
+```typescript
+// src/components/ChatWidget.tsx
+import { useEffect } from 'react';
+import 'vanilla-agent/widget.css';
+import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';
+import type { AgentWidgetInitHandle } from 'vanilla-agent';
+
+export function ChatWidget() {
+  useEffect(() => {
+    let handle: AgentWidgetInitHandle | null = null;
+    
+    handle = initAgentWidget({
+      target: 'body',
+      config: {
+        apiUrl: "/api/chat/dispatch",
+        theme: {
+          primary: "#111827",
+          accent: "#1d4ed8",
+        },
+        launcher: {
+          enabled: true,
+          title: "Chat Assistant",
+          subtitle: "Here to help you get answers fast"
+        },
+        postprocessMessage: ({ text }) => markdownPostprocessor(text)
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (handle) {
+        handle.destroy();
+      }
+    };
+  }, []);
+
+  return null; // Widget injects itself into the DOM
+}
+```
+
+Then use it in your app:
+
+```typescript
+// src/App.tsx
+import { ChatWidget } from './components/ChatWidget';
+
+function App() {
+  return (
+    <div>
+      {/* Your app content */}
+      <ChatWidget />
+    </div>
+  );
+}
+
+export default App;
+```
+
+#### Next.js Integration
+
+For Next.js App Router, add the `'use client'` directive:
+
+```typescript
+// components/ChatWidget.tsx
+'use client';
+
+import { useEffect } from 'react';
+import 'vanilla-agent/widget.css';
+import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';
+import type { AgentWidgetInitHandle } from 'vanilla-agent';
+
+export function ChatWidget() {
+  useEffect(() => {
+    let handle: AgentWidgetInitHandle | null = null;
+    
+    handle = initAgentWidget({
+      target: 'body',
+      config: {
+        apiUrl: "/api/chat/dispatch",
+        launcher: {
+          enabled: true,
+          title: "Chat Assistant",
+        },
+        postprocessMessage: ({ text }) => markdownPostprocessor(text)
+      }
+    });
+
+    return () => {
+      if (handle) {
+        handle.destroy();
+      }
+    };
+  }, []);
+
+  return null;
+}
+```
+
+Use it in your layout or page:
+
+```typescript
+// app/layout.tsx
+import { ChatWidget } from '@/components/ChatWidget';
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <ChatWidget />
+      </body>
+    </html>
+  );
+}
+```
+
+**Alternative: Dynamic Import (SSR-Safe)**
+
+If you encounter SSR issues, use Next.js dynamic imports:
+
+```typescript
+// app/layout.tsx
+import dynamic from 'next/dynamic';
+
+const ChatWidget = dynamic(
+  () => import('@/components/ChatWidget').then(mod => mod.ChatWidget),
+  { ssr: false }
+);
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <ChatWidget />
+      </body>
+    </html>
+  );
+}
+```
+
+#### Remix Integration
+
+For Remix, guard the widget initialization with a client-side check:
+
+```typescript
+// app/components/ChatWidget.tsx
+import { useEffect, useState } from 'react';
+
+export function ChatWidget() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Dynamic import to avoid SSR issues
+    import('vanilla-agent/widget.css');
+    import('vanilla-agent').then(({ initAgentWidget, markdownPostprocessor }) => {
+      const handle = initAgentWidget({
+        target: 'body',
+        config: {
+          apiUrl: "/api/chat/dispatch",
+          launcher: { enabled: true },
+          postprocessMessage: ({ text }) => markdownPostprocessor(text)
+        }
+      });
+      
+      return () => handle?.destroy();
+    });
+  }, []);
+
+  if (!mounted) return null;
+  return null;
+}
+```
+
+#### Gatsby Integration
+
+Use Gatsby's `wrapRootElement` API:
+
+```typescript
+// gatsby-browser.js
+import { ChatWidget } from './src/components/ChatWidget';
+
+export const wrapRootElement = ({ element }) => (
+  <>
+    {element}
+    <ChatWidget />
+  </>
+);
+```
+
+#### Astro Integration
+
+Use Astro's client directives with React islands:
+
+```astro
+---
+// src/components/ChatWidget.astro
+import { ChatWidget } from './ChatWidget.tsx';
+---
+
+<ChatWidget client:load />
+```
+
+#### Using the Theme Configurator
+
+For easy configuration generation, use the [Theme Configurator](https://github.com/becomevocal/chaty/tree/main/examples/embedded-app) which includes a "React (Client Component)" export option. It generates a complete React component with your custom theme, launcher settings, and all configuration options.
+
+#### Installation
+
+```bash
+npm install vanilla-agent
+# or
+pnpm add vanilla-agent
+# or
+yarn add vanilla-agent
+```
+
+#### Key Considerations
+
+1. **CSS Import**: The CSS import (`import 'vanilla-agent/widget.css'`) works natively with all modern React build tools
+2. **Client-Side Only**: The widget manipulates the DOM, so it must run client-side only
+3. **Cleanup**: Always call `handle.destroy()` in the cleanup function to prevent memory leaks
+4. **API Routes**: Ensure your `apiUrl` points to a valid backend endpoint
+5. **TypeScript Support**: Full TypeScript definitions are included for all exports
+
 ### Using default configuration
 
 The package exports a complete default configuration that you can use as a base:

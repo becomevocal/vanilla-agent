@@ -2746,13 +2746,14 @@ function setupExportControls() {
       e.stopPropagation();
       const format = item.getAttribute("data-format");
       if (format) {
-        const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual" | "script-advanced");
+        const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual" | "script-advanced" | "react-component");
         navigator.clipboard.writeText(code).then(() => {
           const formatNames: Record<string, string> = {
             // esm: "ESM/Module",
             "script-installer": "Script Tag (Auto Installer - Recommended)",
             "script-manual": "Script Tag (Manual)",
-            "script-advanced": "Script Tag (Advanced + DOM Helper)"
+            "script-advanced": "Script Tag (Advanced + DOM Helper)",
+            "react-component": "React (Client Component)"
           };
           showFeedback(`✓ ${formatNames[format]} code copied to clipboard!`);
           dropdownMenu.classList.remove("show");
@@ -2763,7 +2764,7 @@ function setupExportControls() {
   });
 }
 
-function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual" | "script-advanced" = "esm"): string {
+function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual" | "script-advanced" | "react-component" = "esm"): string {
   const config = { ...currentConfig };
   delete config.postprocessMessage;
   delete config.initialMessages;
@@ -2774,6 +2775,8 @@ function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual
     return generateScriptInstallerCode(config);
   } else if (format === "script-advanced") {
     return generateScriptAdvancedCode(config);
+  } else if (format === "react-component") {
+    return generateReactComponentCode(config);
   } else {
     return generateScriptManualCode(config);
   }
@@ -2789,6 +2792,7 @@ function generateESMCode(config: any): string {
     "",
     "initAgentWidget({",
     "  target: 'body',",
+    "  useShadowDom: false,",
     "  config: {"
   ];
 
@@ -2902,6 +2906,166 @@ function generateESMCode(config: any): string {
   lines.push("    postprocessMessage: ({ text }) => markdownPostprocessor(text)");
   lines.push("  }");
   lines.push("});");
+
+  return lines.join("\n");
+}
+
+function generateReactComponentCode(config: any): string {
+  const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
+  const shouldEmitParserType = parserType !== "plain";
+  
+  const lines: string[] = [
+    "// ChatWidget.tsx",
+    "'use client'; // Required for Next.js - remove for Vite/CRA",
+    "",
+    "import { useEffect } from 'react';",
+    "import 'vanilla-agent/widget.css';",
+    "import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';",
+    "import type { AgentWidgetInitHandle } from 'vanilla-agent';",
+    "",
+    "export function ChatWidget() {",
+    "  useEffect(() => {",
+    "    let handle: AgentWidgetInitHandle | null = null;",
+    "",
+    "    handle = initAgentWidget({",
+    "      target: 'body',",
+    "      useShadowDom: false,",
+    "      config: {"
+  ];
+
+  if (config.apiUrl) lines.push(`        apiUrl: "${config.apiUrl}",`);
+  if (config.flowId) lines.push(`        flowId: "${config.flowId}",`);
+  if (shouldEmitParserType) lines.push(`        parserType: "${parserType}",`);
+
+  if (config.theme) {
+    lines.push("        theme: {");
+    Object.entries(config.theme).forEach(([key, value]) => {
+      lines.push(`          ${key}: "${value}",`);
+    });
+    lines.push("        },");
+  }
+
+  if (config.launcher) {
+    lines.push("        launcher: {");
+    Object.entries(config.launcher).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`          ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`          ${key}: ${value},`);
+      }
+    });
+    lines.push("        },");
+  }
+
+  if (config.copy) {
+    lines.push("        copy: {");
+    Object.entries(config.copy).forEach(([key, value]) => {
+      lines.push(`          ${key}: "${value}",`);
+    });
+    lines.push("        },");
+  }
+
+  if (config.sendButton) {
+    lines.push("        sendButton: {");
+    Object.entries(config.sendButton).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`          ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`          ${key}: ${value},`);
+      }
+    });
+    lines.push("        },");
+  }
+
+  if (config.voiceRecognition) {
+    lines.push("        voiceRecognition: {");
+    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`          ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`          ${key}: ${value},`);
+      } else if (typeof value === "number") {
+        lines.push(`          ${key}: ${value},`);
+      }
+    });
+    lines.push("        },");
+  }
+
+  if (config.statusIndicator) {
+    lines.push("        statusIndicator: {");
+    Object.entries(config.statusIndicator).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`          ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`          ${key}: ${value},`);
+      }
+    });
+    lines.push("        },");
+  }
+
+  if (config.features) {
+    lines.push("        features: {");
+    Object.entries(config.features).forEach(([key, value]) => {
+      lines.push(`          ${key}: ${value},`);
+    });
+    lines.push("        },");
+  }
+
+  if (config.suggestionChips && config.suggestionChips.length > 0) {
+    lines.push("        suggestionChips: [");
+    config.suggestionChips.forEach((chip: string) => {
+      lines.push(`          "${chip}",`);
+    });
+    lines.push("        ],");
+  }
+
+  if (config.suggestionChipsConfig) {
+    lines.push("        suggestionChipsConfig: {");
+    if (config.suggestionChipsConfig.fontFamily) {
+      lines.push(`          fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
+    }
+    if (config.suggestionChipsConfig.fontWeight) {
+      lines.push(`          fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    }
+    if (config.suggestionChipsConfig.paddingX) {
+      lines.push(`          paddingX: "${config.suggestionChipsConfig.paddingX}",`);
+    }
+    if (config.suggestionChipsConfig.paddingY) {
+      lines.push(`          paddingY: "${config.suggestionChipsConfig.paddingY}",`);
+    }
+    lines.push("        },");
+  }
+
+  if (config.debug) {
+    lines.push(`        debug: ${config.debug},`);
+  }
+
+  lines.push("        postprocessMessage: ({ text }) => markdownPostprocessor(text)");
+  lines.push("      }");
+  lines.push("    });");
+  lines.push("");
+  lines.push("    // Cleanup on unmount");
+  lines.push("    return () => {");
+  lines.push("      if (handle) {");
+  lines.push("        handle.destroy();");
+  lines.push("      }");
+  lines.push("    };");
+  lines.push("  }, []);");
+  lines.push("");
+  lines.push("  return null; // Widget injects itself into the DOM");
+  lines.push("}");
+  lines.push("");
+  lines.push("// Usage in your app:");
+  lines.push("// import { ChatWidget } from './components/ChatWidget';");
+  lines.push("//");
+  lines.push("// export default function App() {");
+  lines.push("//   return (");
+  lines.push("//     <div>");
+  lines.push("//       {/* Your app content */}");
+  lines.push("//       <ChatWidget />");
+  lines.push("//     </div>");
+  lines.push("//   );");
+  lines.push("// }");
 
   return lines.join("\n");
 }
