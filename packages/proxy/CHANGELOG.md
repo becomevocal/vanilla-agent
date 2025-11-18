@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.9.0
+
+### Minor Changes
+
+- improve usability of theme presets and script generation
+
 ## 1.8.0
 
 ### Minor Changes
