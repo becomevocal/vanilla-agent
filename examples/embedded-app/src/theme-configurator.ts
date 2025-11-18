@@ -2592,6 +2592,44 @@ function generateESMCode(config: any): string {
     lines.push("    },");
   }
 
+  if (config.sendButton) {
+    lines.push("    sendButton: {");
+    Object.entries(config.sendButton).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
+  if (config.voiceRecognition) {
+    lines.push("    voiceRecognition: {");
+    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      } else if (typeof value === "number") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
+  if (config.statusIndicator) {
+    lines.push("    statusIndicator: {");
+    Object.entries(config.statusIndicator).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
   if (config.features) {
     lines.push("    features: {");
     Object.entries(config.features).forEach(([key, value]) => {
@@ -2675,6 +2713,44 @@ function generateScriptInstallerCode(config: any): string {
     lines.push("      copy: {");
     Object.entries(config.copy).forEach(([key, value]) => {
       lines.push(`        ${key}: "${value}",`);
+    });
+    lines.push("      },");
+  }
+
+  if (config.sendButton) {
+    lines.push("      sendButton: {");
+    Object.entries(config.sendButton).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.voiceRecognition) {
+    lines.push("      voiceRecognition: {");
+    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      } else if (typeof value === "number") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.statusIndicator) {
+    lines.push("      statusIndicator: {");
+    Object.entries(config.statusIndicator).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
     });
     lines.push("      },");
   }
@@ -2774,6 +2850,44 @@ function generateScriptManualCode(config: any): string {
     lines.push("      },");
   }
 
+  if (config.sendButton) {
+    lines.push("      sendButton: {");
+    Object.entries(config.sendButton).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.voiceRecognition) {
+    lines.push("      voiceRecognition: {");
+    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      } else if (typeof value === "number") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
+  if (config.statusIndicator) {
+    lines.push("      statusIndicator: {");
+    Object.entries(config.statusIndicator).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`        ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`        ${key}: ${value},`);
+      }
+    });
+    lines.push("      },");
+  }
+
   if (config.features) {
     lines.push("      features: {");
     Object.entries(config.features).forEach(([key, value]) => {
@@ -2852,6 +2966,44 @@ function generateScriptAdvancedCode(config: any): string {
     lines.push("    copy: {");
     Object.entries(config.copy).forEach(([key, value]) => {
       lines.push(`      ${key}: "${value}",`);
+    });
+    lines.push("    },");
+  }
+
+  if (config.sendButton) {
+    lines.push("    sendButton: {");
+    Object.entries(config.sendButton).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
+  if (config.voiceRecognition) {
+    lines.push("    voiceRecognition: {");
+    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      } else if (typeof value === "number") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
+  if (config.statusIndicator) {
+    lines.push("    statusIndicator: {");
+    Object.entries(config.statusIndicator).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      }
     });
     lines.push("    },");
   }
