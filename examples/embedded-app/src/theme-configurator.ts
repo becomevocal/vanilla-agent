@@ -2754,7 +2754,8 @@ function setupExportControls() {
             "script-installer": "Script Tag (Auto Installer - Recommended)",
             "script-manual": "Script Tag (Manual)",
             "script-advanced": "Script Tag (Advanced + DOM Helper)",
-            "react-component": "React (Client Component)"
+            "react-component": "React (Client Component)",
+            "react-advanced": "React (Advanced + DOM Helper)"
           };
           showFeedback(`✓ ${formatNames[format]} code copied to clipboard!`);
           dropdownMenu.classList.remove("show");
