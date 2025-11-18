@@ -1080,6 +1080,7 @@
           <h2>Live Preview</h2>
           <div class="preview-controls">
             <button type="button" id="copy-json" class="export-button">Copy Config JSON</button>
+            <button type="button" id="load-json" class="export-button">Load Config JSON</button>
             <div class="code-dropdown-container">
               <button type="button" id="copy-code" class="export-button code-dropdown-button">
                 Copy Code Snippet
@@ -1090,6 +1091,16 @@
                 <button type="button" class="dropdown-item" data-format="script-advanced">Script Tag (Advanced + DOM Helper)</button>
                 <button type="button" class="dropdown-item" data-format="esm">ESM/Module Format</button>
                 <!-- <button type="button" class="dropdown-item" data-format="script-manual">Script Tag (Manual)</button> -->
+              </div>
+            </div>
+            <div class="code-dropdown-container">
+              <button type="button" id="presets-button" class="export-button code-dropdown-button">
+                Presets
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div id="presets-dropdown-menu" class="code-dropdown-menu">
+                <button type="button" class="dropdown-item" id="save-preset-item">Save Current Config...</button>
+                <div id="presets-list" class="presets-list"></div>
               </div>
             </div>
             <button type="button" id="reset-config" class="reset-button">Reset to Defaults</button>

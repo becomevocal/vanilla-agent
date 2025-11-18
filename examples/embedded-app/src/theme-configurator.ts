@@ -324,6 +324,7 @@ const immediateUpdate = (config: AgentWidgetConfig) => {
 
 // Local storage
 const STORAGE_KEY = "vanilla-agent-widget-config";
+const PRESETS_STORAGE_KEY = "vanilla-agent-widget-presets";
 
 function saveConfigToLocalStorage(config: AgentWidgetConfig) {
   try {
@@ -387,6 +388,143 @@ function loadConfigFromLocalStorage(): AgentWidgetConfig | null {
     console.error("Failed to load config:", error);
   }
   return null;
+}
+
+// Preset storage functions
+interface Preset {
+  name: string;
+  config: AgentWidgetConfig;
+  timestamp: number;
+}
+
+function serializeConfigForStorage(config: AgentWidgetConfig): any {
+  // Determine parser type for storage
+  let parserType: ParserType = config.parserType ?? "plain";
+  if (!config.parserType && config.streamParser) {
+    const parserStr = config.streamParser.toString();
+    if (parserStr.includes("createJsonStreamParser")) {
+      parserType = "json";
+    } else if (parserStr.includes("createRegexJsonParser")) {
+      parserType = "regex-json";
+    } else if (parserStr.includes("createXmlParser")) {
+      parserType = "xml";
+    }
+  }
+  
+  return {
+    ...config,
+    postprocessMessage: undefined, // Can't serialize functions
+    streamParser: undefined, // Can't serialize functions
+    initialMessages: undefined, // Don't persist sample messages
+    parserType // Store parser preference
+  };
+}
+
+function savePreset(name: string, config: AgentWidgetConfig): boolean {
+  try {
+    const presets = loadPresets();
+    const serializedConfig = serializeConfigForStorage(config);
+    
+    // Check if preset with this name already exists
+    const existingIndex = presets.findIndex(p => p.name === name);
+    
+    if (existingIndex >= 0) {
+      // Update existing preset
+      presets[existingIndex] = {
+        name,
+        config: serializedConfig,
+        timestamp: Date.now()
+      };
+    } else {
+      // Add new preset
+      presets.push({
+        name,
+        config: serializedConfig,
+        timestamp: Date.now()
+      });
+    }
+    
+    // Sort by timestamp (newest first)
+    presets.sort((a, b) => b.timestamp - a.timestamp);
+    
+    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    return true;
+  } catch (error) {
+    console.error("Failed to save preset:", error);
+    return false;
+  }
+}
+
+function loadPresets(): Preset[] {
+  try {
+    const saved = localStorage.getItem(PRESETS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error("Failed to load presets:", error);
+  }
+  return [];
+}
+
+function loadPreset(name: string): AgentWidgetConfig | null {
+  try {
+    const presets = loadPresets();
+    const preset = presets.find(p => p.name === name);
+    
+    if (preset) {
+      const defaults = getDefaultConfig();
+      const parsed = preset.config;
+      
+      // Handle legacy _parserType for backward compatibility
+      const parserType = parsed.parserType ?? (parsed as any)._parserType;
+      
+      return {
+        ...defaults,
+        ...parsed,
+        parserType, // parserType will be used by the client to select the parser
+        streamParser: undefined, // Let parserType drive parser selection
+        theme: {
+          ...defaults.theme,
+          ...parsed.theme
+        },
+        sendButton: {
+          ...defaults.sendButton,
+          ...parsed.sendButton
+        },
+        statusIndicator: {
+          ...defaults.statusIndicator,
+          ...parsed.statusIndicator
+        }
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load preset:", error);
+  }
+  return null;
+}
+
+function deletePreset(name: string): boolean {
+  try {
+    const presets = loadPresets();
+    const filtered = presets.filter(p => p.name !== name);
+    
+    if (filtered.length === presets.length) {
+      // Preset not found
+      return false;
+    }
+    
+    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (error) {
+    console.error("Failed to delete preset:", error);
+    return false;
+  }
+}
+
+function presetExists(name: string): boolean {
+  const presets = loadPresets();
+  return presets.some(p => p.name === name);
 }
 
 // Initialize from localStorage if available
@@ -2460,6 +2598,7 @@ function setupOtherOptionsControls() {
 // Export functions
 function setupExportControls() {
   const copyJsonButton = getInput<HTMLButtonElement>("copy-json");
+  const loadJsonButton = getInput<HTMLButtonElement>("load-json");
   const copyCodeButton = getInput<HTMLButtonElement>("copy-code");
   const dropdownMenu = getInput<HTMLDivElement>("code-dropdown-menu");
   const dropdownItems = document.querySelectorAll<HTMLButtonElement>(".dropdown-item");
@@ -2483,6 +2622,99 @@ function setupExportControls() {
     navigator.clipboard.writeText(json).then(() => {
       showFeedback("✓ Config JSON copied to clipboard!");
     });
+  });
+
+  loadJsonButton.addEventListener("click", () => {
+    const jsonInput = window.prompt("Paste your config JSON:");
+    
+    if (!jsonInput) {
+      // User cancelled
+      return;
+    }
+    
+    const trimmedInput = jsonInput.trim();
+    
+    if (!trimmedInput) {
+      showFeedback("✗ JSON input cannot be empty");
+      return;
+    }
+    
+    try {
+      const parsed = JSON.parse(trimmedInput);
+      
+      // Validate it's an object
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        showFeedback("✗ Invalid JSON: must be an object");
+        return;
+      }
+      
+      // Merge with defaults (similar to loadConfigFromLocalStorage)
+      const defaults = getDefaultConfig();
+      
+      // Handle legacy _parserType for backward compatibility
+      const parserType = parsed.parserType ?? (parsed as any)._parserType;
+      
+      const mergedConfig: AgentWidgetConfig = {
+        ...defaults,
+        ...parsed,
+        parserType, // parserType will be used by the client to select the parser
+        streamParser: undefined, // Let parserType drive parser selection
+        theme: {
+          ...defaults.theme,
+          ...parsed.theme
+        },
+        sendButton: {
+          ...defaults.sendButton,
+          ...parsed.sendButton
+        },
+        statusIndicator: {
+          ...defaults.statusIndicator,
+          ...parsed.statusIndicator
+        },
+        launcher: {
+          ...defaults.launcher,
+          ...parsed.launcher,
+          clearChat: {
+            ...defaults.launcher?.clearChat,
+            ...parsed.launcher?.clearChat
+          }
+        },
+        copy: {
+          ...defaults.copy,
+          ...parsed.copy
+        },
+        voiceRecognition: {
+          ...defaults.voiceRecognition,
+          ...parsed.voiceRecognition
+        },
+        features: {
+          ...defaults.features,
+          ...parsed.features
+        },
+        suggestionChips: parsed.suggestionChips ?? defaults.suggestionChips,
+        suggestionChipsConfig: {
+          ...defaults.suggestionChipsConfig,
+          ...parsed.suggestionChipsConfig
+        }
+      };
+      
+      // Update config
+      currentConfig = mergedConfig;
+      // Save to localStorage
+      saveConfigToLocalStorage(currentConfig);
+      immediateUpdate(currentConfig);
+      
+      showFeedback("✓ Config JSON loaded successfully!");
+      
+      // Reload page to sync all form inputs
+      setTimeout(() => {
+        location.reload();
+      }, 500);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      showFeedback(`✗ Failed to parse JSON: ${errorMessage}`);
+    }
   });
 
   const dropdownContainer = copyCodeButton.closest(".code-dropdown-container") as HTMLElement;
@@ -3326,6 +3558,212 @@ function generateScriptAdvancedCode(config: any): string {
   return lines.join("\n");
 }
 
+// Preset controls
+function renderPresetList() {
+  try {
+    const presetsList = getInput<HTMLDivElement>("presets-list");
+    const presets = loadPresets();
+    
+    // Clear existing list
+    presetsList.innerHTML = "";
+  
+  if (presets.length === 0) {
+    const emptyMessage = document.createElement("div");
+    emptyMessage.className = "dropdown-item";
+    emptyMessage.style.padding = "8px 16px";
+    emptyMessage.style.color = "#6b7280";
+    emptyMessage.style.fontSize = "0.875rem";
+    emptyMessage.textContent = "No presets saved";
+    presetsList.appendChild(emptyMessage);
+    return;
+  }
+  
+  presets.forEach((preset, index) => {
+    const presetItem = document.createElement("div");
+    presetItem.className = "preset-item";
+    presetItem.style.display = "flex";
+    presetItem.style.alignItems = "center";
+    presetItem.style.justifyContent = "space-between";
+    presetItem.style.padding = "8px 16px";
+    presetItem.style.cursor = "pointer";
+    presetItem.style.gap = "8px";
+    // Add border-top only to first item to separate from "Save Current Config..." button
+    if (index === 0) {
+      presetItem.style.borderTop = "1px solid #e5e7eb";
+    }
+    
+    presetItem.addEventListener("mouseenter", () => {
+      presetItem.style.backgroundColor = "#f3f4f6";
+    });
+    presetItem.addEventListener("mouseleave", () => {
+      presetItem.style.backgroundColor = "transparent";
+    });
+    
+    const presetName = document.createElement("span");
+    presetName.textContent = preset.name;
+    presetName.style.flex = "1";
+    presetName.style.minWidth = "0";
+    presetName.style.wordBreak = "break-word";
+    presetName.style.overflowWrap = "break-word";
+    presetName.title = preset.name; // Show full name on hover
+    
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "×";
+    deleteButton.className = "preset-delete-button";
+    deleteButton.style.background = "none";
+    deleteButton.style.border = "none";
+    deleteButton.style.color = "#ef4444";
+    deleteButton.style.cursor = "pointer";
+    deleteButton.style.fontSize = "1.5rem";
+    deleteButton.style.lineHeight = "1";
+    deleteButton.style.padding = "0 8px";
+    deleteButton.style.marginLeft = "8px";
+    deleteButton.style.flexShrink = "0"; // Prevent button from shrinking
+    deleteButton.setAttribute("aria-label", `Delete preset ${preset.name}`);
+    
+    deleteButton.addEventListener("mouseenter", () => {
+      deleteButton.style.color = "#dc2626";
+    });
+    deleteButton.addEventListener("mouseleave", () => {
+      deleteButton.style.color = "#ef4444";
+    });
+    
+    deleteButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm(`Are you sure you want to delete preset "${preset.name}"?`)) {
+        if (deletePreset(preset.name)) {
+          renderPresetList();
+          const feedbackDiv = getInput<HTMLDivElement>("export-feedback");
+          feedbackDiv.textContent = `✓ Preset "${preset.name}" deleted`;
+          feedbackDiv.classList.add("show");
+          setTimeout(() => {
+            feedbackDiv.classList.remove("show");
+          }, 2000);
+        }
+      }
+    });
+    
+    presetItem.addEventListener("click", (e) => {
+      // Don't trigger if clicking delete button
+      if ((e.target as HTMLElement).classList.contains("preset-delete-button")) {
+        return;
+      }
+      
+      const loadedConfig = loadPreset(preset.name);
+      if (loadedConfig) {
+        // Close dropdown before reloading
+        const presetsButton = getInput<HTMLButtonElement>("presets-button");
+        const dropdownContainer = presetsButton.closest(".code-dropdown-container") as HTMLElement;
+        const presetsDropdown = getInput<HTMLDivElement>("presets-dropdown-menu");
+        presetsDropdown.classList.remove("show");
+        dropdownContainer?.classList.remove("open");
+        
+        currentConfig = loadedConfig;
+        // Save to main config storage so it loads on page reload
+        saveConfigToLocalStorage(currentConfig);
+        immediateUpdate(currentConfig);
+        
+        // Reload page to sync all form inputs
+        location.reload();
+      }
+    });
+    
+    presetItem.appendChild(presetName);
+    presetItem.appendChild(deleteButton);
+    presetsList.appendChild(presetItem);
+  });
+  } catch (error) {
+    console.error("Failed to render preset list:", error);
+  }
+}
+
+function setupPresetControls() {
+  try {
+    const presetsButton = getInput<HTMLButtonElement>("presets-button");
+    const presetsDropdown = getInput<HTMLDivElement>("presets-dropdown-menu");
+    const savePresetItem = getInput<HTMLButtonElement>("save-preset-item");
+    const feedbackDiv = getInput<HTMLDivElement>("export-feedback");
+    
+    const showFeedback = (message: string) => {
+      feedbackDiv.textContent = message;
+      feedbackDiv.classList.add("show");
+      setTimeout(() => {
+        feedbackDiv.classList.remove("show");
+      }, 2000);
+    };
+    
+    const dropdownContainer = presetsButton.closest(".code-dropdown-container") as HTMLElement;
+    
+    // Initial render of preset list
+    renderPresetList();
+  
+  // Toggle dropdown menu
+  presetsButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const isOpen = presetsDropdown.classList.contains("show");
+    if (isOpen) {
+      presetsDropdown.classList.remove("show");
+      dropdownContainer?.classList.remove("open");
+    } else {
+      presetsDropdown.classList.add("show");
+      dropdownContainer?.classList.add("open");
+      // Re-render list when opening to ensure it's up to date
+      renderPresetList();
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!presetsButton.contains(e.target as Node) && !presetsDropdown.contains(e.target as Node)) {
+      presetsDropdown.classList.remove("show");
+      dropdownContainer?.classList.remove("open");
+    }
+  });
+  
+  // Handle "Save Current Config..." click
+  savePresetItem.addEventListener("click", (e) => {
+    e.stopPropagation();
+    
+    const name = window.prompt("Enter a name for this preset:");
+    
+    if (!name) {
+      // User cancelled or entered empty string
+      return;
+    }
+    
+    const trimmedName = name.trim();
+    
+    if (!trimmedName) {
+      showFeedback("✗ Preset name cannot be empty");
+      return;
+    }
+    
+    // Check if preset already exists
+    if (presetExists(trimmedName)) {
+      const overwrite = confirm(`A preset named "${trimmedName}" already exists. Do you want to overwrite it?`);
+      if (!overwrite) {
+        return;
+      }
+    }
+    
+    // Save the preset
+    if (savePreset(trimmedName, currentConfig)) {
+      showFeedback(`✓ Preset "${trimmedName}" saved`);
+      renderPresetList();
+      // Close dropdown
+      presetsDropdown.classList.remove("show");
+      dropdownContainer?.classList.remove("open");
+    } else {
+      showFeedback("✗ Failed to save preset");
+    }
+  });
+  } catch (error) {
+    console.error("Failed to setup preset controls:", error);
+  }
+}
+
 // Reset controls
 function setupResetControls() {
   const resetButton = getInput<HTMLButtonElement>("reset-config");
@@ -3550,6 +3988,7 @@ function init() {
   setupSuggestionChipsControls();
   setupOtherOptionsControls();
   setupExportControls();
+  setupPresetControls();
   setupResetControls();
 }
 

@@ -722,7 +722,8 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  min-width: 200px;
+  max-width: 400px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -735,6 +736,13 @@ body {
 
 .code-dropdown-menu.show {
   display: flex;
+}
+
+/* Presets dropdown should be wider to show full names */
+#presets-dropdown-menu {
+  min-width: 250px;
+  max-width: 400px;
+  width: auto;
 }
 
 .dropdown-item {
