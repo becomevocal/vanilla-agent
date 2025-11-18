@@ -2514,12 +2514,13 @@ function setupExportControls() {
       e.stopPropagation();
       const format = item.getAttribute("data-format");
       if (format) {
-        const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual");
+        const code = generateCodeSnippet(format as "esm" | "script-installer" | "script-manual" | "script-advanced");
         navigator.clipboard.writeText(code).then(() => {
-          const formatNames = {
+          const formatNames: Record<string, string> = {
             // esm: "ESM/Module",
             "script-installer": "Script Tag (Auto Installer - Recommended)",
-            "script-manual": "Script Tag (Manual)"
+            "script-manual": "Script Tag (Manual)",
+            "script-advanced": "Script Tag (Advanced + DOM Helper)"
           };
           showFeedback(`✓ ${formatNames[format]} code copied to clipboard!`);
           dropdownMenu.classList.remove("show");
@@ -2530,7 +2531,7 @@ function setupExportControls() {
   });
 }
 
-function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual" = "esm"): string {
+function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual" | "script-advanced" = "esm"): string {
   const config = { ...currentConfig };
   delete config.postprocessMessage;
   delete config.initialMessages;
@@ -2539,6 +2540,8 @@ function generateCodeSnippet(format: "esm" | "script-installer" | "script-manual
     return generateESMCode(config);
   } else if (format === "script-installer") {
     return generateScriptInstallerCode(config);
+  } else if (format === "script-advanced") {
+    return generateScriptAdvancedCode(config);
   } else {
     return generateScriptManualCode(config);
   }
@@ -2599,7 +2602,7 @@ function generateESMCode(config: any): string {
 
   if (config.suggestionChips && config.suggestionChips.length > 0) {
     lines.push("    suggestionChips: [");
-    config.suggestionChips.forEach((chip) => {
+    config.suggestionChips.forEach((chip: string) => {
       lines.push(`      "${chip}",`);
     });
     lines.push("    ],");
@@ -2640,7 +2643,7 @@ function generateScriptInstallerCode(config: any): string {
   const lines: string[] = [
     "<script>",
     "  window.siteAgentConfig = {",
-    "    target: '#chat-widget-root',",
+    "    target: 'body',",
     "    config: {"
   ];
 
@@ -2686,7 +2689,7 @@ function generateScriptInstallerCode(config: any): string {
 
   if (config.suggestionChips && config.suggestionChips.length > 0) {
     lines.push("      suggestionChips: [");
-    config.suggestionChips.forEach((chip) => {
+    config.suggestionChips.forEach((chip: string) => {
       lines.push(`        "${chip}",`);
     });
     lines.push("      ],");
@@ -2781,7 +2784,7 @@ function generateScriptManualCode(config: any): string {
 
   if (config.suggestionChips && config.suggestionChips.length > 0) {
     lines.push("      suggestionChips: [");
-    config.suggestionChips.forEach((chip) => {
+    config.suggestionChips.forEach((chip: string) => {
       lines.push(`        "${chip}",`);
     });
     lines.push("      ],");
@@ -2810,6 +2813,362 @@ function generateScriptManualCode(config: any): string {
 
   lines.push("    }");
   lines.push("  });");
+  lines.push("</script>");
+
+  return lines.join("\n");
+}
+
+function generateScriptAdvancedCode(config: any): string {
+  const lines: string[] = [
+    "<!-- Chat Widget Configuration -->",
+    "<script>",
+    "  window.ChatWidgetConfig = {"
+  ];
+
+  if (config.apiUrl) lines.push(`    apiUrl: "${config.apiUrl}",`);
+  if (config.flowId) lines.push(`    flowId: "${config.flowId}",`);
+
+  if (config.theme) {
+    lines.push("    theme: {");
+    Object.entries(config.theme).forEach(([key, value]) => {
+      lines.push(`      ${key}: "${value}",`);
+    });
+    lines.push("    },");
+  }
+
+  if (config.launcher) {
+    lines.push("    launcher: {");
+    Object.entries(config.launcher).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`      ${key}: "${value}",`);
+      } else if (typeof value === "boolean") {
+        lines.push(`      ${key}: ${value},`);
+      }
+    });
+    lines.push("    },");
+  }
+
+  if (config.copy) {
+    lines.push("    copy: {");
+    Object.entries(config.copy).forEach(([key, value]) => {
+      lines.push(`      ${key}: "${value}",`);
+    });
+    lines.push("    },");
+  }
+
+  if (config.features) {
+    lines.push("    features: {");
+    Object.entries(config.features).forEach(([key, value]) => {
+      lines.push(`      ${key}: ${value},`);
+    });
+    lines.push("    },");
+  }
+
+  if (config.suggestionChips && config.suggestionChips.length > 0) {
+    lines.push("    suggestionChips: [");
+    config.suggestionChips.forEach((chip: string) => {
+      lines.push(`      "${chip}",`);
+    });
+    lines.push("    ],");
+  }
+
+  lines.push("  };");
+  lines.push("</script>");
+  lines.push("");
+  lines.push("<!-- Chat Widget Script with DOM Helper -->");
+  lines.push("<script>");
+  lines.push("  (function () {");
+  lines.push("    'use strict';");
+  lines.push("    ");
+  lines.push("    const STORAGE_KEY = 'chat-widget-state';");
+  lines.push("    const PROCESSED_ACTIONS_KEY = 'chat-widget-processed-actions';");
+  lines.push("");
+  lines.push("    // DOM context provider - extracts page elements for AI context");
+  lines.push("    const domContextProvider = () => {");
+  lines.push("      const selectors = {");
+  lines.push("        products: '[data-product-id], .product-card, .product-item, [role=\"article\"]',");
+  lines.push("        buttons: 'button, [role=\"button\"], .btn',");
+  lines.push("        links: 'a[href]',");
+  lines.push("        inputs: 'input, textarea, select'");
+  lines.push("      };");
+  lines.push("");
+  lines.push("      const elements = [];");
+  lines.push("      Object.entries(selectors).forEach(([type, selector]) => {");
+  lines.push("        document.querySelectorAll(selector).forEach((element) => {");
+  lines.push("          if (!(element instanceof HTMLElement)) return;");
+  lines.push("          const text = element.innerText?.trim();");
+  lines.push("          if (!text) return;");
+  lines.push("");
+  lines.push("          const selectorString =");
+  lines.push("            element.id ? `#${element.id}` :");
+  lines.push("            element.getAttribute('data-testid') ? `[data-testid=\"${element.getAttribute('data-testid')}\"]` :");
+  lines.push("            element.getAttribute('data-product-id') ? `[data-product-id=\"${element.getAttribute('data-product-id')}\"]` :");
+  lines.push("            element.tagName.toLowerCase();");
+  lines.push("");
+  lines.push("          const elementData = {");
+  lines.push("            type,");
+  lines.push("            tagName: element.tagName.toLowerCase(),");
+  lines.push("            selector: selectorString,");
+  lines.push("            innerText: text.substring(0, 200)");
+  lines.push("          };");
+  lines.push("");
+  lines.push("          if (type === 'links' && element instanceof HTMLAnchorElement && element.href) {");
+  lines.push("            elementData.href = element.href;");
+  lines.push("          }");
+  lines.push("");
+  lines.push("          elements.push(elementData);");
+  lines.push("        });");
+  lines.push("      });");
+  lines.push("");
+  lines.push("      const counts = elements.reduce((acc, el) => {");
+  lines.push("        acc[el.type] = (acc[el.type] || 0) + 1;");
+  lines.push("        return acc;");
+  lines.push("      }, {});");
+  lines.push("");
+  lines.push("      return {");
+  lines.push("        page_elements: elements.slice(0, 50),");
+  lines.push("        page_element_count: elements.length,");
+  lines.push("        element_types: counts,");
+  lines.push("        page_url: window.location.href,");
+  lines.push("        page_title: document.title,");
+  lines.push("        timestamp: new Date().toISOString()");
+  lines.push("      };");
+  lines.push("    };");
+  lines.push("");
+  lines.push("    const createWidgetConfig = (agentWidget) => ({");
+  lines.push("      ...window.ChatWidgetConfig,");
+  lines.push("      // Flexible JSON stream parser for handling structured actions");
+  lines.push("      streamParser: () => agentWidget.createFlexibleJsonStreamParser((parsed) => {");
+  lines.push("        if (!parsed || typeof parsed !== 'object') return null;");
+  lines.push("        ");
+  lines.push("        // Extract display text based on action type");
+  lines.push("        if (parsed.action === 'nav_then_click') {");
+  lines.push("          return 'Navigating...';");
+  lines.push("        } else if (parsed.action === 'message') {");
+  lines.push("          return parsed.text || '';");
+  lines.push("        } else if (parsed.action === 'message_and_click') {");
+  lines.push("          return parsed.text || 'Processing...';");
+  lines.push("        }");
+  lines.push("        ");
+  lines.push("        return parsed.text || null;");
+  lines.push("      }),");
+  lines.push("      // Action parsers to detect JSON actions in responses");
+  lines.push("      actionParsers: [");
+  lines.push("        agentWidget.defaultJsonActionParser,");
+  lines.push("        // Custom parser for markdown-wrapped JSON");
+  lines.push("        ({ text, message }) => {");
+  lines.push("          const jsonSource = message.rawContent || text || message.content;");
+  lines.push("          if (!jsonSource || typeof jsonSource !== 'string') return null;");
+  lines.push("          ");
+  lines.push("          // Strip markdown code fences");
+  lines.push("          let cleanJson = jsonSource");
+  lines.push("            .replace(/^```(?:json)?\\s*\\n?/, '')");
+  lines.push("            .replace(/\\n?```\\s*$/, '')");
+  lines.push("            .trim();");
+  lines.push("          ");
+  lines.push("          if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;");
+  lines.push("          ");
+  lines.push("          try {");
+  lines.push("            const parsed = JSON.parse(cleanJson);");
+  lines.push("            if (parsed.action) {");
+  lines.push("              return { type: parsed.action, payload: parsed };");
+  lines.push("            }");
+  lines.push("          } catch (e) {");
+  lines.push("            return null;");
+  lines.push("          }");
+  lines.push("          return null;");
+  lines.push("        }");
+  lines.push("      ],");
+  lines.push("      // Action handlers for navigation and other actions");
+  lines.push("      actionHandlers: [");
+  lines.push("        agentWidget.defaultActionHandlers.message,");
+  lines.push("        agentWidget.defaultActionHandlers.messageAndClick,");
+  lines.push("        // Handler for nav_then_click action");
+  lines.push("        (action, context) => {");
+  lines.push("          if (action.type !== 'nav_then_click') return;");
+  lines.push("          ");
+  lines.push("          const payload = action.payload || action.raw || {};");
+  lines.push("          const url = payload?.page;");
+  lines.push("          const text = payload?.on_load_text || 'Navigating...';");
+  lines.push("          ");
+  lines.push("          if (!url) return { handled: true, displayText: text };");
+  lines.push("          ");
+  lines.push("          // Check if already processed");
+  lines.push("          const messageId = context.message?.id;");
+  lines.push("          const processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');");
+  lines.push("          const actionKey = `nav_${messageId}_${url}`;");
+  lines.push("          ");
+  lines.push("          if (processedActions.includes(actionKey)) {");
+  lines.push("            return { handled: true, displayText: text };");
+  lines.push("          }");
+  lines.push("          ");
+  lines.push("          processedActions.push(actionKey);");
+  lines.push("          localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));");
+  lines.push("          ");
+  lines.push("          const targetUrl = url.startsWith('http')");
+  lines.push("            ? url");
+  lines.push("            : new URL(url, window.location.origin).toString();");
+  lines.push("          ");
+  lines.push("          // Store navigation context");
+  lines.push("          if (window.chatController?.isOpen()) {");
+  lines.push("            const navContextData = {");
+  lines.push("              shouldReopenAfterNav: true,");
+  lines.push("              onLoadText: text,");
+  lines.push("              targetUrl: targetUrl,");
+  lines.push("              timestamp: Date.now()");
+  lines.push("            };");
+  lines.push("            ");
+  lines.push("            localStorage.setItem('nav-context', JSON.stringify(navContextData));");
+  lines.push("            window.chatController.updatePersistentMetadata((prev) => ({");
+  lines.push("              ...prev,");
+  lines.push("              navigationContext: navContextData");
+  lines.push("            }));");
+  lines.push("          }");
+  lines.push("          ");
+  lines.push("          // Navigate after delay");
+  lines.push("          setTimeout(() => {");
+  lines.push("            window.location.href = targetUrl;");
+  lines.push("          }, 800);");
+  lines.push("          ");
+  lines.push("          return { handled: true, displayText: 'Navigating...', persistMessage: false };");
+  lines.push("        }");
+  lines.push("      ],");
+  lines.push("      contextProviders: [domContextProvider],");
+  lines.push("      storageAdapter: agentWidget.createLocalStorageAdapter(STORAGE_KEY),");
+  lines.push("      postprocessMessage: ({ text }) => {");
+  lines.push("        return agentWidget.markdownPostprocessor");
+  lines.push("          ? agentWidget.markdownPostprocessor(text)");
+  lines.push("          : text;");
+  lines.push("      },");
+  lines.push("      requestMiddleware: ({ payload }) => {");
+  lines.push("        if (payload.context) {");
+  lines.push("          payload.metadata = payload.context;");
+  lines.push("          delete payload.context;");
+  lines.push("        }");
+  lines.push("        return payload;");
+  lines.push("      }");
+  lines.push("    });");
+  lines.push("");
+  lines.push("    let widgetInitialized = false;");
+  lines.push("    ");
+  lines.push("    const initializeWidget = () => {");
+  lines.push("      if (widgetInitialized) return true;");
+  lines.push("      ");
+  lines.push("      if (!window.AgentWidget?.initAgentWidget) {");
+  lines.push("        return false;");
+  lines.push("      }");
+  lines.push("");
+  lines.push("      const config = createWidgetConfig(window.AgentWidget);");
+  lines.push("      ");
+  lines.push("      window.AgentWidget.initAgentWidget({");
+  lines.push("        target: window.siteAgentConfig?.target || 'body',");
+  lines.push("        config,");
+  lines.push("        useShadowDom: false,");
+  lines.push("        windowKey: 'chatController'");
+  lines.push("      });");
+  lines.push("      ");
+  lines.push("      widgetInitialized = true;");
+  lines.push("      ");
+  lines.push("      // Handle post-navigation context");
+  lines.push("      if (window.chatController) {");
+  lines.push("        const navContextStr = localStorage.getItem('nav-context');");
+  lines.push("        let navContext = null;");
+  lines.push("        ");
+  lines.push("        if (navContextStr) {");
+  lines.push("          try {");
+  lines.push("            navContext = JSON.parse(navContextStr);");
+  lines.push("          } catch (e) {");
+  lines.push("            console.error('Failed to parse nav-context:', e);");
+  lines.push("          }");
+  lines.push("        }");
+  lines.push("        ");
+  lines.push("        if (!navContext) {");
+  lines.push("          const metadata = window.chatController.getPersistentMetadata();");
+  lines.push("          navContext = metadata?.navigationContext;");
+  lines.push("        }");
+  lines.push("        ");
+  lines.push("        if (navContext && typeof navContext === 'object') {");
+  lines.push("          const timeSinceNav = Date.now() - (navContext.timestamp || 0);");
+  lines.push("          ");
+  lines.push("          if (navContext.shouldReopenAfterNav && timeSinceNav < 5000) {");
+  lines.push("            localStorage.removeItem('nav-context');");
+  lines.push("            window.chatController.updatePersistentMetadata((prev) => {");
+  lines.push("              const { navigationContext, ...rest } = prev;");
+  lines.push("              return rest;");
+  lines.push("            });");
+  lines.push("            ");
+  lines.push("            setTimeout(() => {");
+  lines.push("              if (window.chatController?.open) {");
+  lines.push("                window.chatController.open();");
+  lines.push("                ");
+  lines.push("                if (navContext.onLoadText) {");
+  lines.push("                  setTimeout(() => {");
+  lines.push("                    window.chatController.injectTestMessage({");
+  lines.push("                      type: 'message',");
+  lines.push("                      message: {");
+  lines.push("                        id: `assistant-nav-${Date.now()}`,");
+  lines.push("                        role: 'assistant',");
+  lines.push("                        content: navContext.onLoadText,");
+  lines.push("                        createdAt: new Date().toISOString()");
+  lines.push("                      }");
+  lines.push("                    });");
+  lines.push("                  }, 500);");
+  lines.push("                }");
+  lines.push("              }");
+  lines.push("            }, 300);");
+  lines.push("          } else if (timeSinceNav >= 5000) {");
+  lines.push("            localStorage.removeItem('nav-context');");
+  lines.push("            window.chatController.updatePersistentMetadata((prev) => {");
+  lines.push("              const { navigationContext, ...rest } = prev;");
+  lines.push("              return rest;");
+  lines.push("            });");
+  lines.push("          }");
+  lines.push("        }");
+  lines.push("      }");
+  lines.push("      ");
+  lines.push("      return true;");
+  lines.push("    };");
+  lines.push("");
+  lines.push("    // Set config before loading installer");
+  lines.push("    window.siteAgentConfig = {");
+  lines.push("      version: 'latest',");
+  lines.push("      cdn: 'jsdelivr',");
+  lines.push("      target: 'body',");
+  lines.push("      autoInit: false,");
+  lines.push("      config: null");
+  lines.push("    };");
+  lines.push("    ");
+  lines.push("    const installerScript = document.createElement('script');");
+  lines.push("    installerScript.src = 'https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js';");
+  lines.push("    ");
+  lines.push("    installerScript.onload = () => {");
+  lines.push("      const attemptInit = () => {");
+  lines.push("        if (!initializeWidget()) {");
+  lines.push("          setTimeout(attemptInit, 50);");
+  lines.push("        }");
+  lines.push("      };");
+  lines.push("      attemptInit();");
+  lines.push("    };");
+  lines.push("    ");
+  lines.push("    installerScript.onerror = () => {");
+  lines.push("      console.error('[Chat Widget] Failed to load installer script');");
+  lines.push("    };");
+  lines.push("    ");
+  lines.push("    document.head.appendChild(installerScript);");
+  lines.push("    ");
+  lines.push("    // Clean up on chat clear");
+  lines.push("    window.addEventListener('vanilla-agent:clear-chat', () => {");
+  lines.push("      localStorage.removeItem(PROCESSED_ACTIONS_KEY);");
+  lines.push("      localStorage.removeItem('nav-context');");
+  lines.push("      ");
+  lines.push("      if (window.chatController) {");
+  lines.push("        window.chatController.updatePersistentMetadata((prev) => {");
+  lines.push("          const { navigationContext, ...rest } = prev;");
+  lines.push("          return rest;");
+  lines.push("        });");
+  lines.push("      }");
+  lines.push("    });");
+  lines.push("  })();");
   lines.push("</script>");
 
   return lines.join("\n");
