@@ -19,8 +19,8 @@ import {
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
   import.meta.env.VITE_PROXY_URL
-    ? `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch-directive`
-    : `http://localhost:${proxyPort}/api/chat/dispatch-directive`;
+    ? `${import.meta.env.VITE_PROXY_URL}/api/chat/dispatch-component`
+    : `http://localhost:${proxyPort}/api/chat/dispatch-component`;
 
 // Register custom components
 componentRegistry.register("ProductCard", ProductCard);

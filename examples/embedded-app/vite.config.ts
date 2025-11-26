@@ -34,6 +34,7 @@ export default defineConfig({
     proxy: {
       "/api/chat/dispatch": `http://localhost:${proxyPort}`,
       "/api/chat/dispatch-action": `http://localhost:${proxyPort}`,
+      "/api/chat/dispatch-component": `http://localhost:${proxyPort}`,
       "/form": `http://localhost:${proxyPort}`
     }
   }

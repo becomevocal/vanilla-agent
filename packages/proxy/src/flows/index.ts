@@ -8,3 +8,4 @@ export {
   SHOPPING_ASSISTANT_FLOW,
   SHOPPING_ASSISTANT_METADATA_FLOW
 } from "./shopping-assistant.js";
+export { COMPONENT_FLOW } from "./components.js";
