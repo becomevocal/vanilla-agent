@@ -48,3 +48,16 @@ The action middleware example demonstrates:
 - Automatic element clicking based on LLM responses
 - Page navigation with persistent chat state
 - localStorage-based chat history persistence
+
+### Custom Components Demo
+- **Components page**: `http://localhost:5173/custom-components.html`
+  - Demonstrates custom component rendering from JSON directives
+  - Components are registered and can be invoked via JSON responses with the format: `{"component": "ComponentName", "props": {...}}`
+  - Props update incrementally as they stream in from the AI
+  - Includes example components: ProductCard, SimpleChart, StatusBadge, InfoCard
+
+The custom components example demonstrates:
+- Component registry for registering custom renderers
+- JSON streaming parser that extracts component directives
+- Incremental prop updates during streaming
+- Type-safe component renderer interface

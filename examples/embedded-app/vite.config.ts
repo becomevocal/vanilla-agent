@@ -25,6 +25,7 @@ export default defineConfig({
         json: path.resolve(__dirname, 'json.html'),
         theme: path.resolve(__dirname, 'theme.html'),
         products: path.resolve(__dirname, 'products.html'),
+        'custom-components': path.resolve(__dirname, 'custom-components.html'),
       }
     }
   },

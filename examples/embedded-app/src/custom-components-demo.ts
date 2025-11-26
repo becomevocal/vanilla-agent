@@ -1,7 +1,9 @@
 import "vanilla-agent/widget.css";
 import "./index.css";
+import "./App.css";
 
 import {
+  createAgentExperience,
   initAgentWidget,
   componentRegistry,
   DEFAULT_WIDGET_CONFIG
@@ -26,30 +28,53 @@ componentRegistry.register("SimpleChart", SimpleChart);
 componentRegistry.register("StatusBadge", StatusBadge);
 componentRegistry.register("InfoCard", InfoCard);
 
-// Alternative: Register via config
-// const components = {
-//   ProductCard,
-//   SimpleChart,
-//   StatusBadge,
-//   InfoCard
-// };
-
-const widgetContainer = document.getElementById("widget-container");
-if (!widgetContainer) {
-  throw new Error("Widget container not found");
+const inlineMount = document.getElementById("components-inline");
+if (!inlineMount) {
+  throw new Error("Components demo mount node missing");
 }
 
+createAgentExperience(inlineMount, {
+  ...DEFAULT_WIDGET_CONFIG,
+  apiUrl: proxyUrl,
+  parserType: "json", // Use JSON parser to handle component directives
+  enableComponentStreaming: true, // Enable component streaming (default: true)
+  launcher: { enabled: false },
+  theme: {
+    ...DEFAULT_WIDGET_CONFIG.theme,
+    primary: "#333",
+    accent: "#2196f3",
+    surface: "#ffffff",
+    muted: "#666"
+  },
+  copy: {
+    ...DEFAULT_WIDGET_CONFIG.copy,
+    welcomeTitle: "Custom Components Demo",
+    welcomeSubtitle: "Ask me to show you a product card, chart, or status badge!"
+  },
+  suggestionChips: [
+    "Show me a product card",
+    "Display a chart with data",
+    "Create a status badge",
+    "Show an info card"
+  ]
+});
+
 initAgentWidget({
-  target: widgetContainer,
+  target: "#components-launcher",
   useShadowDom: false,
   config: {
     ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
-    parserType: "json", // Use JSON parser to handle component directives
-    enableComponentStreaming: true, // Enable component streaming (default: true)
+    parserType: "json",
+    enableComponentStreaming: true,
     launcher: {
       ...DEFAULT_WIDGET_CONFIG.launcher,
-      enabled: false // Disable launcher for inline display
+      enabled: true,
+      title: "Components Demo",
+      subtitle: "Opens the custom components example",
+      agentIconText: "🎨",
+      autoExpand: false,
+      width: 'min(420px, 95vw)'
     },
     theme: {
       ...DEFAULT_WIDGET_CONFIG.theme,
@@ -58,23 +83,11 @@ initAgentWidget({
       surface: "#ffffff",
       muted: "#666"
     },
-    copy: {
-      ...DEFAULT_WIDGET_CONFIG.copy,
-      welcomeTitle: "Custom Components Demo",
-      welcomeSubtitle: "Ask me to show you a product card, chart, or status badge!"
-    },
     suggestionChips: [
       "Show me a product card",
       "Display a chart with data",
       "Create a status badge",
       "Show an info card"
     ]
-    // Alternative: Register components via config instead of registry
-    // components: {
-    //   ProductCard,
-    //   SimpleChart,
-    //   StatusBadge,
-    //   InfoCard
-    // }
   }
 });
