@@ -22,15 +22,26 @@ export function renderComponentDirective(
 ): HTMLElement | null {
   const { config, message, onPropsUpdate } = options;
 
+  console.log(`[ComponentMiddleware] renderComponentDirective: Attempting to render`, {
+    component: directive.component,
+    props: directive.props,
+    messageId: message.id
+  });
+
   // Get component renderer from registry
   const renderer = componentRegistry.get(directive.component);
   if (!renderer) {
     // Component not found, fall back to default rendering
+    const availableComponents = componentRegistry.getAllNames();
     console.warn(
-      `[ComponentMiddleware] Component "${directive.component}" not found in registry. Falling back to default rendering.`
+      `[ComponentMiddleware] Component "${directive.component}" not found in registry.`,
+      `Available components:`, availableComponents,
+      `Falling back to default rendering.`
     );
     return null;
   }
+
+  console.log(`[ComponentMiddleware] renderComponentDirective: Found renderer for "${directive.component}"`);
 
   // Create component context
   const context: ComponentContext = {
@@ -45,7 +56,9 @@ export function renderComponentDirective(
 
   try {
     // Render the component
+    console.log(`[ComponentMiddleware] renderComponentDirective: Calling renderer with props`, directive.props);
     const element = renderer(directive.props, context);
+    console.log(`[ComponentMiddleware] renderComponentDirective: Renderer returned element`, element);
     return element;
   } catch (error) {
     console.error(
@@ -90,17 +103,32 @@ export function createComponentMiddleware() {
  * Checks if a message contains a component directive in its raw content
  */
 export function hasComponentDirective(message: AgentWidgetMessage): boolean {
-  if (!message.rawContent) return false;
+  if (!message.rawContent) {
+    console.log(`[ComponentMiddleware] hasComponentDirective: No rawContent for message ${message.id}`);
+    return false;
+  }
   
   try {
     const parsed = JSON.parse(message.rawContent);
-    return (
+    const hasComponent = (
       typeof parsed === "object" &&
       parsed !== null &&
       "component" in parsed &&
       typeof parsed.component === "string"
     );
-  } catch {
+    console.log(`[ComponentMiddleware] hasComponentDirective: ${hasComponent}`, {
+      messageId: message.id,
+      rawContent: message.rawContent.substring(0, 200),
+      parsed: parsed,
+      hasComponentField: "component" in parsed
+    });
+    return hasComponent;
+  } catch (error) {
+    console.log(`[ComponentMiddleware] hasComponentDirective: JSON parse error`, {
+      messageId: message.id,
+      error: error,
+      rawContent: message.rawContent.substring(0, 200)
+    });
     return false;
   }
 }
@@ -111,26 +139,49 @@ export function hasComponentDirective(message: AgentWidgetMessage): boolean {
 export function extractComponentDirectiveFromMessage(
   message: AgentWidgetMessage
 ): ComponentDirective | null {
-  if (!message.rawContent) return null;
+  if (!message.rawContent) {
+    console.log(`[ComponentMiddleware] extractComponentDirectiveFromMessage: No rawContent for message ${message.id}`);
+    return null;
+  }
 
   try {
     const parsed = JSON.parse(message.rawContent);
+    console.log(`[ComponentMiddleware] extractComponentDirectiveFromMessage: Parsed JSON`, {
+      messageId: message.id,
+      parsed: parsed,
+      hasComponent: "component" in parsed,
+      componentName: parsed.component
+    });
+    
     if (
       typeof parsed === "object" &&
       parsed !== null &&
       "component" in parsed &&
       typeof parsed.component === "string"
     ) {
-      return {
+      const directive = {
         component: parsed.component,
         props: (parsed.props && typeof parsed.props === "object" && parsed.props !== null
           ? parsed.props
           : {}) as Record<string, unknown>,
         raw: message.rawContent
       };
+      console.log(`[ComponentMiddleware] extractComponentDirectiveFromMessage: Extracted directive`, directive);
+      return directive;
+    } else {
+      console.log(`[ComponentMiddleware] extractComponentDirectiveFromMessage: Not a component directive`, {
+        isObject: typeof parsed === "object",
+        isNotNull: parsed !== null,
+        hasComponent: "component" in parsed,
+        componentType: typeof parsed.component
+      });
     }
-  } catch {
-    // Not valid JSON or not a component directive
+  } catch (error) {
+    console.log(`[ComponentMiddleware] extractComponentDirectiveFromMessage: JSON parse error`, {
+      messageId: message.id,
+      error: error,
+      rawContent: message.rawContent.substring(0, 200)
+    });
   }
 
   return null;

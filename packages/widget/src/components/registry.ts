@@ -34,6 +34,7 @@ class ComponentRegistry {
       console.warn(`[ComponentRegistry] Component "${name}" is already registered. Overwriting.`);
     }
     this.components.set(name, renderer);
+    console.log(`[ComponentRegistry] Registered component: "${name}"`);
   }
 
   /**
@@ -75,6 +76,8 @@ class ComponentRegistry {
    * Register multiple components at once
    */
   registerAll(components: Record<string, ComponentRenderer>): void {
+    const names = Object.keys(components);
+    console.log(`[ComponentRegistry] Registering ${names.length} components:`, names);
     Object.entries(components).forEach(([name, renderer]) => {
       this.register(name, renderer);
     });

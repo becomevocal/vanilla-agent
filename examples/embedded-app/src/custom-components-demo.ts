@@ -23,10 +23,12 @@ const proxyUrl =
     : `http://localhost:${proxyPort}/api/chat/dispatch-component`;
 
 // Register custom components
+console.log("[CustomComponentsDemo] Registering components...");
 componentRegistry.register("ProductCard", ProductCard);
 componentRegistry.register("SimpleChart", SimpleChart);
 componentRegistry.register("StatusBadge", StatusBadge);
 componentRegistry.register("InfoCard", InfoCard);
+console.log("[CustomComponentsDemo] Registered components:", componentRegistry.getAllNames());
 
 const inlineMount = document.getElementById("components-inline");
 if (!inlineMount) {

@@ -744,6 +744,15 @@ export class AgentWidgetClient {
               const contentToProcess = rawBuffer ?? ensureStringContent(finalContent);
               assistant.rawContent = contentToProcess;
               
+              if (this.debug || typeof console !== "undefined") {
+                console.log(`[AgentWidgetClient] Message complete`, {
+                  messageId: assistant.id,
+                  hasRawBuffer: !!rawBuffer,
+                  rawContent: contentToProcess.substring(0, 200),
+                  content: assistant.content.substring(0, 100)
+                });
+              }
+              
               // Try to extract text from final structured content
               const parser = streamParsers.get(assistant.id);
               let extractedText: string | null = null;
@@ -812,6 +821,17 @@ export class AgentWidgetClient {
           }
           const finalContent = payload.result?.response;
           const assistant = ensureAssistantMessage();
+          
+          if (this.debug || typeof console !== "undefined") {
+            console.log(`[AgentWidgetClient] step_complete received`, {
+              messageId: assistant.id,
+              stepType,
+              executionType,
+              hasFinalContent: finalContent !== undefined && finalContent !== null,
+              finalContent: typeof finalContent === "string" ? finalContent.substring(0, 200) : finalContent
+            });
+          }
+          
           if (finalContent !== undefined && finalContent !== null) {
             // Check if we already have extracted text from streaming
             const parser = streamParsers.get(assistant.id);
@@ -825,6 +845,14 @@ export class AgentWidgetClient {
               
               // Always set rawContent so action parsers can access the raw JSON
               assistant.rawContent = contentToProcess;
+              
+              if (this.debug || typeof console !== "undefined") {
+                console.log(`[AgentWidgetClient] step_complete: Set rawContent`, {
+                  messageId: assistant.id,
+                  rawContent: contentToProcess.substring(0, 200),
+                  extractedText: currentExtractedText
+                });
+              }
               
               if (currentExtractedText !== null && currentExtractedText.trim() !== "") {
                 // We already have extracted text from streaming - use it

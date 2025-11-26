@@ -141,7 +141,10 @@ export const createAgentExperience = (
   
   // Register components from config
   if (config.components) {
+    console.log(`[UI] Registering components from config:`, Object.keys(config.components));
     componentRegistry.registerAll(config.components);
+  } else {
+    console.log(`[UI] No components found in config`);
   }
   const eventBus = createEventBus<AgentWidgetControllerEventMap>();
 
@@ -532,15 +535,26 @@ export const createAgentExperience = (
       // Check for component directive if no plugin handled it
       if (!bubble && message.role === "assistant" && !message.variant) {
         const enableComponentStreaming = config.enableComponentStreaming !== false; // Default to true
+        console.log(`[UI] Checking for component directive`, {
+          messageId: message.id,
+          enableComponentStreaming,
+          hasRawContent: !!message.rawContent,
+          rawContent: message.rawContent?.substring(0, 200),
+          content: message.content?.substring(0, 100)
+        });
+        
         if (enableComponentStreaming && hasComponentDirective(message)) {
+          console.log(`[UI] Component directive detected, extracting...`);
           const directive = extractComponentDirectiveFromMessage(message);
           if (directive) {
+            console.log(`[UI] Directive extracted, rendering component...`, directive);
             const componentBubble = renderComponentDirective(directive, {
               config,
               message,
               transform
             });
             if (componentBubble) {
+              console.log(`[UI] Component rendered successfully, wrapping in bubble`);
               // Wrap component in standard bubble styling
               const wrapper = document.createElement("div");
               wrapper.className = [
@@ -555,7 +569,17 @@ export const createAgentExperience = (
               wrapper.setAttribute("data-message-id", message.id);
               wrapper.appendChild(componentBubble);
               bubble = wrapper;
+            } else {
+              console.warn(`[UI] Component renderer returned null for directive`, directive);
             }
+          } else {
+            console.warn(`[UI] Failed to extract directive from message`, message);
+          }
+        } else {
+          if (!enableComponentStreaming) {
+            console.log(`[UI] Component streaming is disabled`);
+          } else {
+            console.log(`[UI] No component directive found in message`);
           }
         }
       }
