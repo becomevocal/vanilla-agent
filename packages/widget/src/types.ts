@@ -339,6 +339,18 @@ export interface AgentWidgetStreamParser {
 }
 
 
+/**
+ * Component renderer function signature for custom components
+ */
+export type AgentWidgetComponentRenderer = (
+  props: Record<string, unknown>,
+  context: {
+    message: AgentWidgetMessage;
+    config: AgentWidgetConfig;
+    updateProps: (newProps: Record<string, unknown>) => void;
+  }
+) => HTMLElement;
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -374,6 +386,32 @@ export type AgentWidgetConfig = {
   actionParsers?: AgentWidgetActionParser[];
   actionHandlers?: AgentWidgetActionHandler[];
   storageAdapter?: AgentWidgetStorageAdapter;
+  /**
+   * Registry of custom components that can be rendered from JSON directives.
+   * Components are registered by name and can be invoked via JSON responses
+   * with the format: `{"component": "ComponentName", "props": {...}}`
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   components: {
+   *     ProductCard: (props, context) => {
+   *       const card = document.createElement("div");
+   *       card.innerHTML = `<h3>${props.title}</h3><p>$${props.price}</p>`;
+   *       return card;
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  components?: Record<string, AgentWidgetComponentRenderer>;
+  /**
+   * Enable component streaming. When true, component props will be updated
+   * incrementally as they stream in from the JSON response.
+   * 
+   * @default true
+   */
+  enableComponentStreaming?: boolean;
   /**
    * Custom stream parser for extracting text from streaming structured responses.
    * Handles incremental parsing of JSON, XML, or other formats.
