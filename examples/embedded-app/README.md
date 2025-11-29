@@ -48,3 +48,91 @@ The action middleware example demonstrates:
 - Automatic element clicking based on LLM responses
 - Page navigation with persistent chat state
 - localStorage-based chat history persistence
+
+### Custom Components Demo
+- **Components page**: `http://localhost:5173/custom-components.html`
+  - Demonstrates custom component rendering from JSON directives
+  - Components are registered and can be invoked via JSON responses with the format: `{"component": "ComponentName", "props": {...}}`
+  - Props update incrementally as they stream in from the AI
+  - Includes example components: ProductCard, SimpleChart, StatusBadge, InfoCard
+
+The custom components example demonstrates:
+- Component registry for registering custom renderers
+- JSON streaming parser that extracts component directives
+- Incremental prop updates during streaming
+- Type-safe component renderer interface
+
+#### Registering Components
+
+```typescript
+import { componentRegistry } from "vanilla-agent";
+import { ProductCard } from "./components";
+
+// Register via global registry
+componentRegistry.register("ProductCard", ProductCard);
+```
+
+Or register via config:
+
+```typescript
+initAgentWidget({
+  target: "#app",
+  config: {
+    components: {
+      ProductCard,
+      SimpleChart,
+      StatusBadge,
+      InfoCard
+    },
+    parserType: "json", // Required for component directives
+    enableComponentStreaming: true // Enable streaming updates
+  }
+});
+```
+
+#### Component Renderer Signature
+
+```typescript
+type ComponentRenderer = (
+  props: Record<string, unknown>,
+  context: {
+    message: AgentWidgetMessage;
+    config: AgentWidgetConfig;
+    updateProps: (newProps: Record<string, unknown>) => void;
+  }
+) => HTMLElement;
+```
+
+#### JSON Response Format
+
+The AI should respond with JSON in this format:
+
+```json
+{
+  "component": "ProductCard",
+  "props": {
+    "title": "Amazing Product",
+    "price": 29.99,
+    "image": "https://example.com/image.jpg",
+    "description": "This is a great product!"
+  }
+}
+```
+
+For combined text + component responses:
+
+```json
+{
+  "text": "Here's your product:",
+  "component": "ProductCard",
+  "props": { "title": "Laptop", "price": 999 }
+}
+```
+
+#### Try It Out
+
+Ask the AI to:
+- "Show me a product card for a laptop priced at $999"
+- "Display a chart with sales data: [100, 150, 200, 180, 250]"
+- "Create a success status badge"
+- "Show an info card with a warning message"

@@ -25,6 +25,7 @@ export default defineConfig({
         json: path.resolve(__dirname, 'json.html'),
         theme: path.resolve(__dirname, 'theme.html'),
         products: path.resolve(__dirname, 'products.html'),
+        'custom-components': path.resolve(__dirname, 'custom-components.html'),
       }
     }
   },
@@ -33,6 +34,7 @@ export default defineConfig({
     proxy: {
       "/api/chat/dispatch": `http://localhost:${proxyPort}`,
       "/api/chat/dispatch-action": `http://localhost:${proxyPort}`,
+      "/api/chat/dispatch-component": `http://localhost:${proxyPort}`,
       "/form": `http://localhost:${proxyPort}`
     }
   }

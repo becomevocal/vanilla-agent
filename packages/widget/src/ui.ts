@@ -31,6 +31,12 @@ import {
   defaultActionHandlers,
   defaultJsonActionParser
 } from "./utils/actions";
+import { componentRegistry } from "./components/registry";
+import {
+  renderComponentDirective,
+  extractComponentDirectiveFromMessage,
+  hasComponentDirective
+} from "./utils/component-middleware";
 
 // Default localStorage key for chat history (automatically cleared on clear chat)
 const DEFAULT_CHAT_HISTORY_STORAGE_KEY = "vanilla-agent-chat-history";
@@ -132,6 +138,11 @@ export const createAgentExperience = (
 
   // Get plugins for this instance
   const plugins = pluginRegistry.getForInstance(config.plugins);
+  
+  // Register components from config
+  if (config.components) {
+    componentRegistry.registerAll(config.components);
+  }
   const eventBus = createEventBus<AgentWidgetControllerEventMap>();
 
   const storageAdapter: AgentWidgetStorageAdapter | undefined =
@@ -515,6 +526,51 @@ export const createAgentExperience = (
             },
             config
           });
+        }
+      }
+
+      // Check for component directive if no plugin handled it
+      if (!bubble && message.role === "assistant" && !message.variant) {
+        const enableComponentStreaming = config.enableComponentStreaming !== false; // Default to true
+        if (enableComponentStreaming && hasComponentDirective(message)) {
+          const directive = extractComponentDirectiveFromMessage(message);
+          if (directive) {
+            const componentBubble = renderComponentDirective(directive, {
+              config,
+              message,
+              transform
+            });
+            if (componentBubble) {
+              // Wrap component in standard bubble styling
+              const wrapper = document.createElement("div");
+              wrapper.className = [
+                "vanilla-message-bubble",
+                "tvw-max-w-[85%]",
+                "tvw-rounded-2xl",
+                "tvw-bg-cw-surface",
+                "tvw-border",
+                "tvw-border-cw-message-border",
+                "tvw-p-4"
+              ].join(" ");
+              wrapper.setAttribute("data-message-id", message.id);
+
+              // Add text content above component if present (combined text+component response)
+              if (message.content && message.content.trim()) {
+                const textDiv = document.createElement("div");
+                textDiv.className = "tvw-mb-3 tvw-text-sm tvw-leading-relaxed";
+                textDiv.innerHTML = transform({
+                  text: message.content,
+                  message,
+                  streaming: Boolean(message.streaming),
+                  raw: message.rawContent
+                });
+                wrapper.appendChild(textDiv);
+              }
+
+              wrapper.appendChild(componentBubble);
+              bubble = wrapper;
+            }
+          }
         }
       }
 

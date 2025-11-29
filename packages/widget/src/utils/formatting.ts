@@ -263,8 +263,8 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
       
       // Skip if no new content
       if (accumulatedContent.length <= processedLength) {
-        return extractedText !== null
-          ? { text: extractedText, raw: accumulatedContent }
+        return extractedText !== null || extractedText === ""
+          ? { text: extractedText || "", raw: accumulatedContent }
           : null;
       }
       
@@ -273,9 +273,21 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
         // STR | OBJ allows incomplete strings and objects during streaming
         const parsed = parsePartialJson(accumulatedContent, STR | OBJ);
         
-        // Extract text field if available
-        if (parsed && typeof parsed === "object" && typeof parsed.text === "string") {
-          extractedText = parsed.text;
+        if (parsed && typeof parsed === "object") {
+          // Check for component directives - extract text if present for combined text+component
+          if (parsed.component && typeof parsed.component === "string") {
+            // For component directives, extract text if present, otherwise empty
+            extractedText = typeof parsed.text === "string" ? parsed.text : "";
+          }
+          // Check for form directives - these also don't have text fields
+          else if (parsed.type === "init" && parsed.form) {
+            // For form directives, return empty - they're handled by form postprocessor
+            extractedText = "";
+          }
+          // Extract text field if available
+          else if (typeof parsed.text === "string") {
+            extractedText = parsed.text;
+          }
         }
       } catch (error) {
         // If parsing fails completely, keep the last extracted text
@@ -285,7 +297,8 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
       // Update processed length
       processedLength = accumulatedContent.length;
       
-      // Return both the extracted text and raw JSON
+      // Always return raw JSON for component/form directive detection
+      // Return empty string for text if it's a component/form directive
       if (extractedText !== null) {
         return {
           text: extractedText,
@@ -318,6 +331,18 @@ export const createFlexibleJsonStreamParser = (
   // Default text extractor that handles common patterns
   const defaultExtractor = (parsed: any): string | null => {
     if (!parsed || typeof parsed !== "object") return null;
+
+    // Check for component directives - extract text if present for combined text+component
+    if (parsed.component && typeof parsed.component === "string") {
+      // For component directives, extract text if present, otherwise empty
+      return typeof parsed.text === "string" ? parsed.text : "";
+    }
+    
+    // Check for form directives - these also don't have text fields
+    if (parsed.type === "init" && parsed.form) {
+      // For form directives, return empty - they're handled by form postprocessor
+      return "";
+    }
     
     // Check for action-based text fields
     if (parsed.action) {
@@ -373,8 +398,8 @@ export const createFlexibleJsonStreamParser = (
       // Update processed length
       processedLength = accumulatedContent.length;
       
-      // Always return the raw JSON for action parsing
-      // Text may be null during early streaming, that's ok
+      // Always return the raw JSON for action parsing and component detection
+      // Text may be null or empty for component/form directives, that's ok
       return {
         text: extractedText || "",
         raw: accumulatedContent

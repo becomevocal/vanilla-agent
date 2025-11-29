@@ -36,7 +36,7 @@ export {
   escapeHtml,
   directivePostprocessor
 } from "./postprocessors";
-export { 
+export {
   createPlainTextParser,
   createJsonStreamParser,
   createFlexibleJsonStreamParser,
@@ -48,6 +48,21 @@ export type { AgentWidgetInitHandle };
 // Plugin system exports
 export type { AgentWidgetPlugin } from "./plugins/types";
 export { pluginRegistry } from "./plugins/registry";
+
+// Component system exports
+export { componentRegistry } from "./components/registry";
+export type { ComponentRenderer, ComponentContext } from "./components/registry";
+export {
+  createComponentStreamParser,
+  isComponentDirectiveType
+} from "./utils/component-parser";
+export type { ComponentDirective } from "./utils/component-parser";
+export {
+  renderComponentDirective,
+  createComponentMiddleware,
+  hasComponentDirective,
+  extractComponentDirectiveFromMessage
+} from "./utils/component-middleware";
 
 // Default configuration exports
 export { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from "./defaults";

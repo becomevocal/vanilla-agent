@@ -5,6 +5,7 @@ import {
   createChatProxyApp,
   FORM_DIRECTIVE_FLOW,
   SHOPPING_ASSISTANT_FLOW,
+  COMPONENT_FLOW,
   createCheckoutSession
 } from "vanilla-agent-proxy";
 
@@ -46,9 +47,19 @@ const actionApp = createChatProxyApp({
   upstreamUrl
 });
 
-// Mount both apps
+// Component proxy - returns component directives for custom component rendering
+const componentApp = createChatProxyApp({
+  path: "/api/chat/dispatch-component",
+  allowedOrigins: ["http://localhost:5173", "http://localhost:4173"],
+  flowId: process.env.FLOW_ID_COMPONENT || undefined,
+  flowConfig: process.env.FLOW_ID_COMPONENT ? undefined : COMPONENT_FLOW,
+  upstreamUrl
+});
+
+// Mount all apps
 app.route("/", directiveApp);
 app.route("/", actionApp);
+app.route("/", componentApp);
 
 // Stripe checkout endpoint
 // Uses the shared createCheckoutSession helper from vanilla-agent-proxy

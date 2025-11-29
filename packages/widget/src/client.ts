@@ -112,7 +112,7 @@ export class AgentWidgetClient {
       })
       .map((message) => ({
         role: message.role,
-        content: message.content,
+        content: message.rawContent || message.content,
         createdAt: message.createdAt
       }));
 
@@ -265,7 +265,6 @@ export class AgentWidgetClient {
         content: "",
         createdAt: new Date().toISOString(),
         streaming: true,
-        variant: "assistant",
         sequence: nextSequence()
       };
       emitMessage(assistantMessage);
