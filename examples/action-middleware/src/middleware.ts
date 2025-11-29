@@ -52,6 +52,14 @@ export function collectPageContext(): PageElement[] {
   while (node) {
     if (node.nodeType === Node.ELEMENT_NODE) {
       const element = node as HTMLElement;
+      
+      // Exclude elements within the widget
+      const widgetHost = element.closest('.vanilla-agent-host');
+      if (widgetHost) {
+        node = walker.nextNode();
+        continue;
+      }
+      
       const className = element.className;
       
       // Skip elements without meaningful class names or text

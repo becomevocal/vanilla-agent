@@ -381,6 +381,11 @@ function generateReactAdvancedCode(config: any): string {
     "  Object.entries(selectors).forEach(([type, selector]) => {",
     "    document.querySelectorAll(selector).forEach((element) => {",
     "      if (!(element instanceof HTMLElement)) return;",
+    "      ",
+    "      // Exclude elements within the widget",
+    "      const widgetHost = element.closest('.vanilla-agent-host');",
+    "      if (widgetHost) return;",
+    "      ",
     "      const text = element.innerText?.trim();",
     "      if (!text) return;",
     "",
@@ -1044,10 +1049,15 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("");
   lines.push("      const elements = [];");
   lines.push("      Object.entries(selectors).forEach(([type, selector]) => {");
-  lines.push("        document.querySelectorAll(selector).forEach((element) => {");
-  lines.push("          if (!(element instanceof HTMLElement)) return;");
-  lines.push("          const text = element.innerText?.trim();");
-  lines.push("          if (!text) return;");
+      lines.push("        document.querySelectorAll(selector).forEach((element) => {");
+      lines.push("          if (!(element instanceof HTMLElement)) return;");
+      lines.push("          ");
+      lines.push("          // Exclude elements within the widget");
+      lines.push("          const widgetHost = element.closest('.vanilla-agent-host');");
+      lines.push("          if (widgetHost) return;");
+      lines.push("          ");
+      lines.push("          const text = element.innerText?.trim();");
+      lines.push("          if (!text) return;");
   lines.push("");
   lines.push("          const selectorString =");
   lines.push("            element.id ? `#${element.id}` :");
