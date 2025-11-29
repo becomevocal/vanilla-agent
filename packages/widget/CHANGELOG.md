@@ -1,5 +1,20 @@
 # vanilla-agent
 
+## 1.10.0
+
+### Minor Changes
+
+Added:
+- Component streaming hooks
+- Custom fetch / header / sse parsing methods
+
+Improved:
+- Vanilla Agent DOM is now excluded from page DOM helper
+
+Fixed
+- Missed triggering of checkout middleware actions
+- Duplicate triggering of click and checkout actions
+
 ## 1.9.0
 
 ### Minor Changes
