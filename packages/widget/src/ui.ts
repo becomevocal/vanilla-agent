@@ -31,6 +31,7 @@ import {
   defaultActionHandlers,
   defaultJsonActionParser
 } from "./utils/actions";
+import { createLocalStorageAdapter } from "./utils/storage";
 import { componentRegistry } from "./components/registry";
 import {
   renderComponentDirective,
@@ -145,8 +146,8 @@ export const createAgentExperience = (
   }
   const eventBus = createEventBus<AgentWidgetControllerEventMap>();
 
-  const storageAdapter: AgentWidgetStorageAdapter | undefined =
-    config.storageAdapter;
+  const storageAdapter: AgentWidgetStorageAdapter =
+    config.storageAdapter ?? createLocalStorageAdapter();
   let persistentMetadata: Record<string, unknown> = {};
   let pendingStoredState: Promise<AgentWidgetStoredState | null> | null = null;
 
@@ -313,11 +314,17 @@ export const createAgentExperience = (
       : [];
 
   function persistState(messagesOverride?: AgentWidgetMessage[]) {
-    if (!storageAdapter?.save || !session) return;
+    if (!storageAdapter?.save) return;
+
+    // Allow saving even if session doesn't exist yet (for metadata during init)
+    const messages = messagesOverride
+      ? stripStreamingFromMessages(messagesOverride)
+      : session
+        ? getMessagesForPersistence()
+        : [];
+
     const payload = {
-      messages: messagesOverride
-        ? stripStreamingFromMessages(messagesOverride)
-        : getMessagesForPersistence(),
+      messages,
       metadata: persistentMetadata
     };
     try {

@@ -25,10 +25,11 @@ import {
 } from "./middleware";
 import { createFlexibleJsonStreamParser } from "vanilla-agent";
 // Import types directly from the widget package
-import type { 
-  AgentWidgetStorageAdapter, 
-  AgentWidgetStoredState, 
-  AgentWidgetRequestPayload 
+import type {
+  AgentWidgetStorageAdapter,
+  AgentWidgetStoredState,
+  AgentWidgetRequestPayload,
+  AgentWidgetActionHandler
 } from "../../../packages/widget/src/types";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
@@ -59,52 +60,50 @@ let savedMessages = loadChatHistory();
 // This wraps the widget SDK's storage adapter to sync our data structure
 const createSyncedStorageAdapter = () => {
   const baseAdapter = createLocalStorageAdapter(STORAGE_KEY);
-  
+
   return {
     load: () => {
       try {
-        // First try to load from widget SDK's format
-        const widgetState = baseAdapter.load?.();
-        if (widgetState && typeof widgetState === 'object' && !('then' in widgetState)) {
-          // Sync widget SDK's processedActionMessageIds with our executedActionIds
-          const state = widgetState as any as AgentWidgetStoredState;
-          const widgetProcessedIds = Array.isArray(state.metadata?.processedActionMessageIds)
-            ? state.metadata.processedActionMessageIds as string[]
-            : [];
-          
-          // Update our in-memory Set
-          widgetProcessedIds.forEach(id => processedActionIds.add(id));
-          
-          return state;
+        const stored = baseAdapter.load?.();
+        if (!stored || typeof stored !== 'object' || 'then' in stored) {
+          return null;
         }
-        
-        // Fallback to our custom format
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) return null;
-        
-        const parsed = JSON.parse(stored);
-        // Handle both StorageData structure and plain array
-        if (Array.isArray(parsed)) {
+
+        const parsed = stored as Record<string, unknown>;
+
+        // Check if this is widget SDK format (has 'messages') or old custom format (has 'chatHistory')
+        if (Array.isArray(parsed.messages)) {
+          // Widget SDK format
+          const widgetProcessedIds = Array.isArray((parsed.metadata as Record<string, unknown>)?.processedActionMessageIds)
+            ? (parsed.metadata as Record<string, unknown>).processedActionMessageIds as string[]
+            : [];
+          widgetProcessedIds.forEach(id => processedActionIds.add(id));
+          return stored as AgentWidgetStoredState;
+        }
+
+        // Old custom format - convert to widget format
+        if (Array.isArray(parsed.chatHistory) || Array.isArray(parsed.executedActionIds)) {
+          const processedIds = Array.isArray(parsed.executedActionIds)
+            ? parsed.executedActionIds as string[]
+            : [];
+          processedIds.forEach(id => processedActionIds.add(id));
           return {
-            messages: parsed,
+            messages: (parsed.chatHistory as any[]) || [],
             metadata: {
-              processedActionMessageIds: []
+              processedActionMessageIds: processedIds
             }
           };
         }
-        
-        const data = parsed as { chatHistory: any[]; executedActionIds?: string[] };
-        const processedIds = data.executedActionIds || [];
-        
-        // Update our in-memory Set
-        processedIds.forEach(id => processedActionIds.add(id));
-        
-        return {
-          messages: data.chatHistory || [],
-          metadata: {
-            processedActionMessageIds: processedIds
-          }
-        };
+
+        // Plain array of messages (legacy)
+        if (Array.isArray(parsed)) {
+          return {
+            messages: parsed,
+            metadata: { processedActionMessageIds: [] }
+          };
+        }
+
+        return null;
       } catch (error) {
         console.error("[Storage Adapter] Failed to load:", error);
         return null;
@@ -112,21 +111,13 @@ const createSyncedStorageAdapter = () => {
     },
     save: (state: AgentWidgetStoredState) => {
       try {
-        // Save using widget SDK's format, but also sync to our format
+        // Save using widget SDK's format (includes messages and metadata.processedActionMessageIds)
         baseAdapter.save?.(state);
-        
-        // Also save to our custom format for backwards compatibility
+
+        // Update our in-memory Set from the saved state
         const widgetProcessedIds = Array.isArray(state.metadata?.processedActionMessageIds)
           ? state.metadata.processedActionMessageIds as string[]
           : [];
-        
-        const data = {
-          chatHistory: state.messages || [],
-          executedActionIds: widgetProcessedIds
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        
-        // Update our in-memory Set
         widgetProcessedIds.forEach(id => processedActionIds.add(id));
       } catch (error) {
         console.error("[Storage Adapter] Failed to save:", error);
@@ -245,6 +236,29 @@ const createActionAwareParser = (): AgentWidgetStreamParser => {
   };
 };
 
+// Custom checkout handler that uses executeAction from middleware
+// Note: Action manager prevents re-execution via processedActionMessageIds
+const checkoutHandler: AgentWidgetActionHandler = (action, context) => {
+  if (action.type !== "checkout") return;
+
+  const payload = action.payload as Record<string, unknown>;
+  const text = typeof payload.text === "string" ? payload.text : "";
+  const items = payload.items as Array<{ name: string; price: number; quantity: number }> | undefined;
+
+  if (items && Array.isArray(items)) {
+    // Use executeAction from middleware.ts which already has checkout logic
+    executeAction(
+      { action: "checkout", text, items },
+      () => {} // onMessage callback - text is already displayed by widget
+    );
+  }
+
+  return {
+    handled: true,
+    displayText: text
+  };
+};
+
 // Create a custom config with middleware hooks
 const config: AgentWidgetConfig = {
   ...DEFAULT_WIDGET_CONFIG,
@@ -255,7 +269,8 @@ const config: AgentWidgetConfig = {
   // Use widget SDK's default action handlers - they work with the action manager's built-in deduplication
   actionHandlers: [
     defaultActionHandlers.message,
-    defaultActionHandlers.messageAndClick
+    defaultActionHandlers.messageAndClick,
+    checkoutHandler
   ],
   // Use custom storage adapter that syncs our executedActionIds with widget SDK metadata
   storageAdapter: createSyncedStorageAdapter(),
