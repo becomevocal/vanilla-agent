@@ -351,10 +351,60 @@ export type AgentWidgetComponentRenderer = (
   }
 ) => HTMLElement;
 
+/**
+ * Result from custom SSE event parser
+ */
+export type AgentWidgetSSEEventResult = {
+  /** Text content to display */
+  text?: string;
+  /** Whether the stream is complete */
+  done?: boolean;
+  /** Error message if an error occurred */
+  error?: string;
+} | null;
+
+/**
+ * Custom SSE event parser function
+ * Allows transforming non-standard SSE event formats to vanilla-agent's expected format
+ */
+export type AgentWidgetSSEEventParser = (
+  eventData: unknown
+) => AgentWidgetSSEEventResult | Promise<AgentWidgetSSEEventResult>;
+
+/**
+ * Custom fetch function for full control over API requests
+ * Use this for custom authentication, request transformation, etc.
+ */
+export type AgentWidgetCustomFetch = (
+  url: string,
+  init: RequestInit,
+  payload: AgentWidgetRequestPayload
+) => Promise<Response>;
+
+/**
+ * Dynamic headers function - called before each request
+ */
+export type AgentWidgetHeadersFunction = () => Record<string, string> | Promise<Record<string, string>>;
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
+  /**
+   * Static headers to include with each request.
+   * For dynamic headers (e.g., auth tokens), use `getHeaders` instead.
+   */
   headers?: Record<string, string>;
+  /**
+   * Dynamic headers function - called before each request.
+   * Useful for adding auth tokens that may change.
+   * @example
+   * ```typescript
+   * getHeaders: async () => ({
+   *   'Authorization': `Bearer ${await getAuthToken()}`
+   * })
+   * ```
+   */
+  getHeaders?: AgentWidgetHeadersFunction;
   copy?: {
     welcomeTitle?: string;
     welcomeSubtitle?: string;
@@ -468,6 +518,68 @@ export type AgentWidgetConfig = {
    * ```
    */
   parserType?: "plain" | "json" | "regex-json" | "xml";
+  /**
+   * Custom fetch function for full control over API requests.
+   * Use this for custom authentication, request/response transformation, etc.
+   *
+   * When provided, this function is called instead of the default fetch.
+   * You receive the URL, RequestInit, and the payload that would be sent.
+   *
+   * @example
+   * ```typescript
+   * config: {
+   *   customFetch: async (url, init, payload) => {
+   *     // Transform request for your API format
+   *     const myPayload = {
+   *       flow: { id: 'my-flow-id' },
+   *       messages: payload.messages,
+   *       options: { stream_response: true }
+   *     };
+   *
+   *     // Add auth header
+   *     const token = await getAuthToken();
+   *
+   *     return fetch('/my-api/dispatch', {
+   *       method: 'POST',
+   *       headers: {
+   *         'Content-Type': 'application/json',
+   *         'Authorization': `Bearer ${token}`
+   *       },
+   *       body: JSON.stringify(myPayload),
+   *       signal: init.signal
+   *     });
+   *   }
+   * }
+   * ```
+   */
+  customFetch?: AgentWidgetCustomFetch;
+  /**
+   * Custom SSE event parser for non-standard streaming response formats.
+   *
+   * Use this when your API returns SSE events in a different format than expected.
+   * Return `{ text }` for text chunks, `{ done: true }` for completion,
+   * `{ error }` for errors, or `null` to ignore the event.
+   *
+   * @example
+   * ```typescript
+   * // For Travrse API format
+   * config: {
+   *   parseSSEEvent: (data) => {
+   *     if (data.type === 'step_chunk' && data.chunk) {
+   *       return { text: data.chunk };
+   *     }
+   *     if (data.type === 'flow_complete') {
+   *       return { done: true };
+   *     }
+   *     if (data.type === 'step_error') {
+   *       return { error: data.error };
+   *     }
+   *     return null; // Ignore other events
+   *   }
+   * }
+   * ```
+   */
+  parseSSEEvent?: AgentWidgetSSEEventParser;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

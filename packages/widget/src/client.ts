@@ -5,7 +5,11 @@ import {
   AgentWidgetStreamParser,
   AgentWidgetContextProvider,
   AgentWidgetRequestMiddleware,
-  AgentWidgetRequestPayload
+  AgentWidgetRequestPayload,
+  AgentWidgetCustomFetch,
+  AgentWidgetSSEEventParser,
+  AgentWidgetHeadersFunction,
+  AgentWidgetSSEEventResult
 } from "./types";
 import { 
   extractTextFromJson, 
@@ -48,6 +52,9 @@ export class AgentWidgetClient {
   private readonly createStreamParser: () => AgentWidgetStreamParser;
   private readonly contextProviders: AgentWidgetContextProvider[];
   private readonly requestMiddleware?: AgentWidgetRequestMiddleware;
+  private readonly customFetch?: AgentWidgetCustomFetch;
+  private readonly parseSSEEvent?: AgentWidgetSSEEventParser;
+  private readonly getHeaders?: AgentWidgetHeadersFunction;
 
   constructor(private config: AgentWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
@@ -60,6 +67,9 @@ export class AgentWidgetClient {
     this.createStreamParser = config.streamParser ?? getParserFromType(config.parserType);
     this.contextProviders = config.contextProviders ?? [];
     this.requestMiddleware = config.requestMiddleware;
+    this.customFetch = config.customFetch;
+    this.parseSSEEvent = config.parseSSEEvent;
+    this.getHeaders = config.getHeaders;
   }
 
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {
@@ -70,19 +80,54 @@ export class AgentWidgetClient {
 
     onEvent({ type: "status", status: "connecting" });
 
-    const body = await this.buildPayload(options.messages);
+    const payload = await this.buildPayload(options.messages);
 
     if (this.debug) {
       // eslint-disable-next-line no-console
-      console.debug("[AgentWidgetClient] dispatch body", body);
+      console.debug("[AgentWidgetClient] dispatch payload", payload);
     }
 
-    const response = await fetch(this.apiUrl, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
+    // Build headers - merge static headers with dynamic headers if provided
+    let headers = { ...this.headers };
+    if (this.getHeaders) {
+      try {
+        const dynamicHeaders = await this.getHeaders();
+        headers = { ...headers, ...dynamicHeaders };
+      } catch (error) {
+        if (typeof console !== "undefined") {
+          // eslint-disable-next-line no-console
+          console.error("[AgentWidget] getHeaders error:", error);
+        }
+      }
+    }
+
+    // Use customFetch if provided, otherwise use default fetch
+    let response: Response;
+    if (this.customFetch) {
+      try {
+        response = await this.customFetch(
+          this.apiUrl,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          },
+          payload
+        );
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        onEvent({ type: "error", error: err });
+        throw err;
+      }
+    } else {
+      response = await fetch(this.apiUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+    }
 
     if (!response.ok || !response.body) {
       const error = new Error(
@@ -167,6 +212,70 @@ export class AgentWidgetClient {
     return payload;
   }
 
+  /**
+   * Handle custom SSE event parsing via parseSSEEvent callback
+   * Returns true if event was handled, false otherwise
+   */
+  private async handleCustomSSEEvent(
+    payload: unknown,
+    onEvent: SSEHandler,
+    assistantMessageRef: { current: AgentWidgetMessage | null },
+    emitMessage: (msg: AgentWidgetMessage) => void,
+    nextSequence: () => number
+  ): Promise<boolean> {
+    if (!this.parseSSEEvent) return false;
+
+    try {
+      const result = await this.parseSSEEvent(payload);
+      if (result === null) return false; // Event should be ignored
+
+      const ensureAssistant = () => {
+        if (assistantMessageRef.current) return assistantMessageRef.current;
+        const msg: AgentWidgetMessage = {
+          id: `assistant-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          role: "assistant",
+          content: "",
+          createdAt: new Date().toISOString(),
+          streaming: true,
+          variant: "assistant",
+          sequence: nextSequence()
+        };
+        assistantMessageRef.current = msg;
+        emitMessage(msg);
+        return msg;
+      };
+
+      if (result.text !== undefined) {
+        const assistant = ensureAssistant();
+        assistant.content += result.text;
+        emitMessage(assistant);
+      }
+
+      if (result.done) {
+        if (assistantMessageRef.current) {
+          assistantMessageRef.current.streaming = false;
+          emitMessage(assistantMessageRef.current);
+        }
+        onEvent({ type: "status", status: "idle" });
+      }
+
+      if (result.error) {
+        onEvent({
+          type: "error",
+          error: new Error(result.error)
+        });
+      }
+
+      return true; // Event was handled
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("[AgentWidget] parseSSEEvent error:", error);
+      }
+      return false;
+    }
+  }
+
   private async streamResponse(
     body: ReadableStream<Uint8Array>,
     onEvent: SSEHandler
@@ -215,6 +324,8 @@ export class AgentWidgetClient {
     };
 
     let assistantMessage: AgentWidgetMessage | null = null;
+    // Reference to track assistant message for custom event handler
+    const assistantMessageRef = { current: null as AgentWidgetMessage | null };
     const reasoningMessages = new Map<string, AgentWidgetMessage>();
     const toolMessages = new Map<string, AgentWidgetMessage>();
     const reasoningContext = {
@@ -470,6 +581,24 @@ export class AgentWidgetClient {
         const payloadType =
           eventType !== "message" ? eventType : payload.type ?? "message";
 
+        // If custom SSE event parser is provided, try it first
+        if (this.parseSSEEvent) {
+          // Keep assistant message ref in sync
+          assistantMessageRef.current = assistantMessage;
+          const handled = await this.handleCustomSSEEvent(
+            payload,
+            onEvent,
+            assistantMessageRef,
+            emitMessage,
+            nextSequence
+          );
+          // Update assistantMessage from ref (in case it was created)
+          if (assistantMessageRef.current && !assistantMessage) {
+            assistantMessage = assistantMessageRef.current;
+          }
+          if (handled) continue; // Skip default handling if custom handler processed it
+        }
+
         if (payloadType === "reason_start") {
           const reasoningId =
             resolveReasoningId(payload, true) ?? `reason-${nextSequence()}`;
@@ -634,7 +763,8 @@ export class AgentWidgetClient {
             continue;
           }
           const assistant = ensureAssistantMessage();
-          const chunk = payload.text ?? payload.delta ?? payload.content ?? "";
+          // Support various field names: text, delta, content, chunk (Travrse uses 'chunk')
+          const chunk = payload.text ?? payload.delta ?? payload.content ?? payload.chunk ?? "";
           if (chunk) {
             // Accumulate raw content for structured format parsing
             const rawBuffer = rawContentBuffers.get(assistant.id) ?? "";

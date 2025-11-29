@@ -12,7 +12,12 @@ export type {
   AgentWidgetLauncherConfig,
   AgentWidgetEvent,
   AgentWidgetStreamParser,
-  AgentWidgetStreamParserResult
+  AgentWidgetStreamParserResult,
+  AgentWidgetRequestPayload,
+  AgentWidgetCustomFetch,
+  AgentWidgetSSEEventParser,
+  AgentWidgetSSEEventResult,
+  AgentWidgetHeadersFunction
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
