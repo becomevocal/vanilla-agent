@@ -1687,6 +1687,7 @@ function setupCopyControls() {
 
   // Clear chat button inputs
   const clearChatEnabledInput = getInput<HTMLInputElement>("clear-chat-enabled");
+  const clearChatPlacementInput = getInput<HTMLSelectElement>("clear-chat-placement");
   const clearChatIconNameInput = getInput<HTMLInputElement>("clear-chat-icon-name");
   const clearChatBorderWidthInput = getInput<HTMLInputElement>("clear-chat-border-width");
   const clearChatBorderRadiusInput = getInput<HTMLInputElement>("clear-chat-border-radius");
@@ -1712,6 +1713,7 @@ function setupCopyControls() {
 
   // Clear chat button initial values
   clearChatEnabledInput.checked = currentConfig.launcher?.clearChat?.enabled ?? true;
+  clearChatPlacementInput.value = currentConfig.launcher?.clearChat?.placement ?? "inline";
   clearChatIconNameInput.value = currentConfig.launcher?.clearChat?.iconName ?? "refresh-cw";
   clearChatBorderWidthInput.value = currentConfig.launcher?.clearChat?.borderWidth ?? "";
   clearChatBorderRadiusInput.value = currentConfig.launcher?.clearChat?.borderRadius ?? "";
@@ -1858,7 +1860,7 @@ function setupCopyControls() {
       updateCopy();
     },
     getInitialValue: () => {
-      return currentConfig.launcher?.clearChat?.size ?? "29px";
+      return currentConfig.launcher?.clearChat?.size ?? "32px";
     }
   });
 
@@ -1917,6 +1919,7 @@ function setupCopyControls() {
         clearChat: {
           ...currentConfig.launcher?.clearChat,
           enabled: clearChatEnabledInput.checked,
+          placement: clearChatPlacementInput.value as "inline" | "top-right",
           iconName: clearChatIconNameInput.value.trim() || undefined,
           borderWidth: clearChatBorderWidthInput.value.trim() || undefined,
           borderRadius: clearChatBorderRadiusInput.value.trim() || undefined,
@@ -1931,8 +1934,11 @@ function setupCopyControls() {
     debouncedUpdate(newConfig);
   };
 
-  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput, headerIconNameInput, headerIconHiddenInput, clearChatEnabledInput, clearChatIconNameInput, clearChatShowTooltipInput, clearChatTooltipTextInput]
+  [welcomeTitleInput, welcomeSubtitleInput, placeholderInput, sendButtonInput, useIconInput, iconTextInput, iconNameInput, showTooltipInput, tooltipTextInput, headerIconNameInput, headerIconHiddenInput, clearChatEnabledInput, clearChatPlacementInput, clearChatIconNameInput, clearChatShowTooltipInput, clearChatTooltipTextInput]
     .forEach((input) => input.addEventListener("input", updateCopy));
+  
+  // Also listen to change event for select elements
+  clearChatPlacementInput.addEventListener("change", updateCopy);
 
   // Send button preset buttons
   document.querySelectorAll("[data-send-button-preset]").forEach((button) => {

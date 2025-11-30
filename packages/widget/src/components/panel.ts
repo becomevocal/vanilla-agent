@@ -153,6 +153,7 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
   // Create clear chat button if enabled
   const clearChatConfig = launcher.clearChat ?? {};
   const clearChatEnabled = clearChatConfig.enabled ?? true;
+  const clearChatPlacement = clearChatConfig.placement ?? "inline";
   let clearChatButton: HTMLButtonElement | null = null;
   let clearChatButtonWrapper: HTMLElement | null = null;
 
@@ -169,11 +170,21 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
     const clearChatTooltipText = clearChatConfig.tooltipText ?? "Clear chat";
     const clearChatShowTooltip = clearChatConfig.showTooltip ?? true;
 
-    // Create button wrapper for tooltip
+    // Create button wrapper for tooltip - positioned based on placement
+    // Note: Don't use tvw-clear-chat-button-wrapper class for top-right mode as its
+    // display: inline-flex causes alignment issues with the close button
     clearChatButtonWrapper = createElement(
       "div",
-      "tvw-relative tvw-ml-auto tvw-clear-chat-button-wrapper"
+      clearChatPlacement === "top-right"
+        ? "tvw-absolute tvw-top-4 tvw-z-50"
+        : "tvw-relative tvw-ml-auto tvw-clear-chat-button-wrapper"
     );
+
+    // Position to the left of the close button (which is at right: 1rem/16px)
+    // Close button is ~32px wide, plus small gap = 48px from right
+    if (clearChatPlacement === "top-right") {
+      clearChatButtonWrapper.style.right = "48px";
+    }
 
     clearChatButton = createElement(
       "button",
@@ -288,15 +299,19 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
       };
     }
 
-    header.appendChild(clearChatButtonWrapper);
+    // Only append to header if inline placement
+    if (clearChatPlacement === "inline") {
+      header.appendChild(clearChatButtonWrapper);
+    }
   }
 
   // Create close button wrapper for tooltip positioning
+  // Only needs ml-auto if clear chat is disabled or top-right positioned
   const closeButtonWrapper = createElement(
     "div",
     closeButtonPlacement === "top-right"
       ? "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50"
-      : (clearChatEnabled
+      : (clearChatEnabled && clearChatPlacement === "inline"
           ? ""
           : "tvw-ml-auto")
   );
@@ -443,6 +458,12 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
   } else {
     // Inline placement: append to header
     header.appendChild(closeButtonWrapper);
+  }
+
+  // Position clear chat button wrapper if top-right placement
+  if (clearChatButtonWrapper && clearChatPlacement === "top-right") {
+    container.style.position = "relative";
+    container.appendChild(clearChatButtonWrapper);
   }
 
   const body = createElement(

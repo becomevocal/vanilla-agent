@@ -214,6 +214,7 @@ export type AgentWidgetSendButtonConfig = {
 
 export type AgentWidgetClearChatConfig = {
   enabled?: boolean;
+  placement?: "inline" | "top-right";
   iconName?: string;
   iconColor?: string;
   backgroundColor?: string;

@@ -1487,25 +1487,29 @@ export const createAgentExperience = (
         closeButton.style.height = closeButtonSize;
         closeButton.style.width = closeButtonSize;
         
-        // Update placement if changed
+        // Update placement if changed - move the wrapper (not just the button) to preserve tooltip
+        const { closeButtonWrapper } = panelElements;
         const isTopRight = closeButtonPlacement === "top-right";
-        const hasTopRightClasses = closeButton.classList.contains("tvw-absolute");
+        const currentlyTopRight = closeButtonWrapper?.classList.contains("tvw-absolute");
         
-        if (isTopRight !== hasTopRightClasses) {
-          // Placement changed - need to move button and update classes
-          closeButton.remove();
+        if (closeButtonWrapper && isTopRight !== currentlyTopRight) {
+          // Placement changed - need to move wrapper and update classes
+          closeButtonWrapper.remove();
           
-          // Update classes
+          // Update wrapper classes
           if (isTopRight) {
-            closeButton.className = "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50 tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none";
+            closeButtonWrapper.className = "tvw-absolute tvw-top-4 tvw-right-4 tvw-z-50";
             container.style.position = "relative";
-            container.appendChild(closeButton);
+            container.appendChild(closeButtonWrapper);
           } else {
-            closeButton.className = "tvw-ml-auto tvw-inline-flex tvw-items-center tvw-justify-center tvw-rounded-full tvw-text-cw-muted hover:tvw-bg-gray-100 tvw-cursor-pointer tvw-border-none";
-            // Find header element (first child of container)
+            // Check if clear chat is inline to determine if we need ml-auto
+            const clearChatPlacement = launcher.clearChat?.placement ?? "inline";
+            const clearChatEnabled = launcher.clearChat?.enabled ?? true;
+            closeButtonWrapper.className = (clearChatEnabled && clearChatPlacement === "inline") ? "" : "tvw-ml-auto";
+            // Find header element
             const header = container.querySelector(".tvw-border-b-cw-divider");
             if (header) {
-              header.appendChild(closeButton);
+              header.appendChild(closeButtonWrapper);
             }
           }
         }
@@ -1576,7 +1580,6 @@ export const createAgentExperience = (
         }
 
         // Update tooltip
-        const { closeButtonWrapper } = panelElements;
         const closeButtonTooltipText = launcher.closeButtonTooltipText ?? "Close chat";
         const closeButtonShowTooltip = launcher.closeButtonShowTooltip ?? true;
 
@@ -1652,10 +1655,54 @@ export const createAgentExperience = (
       if (clearChatButton) {
         const clearChatConfig = launcher.clearChat ?? {};
         const clearChatEnabled = clearChatConfig.enabled ?? true;
+        const clearChatPlacement = clearChatConfig.placement ?? "inline";
 
         // Show/hide button based on enabled state
         if (clearChatButtonWrapper) {
           clearChatButtonWrapper.style.display = clearChatEnabled ? "" : "none";
+
+          // Update placement if changed
+          const isTopRight = clearChatPlacement === "top-right";
+          const currentlyTopRight = clearChatButtonWrapper.classList.contains("tvw-absolute");
+
+          if (isTopRight !== currentlyTopRight && clearChatEnabled) {
+            clearChatButtonWrapper.remove();
+
+            if (isTopRight) {
+              // Don't use tvw-clear-chat-button-wrapper class for top-right mode as its
+              // display: inline-flex causes alignment issues with the close button
+              clearChatButtonWrapper.className = "tvw-absolute tvw-top-4 tvw-z-50";
+              // Position to the left of the close button (which is at right: 1rem/16px)
+              // Close button is ~32px wide, plus small gap = 48px from right
+              clearChatButtonWrapper.style.right = "48px";
+              container.style.position = "relative";
+              container.appendChild(clearChatButtonWrapper);
+            } else {
+              clearChatButtonWrapper.className = "tvw-relative tvw-ml-auto tvw-clear-chat-button-wrapper";
+              // Clear the inline right style when switching back to inline mode
+              clearChatButtonWrapper.style.right = "";
+              // Find header and insert before close button
+              const header = container.querySelector(".tvw-border-b-cw-divider");
+              const closeButtonWrapperEl = panelElements.closeButtonWrapper;
+              if (header && closeButtonWrapperEl && closeButtonWrapperEl.parentElement === header) {
+                header.insertBefore(clearChatButtonWrapper, closeButtonWrapperEl);
+              } else if (header) {
+                header.appendChild(clearChatButtonWrapper);
+              }
+            }
+
+            // Also update close button's ml-auto class based on clear chat position
+            const closeButtonWrapperEl = panelElements.closeButtonWrapper;
+            if (closeButtonWrapperEl && !closeButtonWrapperEl.classList.contains("tvw-absolute")) {
+              if (isTopRight) {
+                // Clear chat moved to top-right, close needs ml-auto
+                closeButtonWrapperEl.classList.add("tvw-ml-auto");
+              } else {
+                // Clear chat is inline, close doesn't need ml-auto
+                closeButtonWrapperEl.classList.remove("tvw-ml-auto");
+              }
+            }
+          }
         }
 
         if (clearChatEnabled) {
