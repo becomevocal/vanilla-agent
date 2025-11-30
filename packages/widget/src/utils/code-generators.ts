@@ -934,6 +934,9 @@ function generateScriptManualCode(config: any): string {
 
 function generateScriptAdvancedCode(config: any): string {
   const lines: string[] = [
+    "<!-- Load CSS -->",
+    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/widget.css\" />",
+    "",
     "<!-- Chat Widget Configuration -->",
     "<script>",
     "  window.ChatWidgetConfig = {"
@@ -1026,6 +1029,9 @@ function generateScriptAdvancedCode(config: any): string {
 
   lines.push("  };");
   lines.push("</script>");
+  lines.push("");
+  lines.push("<!-- Load the widget library -->");
+  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js\"></script>");
   lines.push("");
   lines.push("<!-- Chat Widget Script with DOM Helper -->");
   lines.push("<script>");
@@ -1170,7 +1176,12 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("          ");
   lines.push("          return { handled: true, displayText: text };");
   lines.push("        }");
-  lines.push("      ]");
+  lines.push("      ],");
+  lines.push("      // Send DOM context with each request");
+  lines.push("      requestMiddleware: ({ payload }) => ({");
+  lines.push("        ...payload,");
+  lines.push("        metadata: domContextProvider()");
+  lines.push("      })");
   lines.push("    });");
   lines.push("");
   lines.push("    // Initialize widget when DOM is loaded");
@@ -1218,25 +1229,14 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("      });");
   lines.push("    }");
   lines.push("");
-  lines.push("    // Wait for both DOM and AgentWidget to be ready");
+  lines.push("    // Initialize when DOM is ready");
   lines.push("    if (document.readyState === 'loading') {");
   lines.push("      document.addEventListener('DOMContentLoaded', init);");
-  lines.push("    } else if (window.AgentWidget) {");
-  lines.push("      init();");
   lines.push("    } else {");
-  lines.push("      // Poll for AgentWidget if not ready yet");
-  lines.push("      const checkInterval = setInterval(() => {");
-  lines.push("        if (window.AgentWidget) {");
-  lines.push("          clearInterval(checkInterval);");
-  lines.push("          init();");
-  lines.push("        }");
-  lines.push("      }, 100);");
+  lines.push("      init();");
   lines.push("    }");
   lines.push("  })();");
   lines.push("</script>");
-  lines.push("");
-  lines.push("<!-- Load the widget library -->");
-  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js\"></script>");
 
   return lines.join("\n");
 }
