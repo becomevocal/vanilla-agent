@@ -9,9 +9,9 @@ import {
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import type { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "vanilla-agent";
+import { generateCodeSnippet, type CodeFormat } from "vanilla-agent";
 import { DynamicForm } from "./components";
 import { parseActionResponse } from "./middleware";
-import { generateCodeSnippet, type CodeFormat } from "./code-generators";
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =

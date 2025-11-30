@@ -59,6 +59,8 @@ export {
   createRegexJsonParser,
   createXmlParser
 } from "./utils/formatting";
+export { generateCodeSnippet } from "./utils/code-generators";
+export type { CodeFormat } from "./utils/code-generators";
 export type { AgentWidgetInitHandle };
 
 // Plugin system exports

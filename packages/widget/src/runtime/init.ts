@@ -104,7 +104,7 @@ export const initAgentWidget = (
   
   target.appendChild(host);
 
-  const useShadow = options.useShadowDom !== false;
+  const useShadow = options.useShadowDom === true;
   let mount: HTMLElement;
   let root: ShadowRoot | HTMLElement;
 

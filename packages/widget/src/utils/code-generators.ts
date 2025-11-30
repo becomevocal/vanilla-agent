@@ -1,4 +1,4 @@
-import type { AgentWidgetConfig } from "vanilla-agent";
+import type { AgentWidgetConfig } from "../types";
 
 type ParserType = "plain" | "json" | "regex-json" | "xml";
 export type CodeFormat = "esm" | "script-installer" | "script-manual" | "script-advanced" | "react-component" | "react-advanced";
@@ -53,7 +53,6 @@ function generateESMCode(config: any): string {
     "",
     "initAgentWidget({",
     "  target: 'body',",
-    "  useShadowDom: false,",
     "  config: {"
   ];
 
@@ -190,7 +189,6 @@ function generateReactComponentCode(config: any): string {
     "",
     "    handle = initAgentWidget({",
     "      target: 'body',",
-    "      useShadowDom: false,",
     "      config: {"
   ];
 
@@ -445,7 +443,6 @@ function generateReactAdvancedCode(config: any): string {
     "",
     "    handle = initAgentWidget({",
     "      target: 'body',",
-    "      useShadowDom: false,",
     "      config: {"
   ];
 
@@ -1049,15 +1046,15 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("");
   lines.push("      const elements = [];");
   lines.push("      Object.entries(selectors).forEach(([type, selector]) => {");
-      lines.push("        document.querySelectorAll(selector).forEach((element) => {");
-      lines.push("          if (!(element instanceof HTMLElement)) return;");
-      lines.push("          ");
-      lines.push("          // Exclude elements within the widget");
-      lines.push("          const widgetHost = element.closest('.vanilla-agent-host');");
-      lines.push("          if (widgetHost) return;");
-      lines.push("          ");
-      lines.push("          const text = element.innerText?.trim();");
-      lines.push("          if (!text) return;");
+  lines.push("        document.querySelectorAll(selector).forEach((element) => {");
+  lines.push("          if (!(element instanceof HTMLElement)) return;");
+  lines.push("          ");
+  lines.push("          // Exclude elements within the widget");
+  lines.push("          const widgetHost = element.closest('.vanilla-agent-host');");
+  lines.push("          if (widgetHost) return;");
+  lines.push("          ");
+  lines.push("          const text = element.innerText?.trim();");
+  lines.push("          if (!text) return;");
   lines.push("");
   lines.push("          const selectorString =");
   lines.push("            element.id ? `#${element.id}` :");
@@ -1243,4 +1240,3 @@ function generateScriptAdvancedCode(config: any): string {
 
   return lines.join("\n");
 }
-
