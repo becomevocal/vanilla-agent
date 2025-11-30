@@ -12,13 +12,15 @@ export const createWrapper = (config?: AgentWidgetConfig): PanelWrapper => {
   const launcherEnabled = config?.launcher?.enabled ?? true;
 
   if (!launcherEnabled) {
+    // For inline embed mode, use flex layout to ensure the widget fills its container
+    // and only the chat messages area scrolls
     const wrapper = createElement(
       "div",
-      "tvw-relative tvw-w-full tvw-h-full"
+      "tvw-relative tvw-w-full tvw-h-full tvw-flex tvw-flex-col tvw-flex-1 tvw-min-h-0"
     );
     const panel = createElement(
       "div",
-      "tvw-relative tvw-w-full tvw-h-full tvw-min-h-[360px]"
+      "tvw-relative tvw-w-full tvw-flex-1 tvw-flex tvw-flex-col tvw-min-h-0"
     );
     wrapper.appendChild(panel);
     return { wrapper, panel };
@@ -72,9 +74,11 @@ export interface PanelElements {
 }
 
 export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelElements => {
+  // Use flex-1 and min-h-0 to ensure the container fills its parent and allows
+  // the body (chat messages area) to scroll while header/footer stay fixed
   const container = createElement(
     "div",
-    "tvw-flex tvw-h-full tvw-w-full tvw-flex-col tvw-bg-cw-surface tvw-text-cw-primary tvw-rounded-2xl tvw-overflow-hidden tvw-shadow-2xl tvw-border tvw-border-cw-border"
+    "tvw-flex tvw-h-full tvw-w-full tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-bg-cw-surface tvw-text-cw-primary tvw-rounded-2xl tvw-overflow-hidden tvw-shadow-2xl tvw-border tvw-border-cw-border"
   );
 
   const header = createElement(

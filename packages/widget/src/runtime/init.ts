@@ -92,6 +92,16 @@ export const initAgentWidget = (
   const target = ensureTarget(options.target);
   const host = document.createElement("div");
   host.className = "vanilla-agent-host";
+  
+  // When launcher is disabled (inline embed mode), ensure the host fills its container
+  // This allows the widget to respect the parent container's height
+  const launcherEnabled = options.config?.launcher?.enabled ?? true;
+  if (!launcherEnabled) {
+    host.style.height = "100%";
+    host.style.display = "flex";
+    host.style.flexDirection = "column";
+  }
+  
   target.appendChild(host);
 
   const useShadow = options.useShadowDom !== false;
@@ -103,12 +113,28 @@ export const initAgentWidget = (
     root = shadowRoot;
     mount = document.createElement("div");
     mount.id = "vanilla-agent-root";
+    // When launcher is disabled, ensure mount fills the host
+    if (!launcherEnabled) {
+      mount.style.height = "100%";
+      mount.style.display = "flex";
+      mount.style.flexDirection = "column";
+      mount.style.flex = "1";
+      mount.style.minHeight = "0";
+    }
     shadowRoot.appendChild(mount);
     mountStyles(shadowRoot);
   } else {
     root = host;
     mount = document.createElement("div");
     mount.id = "vanilla-agent-root";
+    // When launcher is disabled, ensure mount fills the host
+    if (!launcherEnabled) {
+      mount.style.height = "100%";
+      mount.style.display = "flex";
+      mount.style.flexDirection = "column";
+      mount.style.flex = "1";
+      mount.style.minHeight = "0";
+    }
     host.appendChild(mount);
     mountStyles(host);
   }
