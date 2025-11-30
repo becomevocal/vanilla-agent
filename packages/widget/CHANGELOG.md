@@ -1,17 +1,26 @@
 # vanilla-agent
 
+## 1.11.0
+
+### Minor Changes
+
+- Improve responsiveness of inline rendering, enable sidebar rendering, and use custom components for form demo
+
 ## 1.10.0
 
 ### Minor Changes
 
 Added:
+
 - Component streaming hooks
 - Custom fetch / header / sse parsing methods
 
 Improved:
+
 - Vanilla Agent DOM is now excluded from page DOM helper
 
 Fixed
+
 - Missed triggering of checkout middleware actions
 - Duplicate triggering of click and checkout actions
 
