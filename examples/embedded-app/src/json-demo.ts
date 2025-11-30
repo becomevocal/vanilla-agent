@@ -5,10 +5,15 @@ import "./App.css";
 import {
   createAgentExperience,
   initAgentWidget,
-  directivePostprocessor,
+  componentRegistry,
   markdownPostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
+
+import { DynamicForm } from "./components";
+
+// Register the DynamicForm component
+componentRegistry.register("DynamicForm", DynamicForm);
 
 const proxyPort = import.meta.env.VITE_PROXY_PORT ?? 43111;
 const proxyUrl =
@@ -24,12 +29,14 @@ if (!inlineMount) {
 createAgentExperience(inlineMount, {
   ...DEFAULT_WIDGET_CONFIG,
   apiUrl: proxyUrl,
+  parserType: "json", // Use JSON parser for component directives
+  enableComponentStreaming: true,
   launcher: { enabled: false },
   formEndpoint: "/form",
   theme: {
     ...DEFAULT_WIDGET_CONFIG.theme,
     primary: "#111827",
-    accent: "#0ea5e9",
+    accent: "#6366f1",
     surface: "#ffffff",
     muted: "#64748b"
   },
@@ -40,22 +47,16 @@ createAgentExperience(inlineMount, {
   },
   copy: {
     ...DEFAULT_WIDGET_CONFIG.copy,
-    welcomeTitle: "Directive-aware demo",
+    welcomeTitle: "Dynamic Form Demo",
     welcomeSubtitle:
-      "Ask about scheduling or try the suggested prompts to see the form directive in action."
+      "Ask about scheduling or try the suggested prompts to see dynamic forms in action."
   },
   suggestionChips: [
     "Can you schedule a demo for me?",
-    "What does the form directive do?",
+    "What does the dynamic form do?",
     "Show me a form for extra context"
   ],
-  postprocessMessage: ({ text, streaming }) => {
-    // Render markdown first, then apply directive replacement once the full token arrives.
-    if (streaming) {
-      return markdownPostprocessor(text);
-    }
-    return directivePostprocessor(text);
-  }
+  postprocessMessage: ({ text }) => markdownPostprocessor(text)
 });
 
 initAgentWidget({
@@ -64,13 +65,15 @@ initAgentWidget({
   config: {
     ...DEFAULT_WIDGET_CONFIG,
     apiUrl: proxyUrl,
+    parserType: "json",
+    enableComponentStreaming: true,
     formEndpoint: "/form",
     launcher: {
       ...DEFAULT_WIDGET_CONFIG.launcher,
       enabled: true,
-      title: "Directive Demo",
-      subtitle: "Opens the interactive form example",
-      agentIconText: "🧈",
+      title: "Form Demo",
+      subtitle: "Opens the dynamic form example",
+      agentIconText: "📋",
       autoExpand: false,
       width: 'min(420px, 95vw)'
     },
@@ -91,11 +94,6 @@ initAgentWidget({
       "I have extra requirements",
       "What's next after the form?"
     ],
-    postprocessMessage: ({ text, streaming }) => {
-      if (streaming) {
-        return markdownPostprocessor(text);
-      }
-      return directivePostprocessor(text);
-    }
+    postprocessMessage: ({ text }) => markdownPostprocessor(text)
   }
 });

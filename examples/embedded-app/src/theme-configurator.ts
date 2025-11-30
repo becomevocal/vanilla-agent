@@ -5,9 +5,11 @@ import "./theme-configurator.css";
 import {
   createAgentExperience,
   markdownPostprocessor,
+  componentRegistry,
   DEFAULT_WIDGET_CONFIG
 } from "vanilla-agent";
 import type { AgentWidgetConfig, AgentWidgetMessage, AgentWidgetEvent } from "vanilla-agent";
+import { DynamicForm } from "./components";
 import { parseActionResponse } from "./middleware";
 import { generateCodeSnippet, type CodeFormat } from "./code-generators";
 
@@ -2568,15 +2570,63 @@ function setupSuggestionChipsControls() {
 }
 
 // Other options controls
+// Flow presets configuration
+const FLOW_PRESETS = {
+  conversational: {
+    apiUrl: `http://localhost:${proxyPort}/api/chat/dispatch`,
+    parserType: "plain" as ParserType,
+    enableComponentStreaming: false,
+    description: "Basic conversational assistant"
+  },
+  directive: {
+    apiUrl: `http://localhost:${proxyPort}/api/chat/dispatch-directive`,
+    parserType: "json" as ParserType,
+    enableComponentStreaming: true,
+    description: "Dynamic forms with DynamicForm component"
+  },
+  component: {
+    apiUrl: `http://localhost:${proxyPort}/api/chat/dispatch-component`,
+    parserType: "json" as ParserType,
+    enableComponentStreaming: true,
+    description: "Custom component rendering"
+  },
+  action: {
+    apiUrl: `http://localhost:${proxyPort}/api/chat/dispatch-action`,
+    parserType: "json" as ParserType,
+    enableComponentStreaming: false,
+    description: "Shopping assistant with JSON actions"
+  },
+  custom: {
+    apiUrl: "",
+    parserType: "plain" as ParserType,
+    enableComponentStreaming: false,
+    description: "Custom API URL"
+  }
+};
+
+// Register DynamicForm component for directive flow testing
+componentRegistry.register("DynamicForm", DynamicForm);
+
 function setupOtherOptionsControls() {
+  const flowPresetSelect = getInput<HTMLSelectElement>("flow-preset");
   const apiUrlInput = getInput<HTMLInputElement>("api-url");
   const flowIdInput = getInput<HTMLInputElement>("flow-id");
   const streamParserSelect = getInput<HTMLSelectElement>("stream-parser");
+
+  // Detect current flow preset from apiUrl
+  const detectFlowPreset = (apiUrl: string): string => {
+    if (apiUrl.includes("dispatch-directive")) return "directive";
+    if (apiUrl.includes("dispatch-component")) return "component";
+    if (apiUrl.includes("dispatch-action")) return "action";
+    if (apiUrl.includes("dispatch") && !apiUrl.includes("dispatch-")) return "conversational";
+    return "custom";
+  };
 
   // Set initial values
   apiUrlInput.value = currentConfig.apiUrl ?? proxyUrl;
   flowIdInput.value = currentConfig.flowId ?? "";
   streamParserSelect.value = getParserTypeFromConfig(currentConfig);
+  flowPresetSelect.value = detectFlowPreset(currentConfig.apiUrl ?? proxyUrl);
 
   const updateOtherOptions = () => {
     const parserType = streamParserSelect.value as ParserType;
@@ -2585,10 +2635,38 @@ function setupOtherOptionsControls() {
       apiUrl: apiUrlInput.value,
       flowId: flowIdInput.value || undefined,
       parserType,
+      enableComponentStreaming: currentConfig.enableComponentStreaming,
       streamParser: undefined // rely on parserType for built-in parsers
     };
     debouncedUpdate(newConfig);
   };
+
+  // Handle flow preset change
+  flowPresetSelect.addEventListener("change", () => {
+    const preset = flowPresetSelect.value as keyof typeof FLOW_PRESETS;
+    const flowConfig = FLOW_PRESETS[preset];
+    
+    if (preset === "custom") {
+      // For custom, just enable the API URL input without changing it
+      apiUrlInput.disabled = false;
+      return;
+    }
+    
+    // Update the form inputs
+    apiUrlInput.value = flowConfig.apiUrl;
+    streamParserSelect.value = flowConfig.parserType;
+    
+    // Update config with flow-specific settings
+    const newConfig: AgentWidgetConfig = {
+      ...currentConfig,
+      apiUrl: flowConfig.apiUrl,
+      parserType: flowConfig.parserType,
+      enableComponentStreaming: flowConfig.enableComponentStreaming,
+      streamParser: undefined
+    };
+    
+    immediateUpdate(newConfig);
+  });
 
   [apiUrlInput, flowIdInput, streamParserSelect].forEach((input) =>
     input.addEventListener("input", updateOtherOptions)
@@ -3181,6 +3259,237 @@ function setupToolCallControls() {
   });
 }
 
+// Form styling controls
+function setupFormStyleControls() {
+  // Helper to update formStyles in config
+  const updateFormStyles = (key: string, value: string) => {
+    const formStyles = (currentConfig as any).formStyles || {};
+    (currentConfig as any).formStyles = {
+      ...formStyles,
+      [key]: value
+    };
+    debouncedUpdate(currentConfig);
+  };
+
+  // Container styles
+  
+  // Margin - text input only (supports complex values like "1rem 0")
+  const marginInput = getInput<HTMLInputElement>("form-margin");
+  marginInput.value = (currentConfig as any).formStyles?.margin || "1rem 0";
+  marginInput.addEventListener("input", () => {
+    updateFormStyles("margin", marginInput.value);
+  });
+  
+  setupSliderInput({
+    sliderId: "form-border-radius-slider",
+    textInputId: "form-border-radius",
+    min: 0,
+    max: 32,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("borderRadius", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.borderRadius || "12px"
+  });
+  
+  // Border Width
+  setupSliderInput({
+    sliderId: "form-border-width-slider",
+    textInputId: "form-border-width",
+    min: 0,
+    max: 8,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("borderWidth", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.borderWidth || "1px"
+  });
+  
+  // Border Color - color picker + text input
+  const borderColorPicker = getInput<HTMLInputElement>("form-border-color");
+  const borderColorText = getInput<HTMLInputElement>("form-border-color-text");
+  const initialBorderColor = (currentConfig as any).formStyles?.borderColor || "#e5e7eb";
+  borderColorPicker.value = initialBorderColor.startsWith("#") ? initialBorderColor : "#e5e7eb";
+  borderColorText.value = initialBorderColor;
+  
+  borderColorPicker.addEventListener("input", () => {
+    borderColorText.value = borderColorPicker.value;
+    updateFormStyles("borderColor", borderColorPicker.value);
+  });
+  borderColorText.addEventListener("input", () => {
+    // Try to update color picker if it's a valid hex
+    if (/^#[0-9A-Fa-f]{6}$/.test(borderColorText.value)) {
+      borderColorPicker.value = borderColorText.value;
+    }
+    updateFormStyles("borderColor", borderColorText.value);
+  });
+
+  setupSliderInput({
+    sliderId: "form-padding-slider",
+    textInputId: "form-padding",
+    min: 0,
+    max: 48,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("padding", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.padding || "1.5rem"
+  });
+
+  setupSliderInput({
+    sliderId: "form-max-width-slider",
+    textInputId: "form-max-width",
+    min: 200,
+    max: 800,
+    step: 10,
+    onUpdate: (value) => updateFormStyles("maxWidth", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.maxWidth || "450px"
+  });
+
+  const boxShadowInput = getInput<HTMLInputElement>("form-box-shadow");
+  boxShadowInput.value = (currentConfig as any).formStyles?.boxShadow || "0 2px 8px rgba(0,0,0,0.1)";
+  boxShadowInput.addEventListener("input", () => {
+    updateFormStyles("boxShadow", boxShadowInput.value);
+  });
+
+  // Typography styles
+  setupSliderInput({
+    sliderId: "form-title-font-size-slider",
+    textInputId: "form-title-font-size",
+    min: 12,
+    max: 32,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("titleFontSize", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.titleFontSize || "1.125rem"
+  });
+
+  // Title Font Weight - use raw numbers, not px units
+  const titleFontWeightSlider = getInput<HTMLInputElement>("form-title-font-weight-slider");
+  const titleFontWeightInput = getInput<HTMLInputElement>("form-title-font-weight");
+  const initialTitleFontWeight = parseInt((currentConfig as any).formStyles?.titleFontWeight || "600", 10);
+  titleFontWeightSlider.value = String(initialTitleFontWeight);
+  titleFontWeightInput.value = String(initialTitleFontWeight);
+  
+  titleFontWeightSlider.addEventListener("input", () => {
+    titleFontWeightInput.value = titleFontWeightSlider.value;
+    updateFormStyles("titleFontWeight", titleFontWeightSlider.value);
+  });
+  titleFontWeightInput.addEventListener("input", () => {
+    const value = parseInt(titleFontWeightInput.value, 10);
+    if (!isNaN(value) && value >= 100 && value <= 900) {
+      titleFontWeightSlider.value = String(value);
+      updateFormStyles("titleFontWeight", String(value));
+    }
+  });
+
+  setupSliderInput({
+    sliderId: "form-description-font-size-slider",
+    textInputId: "form-description-font-size",
+    min: 10,
+    max: 24,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("descriptionFontSize", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.descriptionFontSize || "0.875rem"
+  });
+
+  setupSliderInput({
+    sliderId: "form-label-font-size-slider",
+    textInputId: "form-label-font-size",
+    min: 8,
+    max: 20,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("labelFontSize", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.labelFontSize || "0.75rem"
+  });
+
+  // Label Font Weight - use raw numbers, not px units
+  const labelFontWeightSlider = getInput<HTMLInputElement>("form-label-font-weight-slider");
+  const labelFontWeightInput = getInput<HTMLInputElement>("form-label-font-weight");
+  const initialLabelFontWeight = parseInt((currentConfig as any).formStyles?.labelFontWeight || "500", 10);
+  labelFontWeightSlider.value = String(initialLabelFontWeight);
+  labelFontWeightInput.value = String(initialLabelFontWeight);
+  
+  labelFontWeightSlider.addEventListener("input", () => {
+    labelFontWeightInput.value = labelFontWeightSlider.value;
+    updateFormStyles("labelFontWeight", labelFontWeightSlider.value);
+  });
+  labelFontWeightInput.addEventListener("input", () => {
+    const value = parseInt(labelFontWeightInput.value, 10);
+    if (!isNaN(value) && value >= 100 && value <= 900) {
+      labelFontWeightSlider.value = String(value);
+      updateFormStyles("labelFontWeight", String(value));
+    }
+  });
+
+  // Input styles
+  setupSliderInput({
+    sliderId: "form-input-font-size-slider",
+    textInputId: "form-input-font-size",
+    min: 10,
+    max: 24,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("inputFontSize", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.inputFontSize || "0.875rem"
+  });
+
+  const inputPaddingInput = getInput<HTMLInputElement>("form-input-padding");
+  inputPaddingInput.value = (currentConfig as any).formStyles?.inputPadding || "0.625rem 0.875rem";
+  inputPaddingInput.addEventListener("input", () => {
+    updateFormStyles("inputPadding", inputPaddingInput.value);
+  });
+
+  setupSliderInput({
+    sliderId: "form-input-border-radius-slider",
+    textInputId: "form-input-border-radius",
+    min: 0,
+    max: 24,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("inputBorderRadius", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.inputBorderRadius || "0.5rem"
+  });
+
+  // Button styles
+  const buttonPaddingInput = getInput<HTMLInputElement>("form-button-padding");
+  buttonPaddingInput.value = (currentConfig as any).formStyles?.buttonPadding || "0.625rem 1.25rem";
+  buttonPaddingInput.addEventListener("input", () => {
+    updateFormStyles("buttonPadding", buttonPaddingInput.value);
+  });
+
+  setupSliderInput({
+    sliderId: "form-button-border-radius-slider",
+    textInputId: "form-button-border-radius",
+    min: 0,
+    max: 100,
+    step: 1,
+    isRadiusFull: true,
+    onUpdate: (value) => updateFormStyles("buttonBorderRadius", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.buttonBorderRadius || "9999px"
+  });
+
+  setupSliderInput({
+    sliderId: "form-button-font-size-slider",
+    textInputId: "form-button-font-size",
+    min: 10,
+    max: 24,
+    step: 1,
+    onUpdate: (value) => updateFormStyles("buttonFontSize", value),
+    getInitialValue: () => (currentConfig as any).formStyles?.buttonFontSize || "0.875rem"
+  });
+
+  // Button Font Weight - use raw numbers, not px units
+  const buttonFontWeightSlider = getInput<HTMLInputElement>("form-button-font-weight-slider");
+  const buttonFontWeightInput = getInput<HTMLInputElement>("form-button-font-weight");
+  const initialButtonFontWeight = parseInt((currentConfig as any).formStyles?.buttonFontWeight || "600", 10);
+  buttonFontWeightSlider.value = String(initialButtonFontWeight);
+  buttonFontWeightInput.value = String(initialButtonFontWeight);
+  
+  buttonFontWeightSlider.addEventListener("input", () => {
+    buttonFontWeightInput.value = buttonFontWeightSlider.value;
+    updateFormStyles("buttonFontWeight", buttonFontWeightSlider.value);
+  });
+  buttonFontWeightInput.addEventListener("input", () => {
+    const value = parseInt(buttonFontWeightInput.value, 10);
+    if (!isNaN(value) && value >= 100 && value <= 900) {
+      buttonFontWeightSlider.value = String(value);
+      updateFormStyles("buttonFontWeight", String(value));
+    }
+  });
+}
+
 // Initialize all controls
 function init() {
   setupAccordions();
@@ -3193,6 +3502,7 @@ function init() {
   setupStatusIndicatorControls();
   setupFeatureControls();
   setupToolCallControls();
+  setupFormStyleControls();
   setupSuggestionChipsControls();
   setupOtherOptionsControls();
   setupExportControls();

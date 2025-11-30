@@ -26,7 +26,6 @@ import {
   initAgentWidget,
   createAgentExperience,
   markdownPostprocessor,
-  directivePostprocessor,
   DEFAULT_WIDGET_CONFIG
 } from 'vanilla-agent';
 
@@ -61,12 +60,9 @@ const controller = initAgentWidget({
   }
 });
 
+// Runtime theme update
 document.querySelector('#dark-mode')?.addEventListener('click', () => {
   controller.update({ theme: { surface: '#0f172a', primary: '#f8fafc' } });
-});
-controller.update({
-  postprocessMessage: ({ text, streaming }) =>
-    streaming ? markdownPostprocessor(text) : directivePostprocessor(text)
 });
 ```
 
@@ -238,10 +234,62 @@ The client simply sends messages to the proxy, which constructs the full Travrse
 - Enforce security and cost controls centrally
 - Support multiple flows for different use cases
 
-### Directive postprocessor
+### Dynamic Forms (Recommended)
+
+For rendering AI-generated forms, use the **component middleware** approach with the `DynamicForm` component. This allows the AI to create contextually appropriate forms with any fields:
+
+```typescript
+import { componentRegistry, initAgentWidget } from "vanilla-agent";
+import { DynamicForm } from "./components"; // Your DynamicForm component
+
+// Register the component
+componentRegistry.register("DynamicForm", DynamicForm);
+
+initAgentWidget({
+  target: "#app",
+  config: {
+    apiUrl: "/api/chat/dispatch-directive",
+    parserType: "json",
+    enableComponentStreaming: true,
+    formEndpoint: "/form",
+    // Optional: customize form appearance
+    formStyles: {
+      borderRadius: "16px",
+      borderWidth: "1px",
+      borderColor: "#e5e7eb",
+      padding: "1.5rem",
+      titleFontSize: "1.25rem",
+      buttonBorderRadius: "9999px"
+    }
+  }
+});
+```
+
+The AI responds with JSON like:
+
+```json
+{
+  "text": "Please fill out this form:",
+  "component": "DynamicForm",
+  "props": {
+    "title": "Contact Us",
+    "fields": [
+      { "label": "Name", "type": "text", "required": true },
+      { "label": "Email", "type": "email", "required": true }
+    ],
+    "submit_text": "Submit"
+  }
+}
+```
+
+See `examples/embedded-app/json.html` for a full working example.
+
+### Directive postprocessor (Deprecated)
+
+> **⚠️ Deprecated:** The `directivePostprocessor` approach is deprecated in favor of the component middleware with `DynamicForm`. The old approach only supports predefined form templates ("init" and "followup"), while the new approach allows AI-generated forms with any fields.
 
 `directivePostprocessor` looks for either `<Form type="init" />` tokens or
-`<Directive>{"component":"form","type":"init"}</Directive>` blocks and swaps them for placeholders that the widget upgrades into interactive UI (forms, cards, etc.). See `examples/embedded-app/json.html` for a full working example that submits to the proxy’s `/form` endpoint and posts a follow-up message back into the chat.
+`<Directive>{"component":"form","type":"init"}</Directive>` blocks and swaps them for placeholders that the widget upgrades into interactive UI. This approach is limited to the predefined form templates in `formDefinitions`.
 
 ### Script tag installation
 
@@ -357,7 +405,8 @@ The script build exposes a `window.AgentWidget` global with `initAgentWidget()` 
 - `window.AgentWidget.createJsonStreamParser()` - JSON parser using schema-stream
 - `window.AgentWidget.createXmlParser()` - XML parser
 - `window.AgentWidget.markdownPostprocessor()` - Markdown postprocessor
-- `window.AgentWidget.directivePostprocessor()` - Directive postprocessor
+- `window.AgentWidget.directivePostprocessor()` - Directive postprocessor *(deprecated)*
+- `window.AgentWidget.componentRegistry` - Component registry for custom components
 
 ### React Framework Integration
 

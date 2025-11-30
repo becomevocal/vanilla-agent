@@ -29,10 +29,79 @@ Tweak `src/main.ts` to experiment with different configuration presets, launcher
   - Shows inline widget and launcher widget examples
   - Basic chat functionality
 
-### Directive Demo
-- **Directive page**: `http://localhost:5173/json.html`
-  - Demonstrates the JSON/directive postprocessor that renders interactive forms
-  - The widget detects directives like `<Form type="init"/>` (or the JSON equivalent) and swaps them for custom UI, submitting to the proxy's `/form` endpoint
+### Dynamic Forms Demo
+- **Dynamic Forms page**: `http://localhost:5173/json.html`
+  - Demonstrates AI-generated dynamic forms using the component middleware
+  - The AI generates form definitions with custom fields, and the `DynamicForm` component renders them
+  - Forms are fully themeable via `config.formStyles`
+  - Submitted data is POSTed to the configured `formEndpoint` (default: `/form`)
+
+The dynamic forms example demonstrates:
+- Component registry with `DynamicForm` for rendering AI-generated forms
+- JSON streaming with `parserType: "json"` and `enableComponentStreaming: true`
+- Dynamic field generation based on conversation context
+- Theme integration via `config.theme` and `config.formStyles`
+
+#### Setting Up Dynamic Forms
+
+```typescript
+import { componentRegistry } from "vanilla-agent";
+import { DynamicForm } from "./components";
+
+// Register the DynamicForm component
+componentRegistry.register("DynamicForm", DynamicForm);
+
+initAgentWidget({
+  target: "#app",
+  config: {
+    apiUrl: "/api/chat/dispatch-directive",
+    parserType: "json",
+    enableComponentStreaming: true,
+    formEndpoint: "/form",
+    formStyles: {
+      borderRadius: "16px",
+      borderWidth: "2px",
+      borderColor: "#e5e7eb",
+      padding: "1.5rem"
+    }
+  }
+});
+```
+
+#### AI Response Format for Forms
+
+The AI should respond with JSON in this format:
+
+```json
+{
+  "text": "Please fill out this form:",
+  "component": "DynamicForm",
+  "props": {
+    "title": "Schedule a Demo",
+    "description": "Share your details and we'll follow up.",
+    "fields": [
+      { "label": "Full Name", "type": "text", "required": true },
+      { "label": "Email", "type": "email", "required": true },
+      { "label": "Company", "type": "text" },
+      { "label": "Preferred Date", "type": "date", "required": true },
+      { "label": "Notes", "type": "textarea", "placeholder": "Any topics to cover?" }
+    ],
+    "submit_text": "Request Demo"
+  }
+}
+```
+
+#### Supported Field Types
+
+- `text` - Standard text input
+- `email` - Email input with validation
+- `tel` - Phone number input
+- `date` - Date picker
+- `time` - Time picker
+- `textarea` - Multi-line text
+- `number` - Numeric input
+
+> **Deprecation Notice:** The old `<Form type="init"/>` directive approach using `directivePostprocessor` is deprecated. It only supported predefined form templates ("init" and "followup"). The new `DynamicForm` component approach is recommended as it allows the AI to generate contextually appropriate forms with any fields.
 
 ### Action Middleware / E-commerce Demo
 - **E-commerce page**: `http://localhost:5173/action-middleware.html`

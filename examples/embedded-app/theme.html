@@ -994,6 +994,155 @@
           </div>
         </section>
 
+        <!-- Form Styling Section -->
+        <section class="config-section accordion">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Form Styling</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <p class="color-description" style="margin-bottom: 16px;">
+            Customize the appearance of dynamic forms rendered by the DynamicForm component.
+          </p>
+          
+          <!-- Container Styles -->
+          <h3 class="form-subsection-title">Container</h3>
+          <div class="form-group">
+            <label for="form-margin">Margin</label>
+            <input type="text" id="form-margin" value="1rem 0" placeholder="e.g., 1rem 0, 16px" />
+          </div>
+          <div class="form-group">
+            <label for="form-border-radius">Border Radius</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-border-radius-slider" min="0" max="32" step="1" />
+              <input type="text" id="form-border-radius" value="12px" placeholder="e.g., 12px, 1rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-border-width">Border Width</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-border-width-slider" min="0" max="8" step="1" />
+              <input type="text" id="form-border-width" value="1px" placeholder="e.g., 1px, 2px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-border-color">Border Color</label>
+            <div class="color-input-wrapper">
+              <input type="color" id="form-border-color" value="#e5e7eb" />
+              <input type="text" id="form-border-color-text" value="#e5e7eb" placeholder="e.g., #e5e7eb" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-padding">Padding</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-padding-slider" min="0" max="48" step="1" />
+              <input type="text" id="form-padding" value="1.5rem" placeholder="e.g., 1.5rem, 24px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-max-width">Max Width</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-max-width-slider" min="200" max="800" step="10" />
+              <input type="text" id="form-max-width" value="450px" placeholder="e.g., 450px" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-box-shadow">Box Shadow</label>
+            <input type="text" id="form-box-shadow" value="0 2px 8px rgba(0,0,0,0.1)" placeholder="CSS box-shadow" />
+          </div>
+          
+          <!-- Typography Styles -->
+          <h3 class="form-subsection-title">Typography</h3>
+          <div class="form-group">
+            <label for="form-title-font-size">Title Font Size</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-title-font-size-slider" min="12" max="32" step="1" />
+              <input type="text" id="form-title-font-size" value="1.125rem" placeholder="e.g., 1.125rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-title-font-weight">Title Font Weight</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-title-font-weight-slider" min="100" max="900" step="100" />
+              <input type="text" id="form-title-font-weight" value="600" placeholder="e.g., 600" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-description-font-size">Description Font Size</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-description-font-size-slider" min="10" max="24" step="1" />
+              <input type="text" id="form-description-font-size" value="0.875rem" placeholder="e.g., 0.875rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-label-font-size">Label Font Size</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-label-font-size-slider" min="8" max="20" step="1" />
+              <input type="text" id="form-label-font-size" value="0.75rem" placeholder="e.g., 0.75rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-label-font-weight">Label Font Weight</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-label-font-weight-slider" min="100" max="900" step="100" />
+              <input type="text" id="form-label-font-weight" value="500" placeholder="e.g., 500" />
+            </div>
+          </div>
+          
+          <!-- Input Styles -->
+          <h3 class="form-subsection-title">Inputs</h3>
+          <div class="form-group">
+            <label for="form-input-font-size">Input Font Size</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-input-font-size-slider" min="10" max="24" step="1" />
+              <input type="text" id="form-input-font-size" value="0.875rem" placeholder="e.g., 0.875rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-input-padding">Input Padding</label>
+            <input type="text" id="form-input-padding" value="0.625rem 0.875rem" placeholder="e.g., 0.625rem 0.875rem" />
+          </div>
+          <div class="form-group">
+            <label for="form-input-border-radius">Input Border Radius</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-input-border-radius-slider" min="0" max="24" step="1" />
+              <input type="text" id="form-input-border-radius" value="0.5rem" placeholder="e.g., 0.5rem" />
+            </div>
+          </div>
+          
+          <!-- Button Styles -->
+          <h3 class="form-subsection-title">Submit Button</h3>
+          <div class="form-group">
+            <label for="form-button-padding">Button Padding</label>
+            <input type="text" id="form-button-padding" value="0.625rem 1.25rem" placeholder="e.g., 0.625rem 1.25rem" />
+          </div>
+          <div class="form-group">
+            <label for="form-button-border-radius">Button Border Radius</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-button-border-radius-slider" min="0" max="100" step="1" />
+              <input type="text" id="form-button-border-radius" value="9999px" placeholder="e.g., 9999px (pill)" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-button-font-size">Button Font Size</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-button-font-size-slider" min="10" max="24" step="1" />
+              <input type="text" id="form-button-font-size" value="0.875rem" placeholder="e.g., 0.875rem" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="form-button-font-weight">Button Font Weight</label>
+            <div class="slider-input-wrapper">
+              <input type="range" id="form-button-font-weight-slider" min="100" max="900" step="100" />
+              <input type="text" id="form-button-font-weight" value="600" placeholder="e.g., 600" />
+            </div>
+          </div>
+          </div>
+        </section>
+
         <!-- Suggestion Chips Section -->
         <section class="config-section accordion">
           <div class="accordion-header">
@@ -1053,6 +1202,17 @@
             <div class="accordion-presets"></div>
           </div>
           <div class="accordion-content">
+          <div class="form-group">
+            <label for="flow-preset">Test Flow</label>
+            <select id="flow-preset">
+              <option value="conversational">Conversational (default)</option>
+              <option value="directive">Dynamic Forms</option>
+              <option value="component">Custom Components</option>
+              <option value="action">Shopping Assistant</option>
+              <option value="custom">Custom URL</option>
+            </select>
+            <p class="color-description">Select a flow to test different widget capabilities. Dynamic Forms renders AI-generated forms, Custom Components renders registered components.</p>
+          </div>
           <div class="form-group">
             <label for="api-url">API URL</label>
             <input type="text" id="api-url" value="/api/chat/dispatch" />

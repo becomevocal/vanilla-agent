@@ -1,4 +1,22 @@
-import type { ComponentRenderer } from "vanilla-agent";
+import type { ComponentRenderer, ComponentContext } from "vanilla-agent";
+
+/**
+ * Helper to adjust color brightness for hover states
+ */
+function adjustColorBrightness(hex: string, percent: number): string {
+  // Handle shorthand hex
+  let color = hex.replace("#", "");
+  if (color.length === 3) {
+    color = color.split("").map(c => c + c).join("");
+  }
+  
+  const num = parseInt(color, 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + Math.round(2.55 * percent)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent)));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + Math.round(2.55 * percent)));
+  
+  return `#${(0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 /**
  * ProductCard component - displays product information
@@ -167,4 +185,263 @@ export const InfoCard: ComponentRenderer = (props, context) => {
   `;
 
   return card;
+};
+
+/**
+ * Field definition for DynamicForm
+ */
+interface FormField {
+  label: string;
+  name?: string;
+  type?: "text" | "email" | "tel" | "date" | "time" | "textarea" | "number";
+  placeholder?: string;
+  required?: boolean;
+}
+
+/**
+ * Style overrides for DynamicForm
+ * Can be passed via config.formStyles or as props.styles
+ */
+export interface DynamicFormStyles {
+  // Container styles
+  margin?: string;
+  borderRadius?: string;
+  borderWidth?: string;
+  borderColor?: string;
+  border?: string; // Legacy: full border shorthand (e.g., "1px solid #ccc")
+  padding?: string;
+  maxWidth?: string;
+  boxShadow?: string;
+  
+  // Typography
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  descriptionFontSize?: string;
+  labelFontSize?: string;
+  labelFontWeight?: string;
+  inputFontSize?: string;
+  
+  // Input styles
+  inputPadding?: string;
+  inputBorderRadius?: string;
+  inputBorder?: string;
+  
+  // Button styles
+  buttonPadding?: string;
+  buttonBorderRadius?: string;
+  buttonFontSize?: string;
+  buttonFontWeight?: string;
+}
+
+/**
+ * DynamicForm component - renders a form with dynamic fields based on AI-generated props
+ * Supports theming via context.config.theme and style overrides via config.formStyles or props.styles
+ */
+export const DynamicForm: ComponentRenderer = (props, context) => {
+  // Extract theme colors with fallbacks
+  const theme = context.config?.theme || {};
+  const primaryColor = theme.primary || "#1f2937";
+  const accentColor = theme.accent || "#6366f1";
+  const surfaceColor = theme.surface || "#ffffff";
+  const mutedColor = theme.muted || "#6b7280";
+  
+  // Calculate a darker accent for hover state
+  const accentHover = adjustColorBrightness(accentColor, -15);
+  
+  // Merge style overrides: config.formStyles < props.styles (props wins)
+  const configStyles = (context.config as any)?.formStyles as DynamicFormStyles | undefined;
+  const propsStyles = props.styles as DynamicFormStyles | undefined;
+  const styles: DynamicFormStyles = { ...configStyles, ...propsStyles };
+  
+  // Build border style from individual properties or use shorthand
+  const borderWidth = styles.borderWidth || "1px";
+  const borderColor = styles.borderColor || `${mutedColor}30`;
+  const borderStyle = styles.border || `${borderWidth} solid ${borderColor}`;
+  
+  const container = document.createElement("div");
+  container.className = "dynamic-form-card";
+  container.style.cssText = `
+    border: ${borderStyle};
+    border-radius: ${styles.borderRadius || "12px"};
+    padding: ${styles.padding || "1.5rem"};
+    background: ${surfaceColor};
+    box-shadow: ${styles.boxShadow || "0 2px 8px rgba(0,0,0,0.1)"};
+    max-width: ${styles.maxWidth || "450px"};
+    margin: ${styles.margin || "1rem 0"};
+  `;
+
+  const title = String(props.title || "Form");
+  const description = props.description ? String(props.description) : "";
+  const fields = Array.isArray(props.fields) ? props.fields as FormField[] : [];
+  const submitText = String(props.submit_text || props.submitText || "Submit");
+
+  // Build header
+  const header = document.createElement("div");
+  header.style.cssText = "margin-bottom: 1.25rem;";
+  
+  const titleEl = document.createElement("h3");
+  titleEl.style.cssText = `
+    margin: 0 0 0.25rem 0;
+    color: ${primaryColor};
+    font-size: ${styles.titleFontSize || "1.125rem"};
+    font-weight: ${styles.titleFontWeight || "600"};
+  `;
+  titleEl.textContent = title;
+  header.appendChild(titleEl);
+  
+  if (description) {
+    const descEl = document.createElement("p");
+    descEl.style.cssText = `
+      margin: 0;
+      color: ${mutedColor};
+      font-size: ${styles.descriptionFontSize || "0.875rem"};
+    `;
+    descEl.textContent = description;
+    header.appendChild(descEl);
+  }
+  
+  container.appendChild(header);
+
+  // Build form
+  const form = document.createElement("form");
+  form.style.cssText = "display: flex; flex-direction: column; gap: 1rem;";
+  
+  const messageId = context.message?.id || "form";
+  
+  fields.forEach((field, index) => {
+    const fieldName = field.name || field.label.toLowerCase().replace(/\s+/g, "_");
+    const fieldId = `${messageId}-${fieldName}-${index}`;
+    
+    const group = document.createElement("div");
+    group.style.cssText = "display: flex; flex-direction: column; gap: 0.375rem;";
+    
+    const label = document.createElement("label");
+    label.htmlFor = fieldId;
+    label.style.cssText = `
+      font-size: ${styles.labelFontSize || "0.75rem"};
+      font-weight: ${styles.labelFontWeight || "500"};
+      color: ${mutedColor};
+    `;
+    label.textContent = field.label + (field.required ? " *" : "");
+    group.appendChild(label);
+    
+    const inputType = field.type || "text";
+    let control: HTMLInputElement | HTMLTextAreaElement;
+    
+    if (inputType === "textarea") {
+      control = document.createElement("textarea");
+      (control as HTMLTextAreaElement).rows = 3;
+    } else {
+      control = document.createElement("input");
+      (control as HTMLInputElement).type = inputType;
+    }
+    
+    const inputBorderDefault = styles.inputBorder || `1px solid ${mutedColor}40`;
+    
+    control.id = fieldId;
+    control.name = fieldName;
+    control.placeholder = field.placeholder || "";
+    if (field.required) {
+      control.required = true;
+    }
+    control.style.cssText = `
+      padding: ${styles.inputPadding || "0.625rem 0.875rem"};
+      border: ${inputBorderDefault};
+      border-radius: ${styles.inputBorderRadius || "0.5rem"};
+      font-size: ${styles.inputFontSize || "0.875rem"};
+      color: ${primaryColor};
+      background: ${surfaceColor};
+      outline: none;
+      transition: border-color 0.2s;
+    `;
+    control.addEventListener("focus", () => {
+      control.style.borderColor = accentColor;
+    });
+    control.addEventListener("blur", () => {
+      control.style.border = inputBorderDefault;
+    });
+    
+    group.appendChild(control);
+    form.appendChild(group);
+  });
+
+  // Actions row
+  const actions = document.createElement("div");
+  actions.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.5rem;";
+  
+  const status = document.createElement("div");
+  status.style.cssText = `font-size: 0.75rem; color: ${mutedColor}; min-height: 1.25rem;`;
+  
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "submit";
+  submitBtn.textContent = submitText;
+  submitBtn.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    padding: ${styles.buttonPadding || "0.625rem 1.25rem"};
+    background: ${accentColor};
+    color: white;
+    border: none;
+    border-radius: ${styles.buttonBorderRadius || "9999px"};
+    font-size: ${styles.buttonFontSize || "0.875rem"};
+    font-weight: ${styles.buttonFontWeight || "600"};
+    cursor: pointer;
+    transition: background 0.2s;
+  `;
+  submitBtn.addEventListener("mouseenter", () => {
+    submitBtn.style.background = accentHover;
+  });
+  submitBtn.addEventListener("mouseleave", () => {
+    submitBtn.style.background = accentColor;
+  });
+  
+  actions.appendChild(status);
+  actions.appendChild(submitBtn);
+  form.appendChild(actions);
+  
+  // Form submission handler
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    
+    const formData = new FormData(form);
+    const payload: Record<string, unknown> = {};
+    formData.forEach((value, key) => {
+      payload[key] = value;
+    });
+    
+    submitBtn.setAttribute("disabled", "true");
+    submitBtn.style.opacity = "0.6";
+    submitBtn.style.cursor = "not-allowed";
+    status.textContent = "Submitting…";
+    
+    try {
+      // Use form endpoint from config if available
+      const formEndpoint = context.config?.formEndpoint || "/form";
+      
+      const response = await fetch(formEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Submission failed (${response.status})`);
+      }
+      
+      const data = await response.json();
+      status.textContent = data.message || "Thanks! We'll be in touch soon.";
+      status.style.color = "#10b981";
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Something went wrong.";
+      status.style.color = "#ef4444";
+    } finally {
+      submitBtn.removeAttribute("disabled");
+      submitBtn.style.opacity = "1";
+      submitBtn.style.cursor = "pointer";
+    }
+  });
+  
+  container.appendChild(form);
+  
+  return container;
 };
