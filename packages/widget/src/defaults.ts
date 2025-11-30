@@ -135,6 +135,29 @@ export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
     paddingX: "12px",
     paddingY: "6px",
   },
+  layout: {
+    header: {
+      layout: "default",
+      showIcon: true,
+      showTitle: true,
+      showSubtitle: true,
+      showCloseButton: true,
+      showClearChat: true,
+    },
+    messages: {
+      layout: "bubble",
+      avatar: {
+        show: false,
+        position: "left",
+      },
+      timestamp: {
+        show: false,
+        position: "below",
+      },
+      groupConsecutive: false,
+    },
+    slots: {},
+  },
   debug: false,
 };
 
@@ -186,6 +209,30 @@ export function mergeWithDefaults(
     suggestionChipsConfig: {
       ...DEFAULT_WIDGET_CONFIG.suggestionChipsConfig,
       ...config.suggestionChipsConfig,
+    },
+    layout: {
+      ...DEFAULT_WIDGET_CONFIG.layout,
+      ...config.layout,
+      header: {
+        ...DEFAULT_WIDGET_CONFIG.layout?.header,
+        ...config.layout?.header,
+      },
+      messages: {
+        ...DEFAULT_WIDGET_CONFIG.layout?.messages,
+        ...config.layout?.messages,
+        avatar: {
+          ...DEFAULT_WIDGET_CONFIG.layout?.messages?.avatar,
+          ...config.layout?.messages?.avatar,
+        },
+        timestamp: {
+          ...DEFAULT_WIDGET_CONFIG.layout?.messages?.timestamp,
+          ...config.layout?.messages?.timestamp,
+        },
+      },
+      slots: {
+        ...DEFAULT_WIDGET_CONFIG.layout?.slots,
+        ...config.layout?.slots,
+      },
     },
   };
 }

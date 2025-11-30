@@ -851,6 +851,40 @@ function setupThemeControls() {
     });
   });
 
+  // Panel Styling controls
+  const panelBorderInput = getInput<HTMLInputElement>("theme-panelBorder");
+  const panelShadowInput = getInput<HTMLInputElement>("theme-panelShadow");
+  const panelBorderRadiusInput = getInput<HTMLInputElement>("theme-panelBorderRadius");
+  
+  // Set initial values for panel styling
+  panelBorderInput.value = currentConfig.theme?.panelBorder ?? "";
+  panelShadowInput.value = currentConfig.theme?.panelShadow ?? "";
+  panelBorderRadiusInput.value = currentConfig.theme?.panelBorderRadius ?? "16px";
+  
+  // Panel border and shadow inputs (text only)
+  [panelBorderInput, panelShadowInput].forEach((input) => {
+    input.addEventListener("input", () => {
+      const key = input.id.replace("theme-", "") as "panelBorder" | "panelShadow";
+      const value = input.value.trim();
+      updateTheme(key, value || "");
+    });
+  });
+  
+  // Panel border radius with slider
+  setupSliderInput({
+    sliderId: "theme-panelBorderRadius-slider",
+    textInputId: "theme-panelBorderRadius",
+    min: 0,
+    max: 48,
+    step: 1,
+    onUpdate: (value: string) => {
+      updateTheme("panelBorderRadius", value);
+    },
+    getInitialValue: () => {
+      return currentConfig.theme?.panelBorderRadius ?? "16px";
+    }
+  });
+
   // Color preset buttons
   document.querySelectorAll("[data-preset]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1316,6 +1350,9 @@ function setupLauncherControls() {
   const positionInput = getInput<HTMLSelectElement>("launcher-position");
   const widthInput = getInput<HTMLInputElement>("launcher-width");
   const autoExpandInput = getInput<HTMLInputElement>("launcher-auto-expand");
+  const fullHeightInput = getInput<HTMLInputElement>("launcher-full-height");
+  const sidebarModeInput = getInput<HTMLInputElement>("launcher-sidebar-mode");
+  const sidebarWidthInput = getInput<HTMLInputElement>("launcher-sidebar-width");
   const callToActionIconTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-text");
   const callToActionIconNameInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-name");
   const callToActionIconHiddenInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-hidden");
@@ -1338,6 +1375,9 @@ function setupLauncherControls() {
   positionInput.value = currentConfig.launcher?.position ?? "bottom-right";
   widthInput.value = currentConfig.launcher?.width ?? "min(400px, calc(100vw - 24px))";
   autoExpandInput.checked = currentConfig.launcher?.autoExpand ?? false;
+  fullHeightInput.checked = currentConfig.launcher?.fullHeight ?? false;
+  sidebarModeInput.checked = currentConfig.launcher?.sidebarMode ?? false;
+  sidebarWidthInput.value = currentConfig.launcher?.sidebarWidth ?? "420px";
   callToActionIconTextInput.value = currentConfig.launcher?.callToActionIconText ?? "↗";
   callToActionIconNameInput.value = currentConfig.launcher?.callToActionIconName ?? "";
   callToActionIconHiddenInput.checked = currentConfig.launcher?.callToActionIconHidden ?? false;
@@ -1374,6 +1414,9 @@ function setupLauncherControls() {
         position: positionInput.value as "bottom-right" | "bottom-left" | "top-right" | "top-left",
         width: widthInput.value,
         autoExpand: autoExpandInput.checked,
+        fullHeight: fullHeightInput.checked,
+        sidebarMode: sidebarModeInput.checked,
+        sidebarWidth: sidebarWidthInput.value || undefined,
         callToActionIconText: callToActionIconTextInput.value,
         callToActionIconName: callToActionIconNameInput.value || undefined,
         callToActionIconHidden: callToActionIconHiddenInput.checked,
@@ -1425,7 +1468,7 @@ function setupLauncherControls() {
     }
   });
 
-  [enabledInput, titleInput, subtitleInput, textHiddenInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput, positionInput, widthInput, autoExpandInput, callToActionIconTextInput, callToActionIconNameInput, callToActionIconHiddenInput]
+  [enabledInput, titleInput, subtitleInput, textHiddenInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput, positionInput, widthInput, autoExpandInput, fullHeightInput, sidebarModeInput, sidebarWidthInput, callToActionIconTextInput, callToActionIconNameInput, callToActionIconHiddenInput]
     .forEach((input) => {
       input.addEventListener("input", updateLauncher);
       input.addEventListener("change", updateLauncher);
@@ -3669,7 +3712,11 @@ function buildSearchableFieldsIndex() {
     { id: 'color-micBorderColor', label: 'Mic Border', key: 'micBorderColor' },
     { id: 'color-recordingIconColor', label: 'Recording Icon', key: 'recordingIconColor' },
     { id: 'color-recordingBackgroundColor', label: 'Recording Background', key: 'recordingBackgroundColor' },
-    { id: 'color-recordingBorderColor', label: 'Recording Border', key: 'recordingBorderColor' }
+    { id: 'color-recordingBorderColor', label: 'Recording Border', key: 'recordingBorderColor' },
+    // Panel styling
+    { id: 'theme-panelBorder', label: 'Panel Border', key: 'panelBorder', isText: true },
+    { id: 'theme-panelShadow', label: 'Panel Shadow', key: 'panelShadow', isText: true },
+    { id: 'theme-panelBorderRadius', label: 'Panel Border Radius', key: 'panelBorderRadius', isSlider: true }
   ];
 
   themeColorFields.forEach(field => {
@@ -3777,6 +3824,9 @@ function buildSearchableFieldsIndex() {
     { id: 'launcher-width', label: 'Launcher Width', type: 'text' },
     { id: 'launcher-position', label: 'Position', type: 'select' },
     { id: 'launcher-autoExpand', label: 'Auto Expand', type: 'checkbox' },
+    { id: 'launcher-full-height', label: 'Full Height Mode', type: 'checkbox' },
+    { id: 'launcher-sidebar-mode', label: 'Sidebar Mode', type: 'checkbox' },
+    { id: 'launcher-sidebar-width', label: 'Sidebar Width', type: 'text' },
     { id: 'launcher-enabled', label: 'Show Launcher', type: 'checkbox' },
     { id: 'launcher-agent-icon-text', label: 'Agent Icon Text', type: 'text' },
     { id: 'launcher-agent-icon-name', label: 'Agent Icon Name', type: 'text' },

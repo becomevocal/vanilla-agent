@@ -17,7 +17,18 @@ export type {
   AgentWidgetCustomFetch,
   AgentWidgetSSEEventParser,
   AgentWidgetSSEEventResult,
-  AgentWidgetHeadersFunction
+  AgentWidgetHeadersFunction,
+  // Layout types
+  AgentWidgetLayoutConfig,
+  AgentWidgetHeaderLayoutConfig,
+  AgentWidgetMessageLayoutConfig,
+  AgentWidgetAvatarConfig,
+  AgentWidgetTimestampConfig,
+  WidgetLayoutSlot,
+  SlotRenderer,
+  SlotRenderContext,
+  HeaderRenderContext,
+  MessageRenderContext
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
@@ -71,5 +82,36 @@ export {
 
 // Default configuration exports
 export { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from "./defaults";
+
+// Layout system exports
+export {
+  buildHeader,
+  buildComposer,
+  attachHeaderToContainer
+} from "./components/panel";
+export type {
+  HeaderElements,
+  HeaderBuildContext,
+  ComposerElements,
+  ComposerBuildContext
+} from "./components/panel";
+export {
+  headerLayouts,
+  getHeaderLayout,
+  buildHeaderWithLayout,
+  buildDefaultHeader,
+  buildMinimalHeader,
+  buildExpandedHeader
+} from "./components/header-layouts";
+export type {
+  HeaderLayoutContext,
+  HeaderLayoutRenderer
+} from "./components/header-layouts";
+export {
+  createStandardBubble,
+  createBubbleWithLayout,
+  createTypingIndicator
+} from "./components/message-bubble";
+export type { MessageTransform } from "./components/message-bubble";
 
 export default initAgentWidgetFn;

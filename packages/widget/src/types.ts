@@ -156,6 +156,24 @@ export type AgentWidgetTheme = {
   radiusLg?: string;
   launcherRadius?: string;
   buttonRadius?: string;
+  /**
+   * Border style for the chat panel container.
+   * @example "1px solid #e5e7eb" | "none"
+   * @default "1px solid var(--tvw-cw-border)"
+   */
+  panelBorder?: string;
+  /**
+   * Box shadow for the chat panel container.
+   * @example "0 25px 50px -12px rgba(0,0,0,0.25)" | "none"
+   * @default "0 25px 50px -12px rgba(0,0,0,0.25)"
+   */
+  panelShadow?: string;
+  /**
+   * Border radius for the chat panel container.
+   * @example "16px" | "0"
+   * @default "16px"
+   */
+  panelBorderRadius?: string;
 };
 
 export type AgentWidgetLauncherConfig = {
@@ -170,6 +188,35 @@ export type AgentWidgetLauncherConfig = {
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   autoExpand?: boolean;
   width?: string;
+  /**
+   * When true, the widget panel will fill the full height of its container.
+   * Useful for sidebar layouts where the chat should take up the entire viewport height.
+   * The widget will use flex layout to ensure header stays at top, messages scroll in middle,
+   * and composer stays fixed at bottom.
+   * 
+   * @default false
+   */
+  fullHeight?: boolean;
+  /**
+   * When true, the widget panel will be positioned as a sidebar flush with the viewport edges.
+   * The panel will have:
+   * - No border-radius (square corners)
+   * - No margins (flush with top, left/right, and bottom edges)
+   * - Full viewport height
+   * - Subtle shadow on the edge facing the content
+   * - No border between footer and messages
+   * 
+   * Use with `position` to control which side ('bottom-left' for left sidebar, 'bottom-right' for right sidebar).
+   * Automatically enables fullHeight when true.
+   * 
+   * @default false
+   */
+  sidebarMode?: boolean;
+  /**
+   * Width of the sidebar panel when sidebarMode is true.
+   * @default "420px"
+   */
+  sidebarWidth?: string;
   callToActionIconText?: string;
   callToActionIconName?: string;
   callToActionIconColor?: string;
@@ -387,6 +434,174 @@ export type AgentWidgetCustomFetch = (
  */
 export type AgentWidgetHeadersFunction = () => Record<string, string> | Promise<Record<string, string>>;
 
+// ============================================================================
+// Layout Configuration Types
+// ============================================================================
+
+/**
+ * Context provided to header render functions
+ */
+export type HeaderRenderContext = {
+  config: AgentWidgetConfig;
+  onClose?: () => void;
+  onClearChat?: () => void;
+};
+
+/**
+ * Context provided to message render functions
+ */
+export type MessageRenderContext = {
+  message: AgentWidgetMessage;
+  config: AgentWidgetConfig;
+  streaming: boolean;
+};
+
+/**
+ * Context provided to slot render functions
+ */
+export type SlotRenderContext = {
+  config: AgentWidgetConfig;
+  defaultContent: () => HTMLElement | null;
+};
+
+/**
+ * Header layout configuration
+ * Allows customization of the header section appearance and behavior
+ */
+export type AgentWidgetHeaderLayoutConfig = {
+  /**
+   * Layout preset: "default" | "minimal" | "expanded"
+   * - default: Standard layout with icon, title, subtitle, and buttons
+   * - minimal: Simplified layout with just title and close button
+   * - expanded: Full branding area with additional content space
+   */
+  layout?: "default" | "minimal" | "expanded";
+  /** Show/hide the header icon */
+  showIcon?: boolean;
+  /** Show/hide the title */
+  showTitle?: boolean;
+  /** Show/hide the subtitle */
+  showSubtitle?: boolean;
+  /** Show/hide the close button */
+  showCloseButton?: boolean;
+  /** Show/hide the clear chat button */
+  showClearChat?: boolean;
+  /**
+   * Custom renderer for complete header override
+   * When provided, replaces the entire header with custom content
+   */
+  render?: (context: HeaderRenderContext) => HTMLElement;
+};
+
+/**
+ * Avatar configuration for message bubbles
+ */
+export type AgentWidgetAvatarConfig = {
+  /** Whether to show avatars */
+  show?: boolean;
+  /** Position of avatar relative to message bubble */
+  position?: "left" | "right";
+  /** URL or emoji for user avatar */
+  userAvatar?: string;
+  /** URL or emoji for assistant avatar */
+  assistantAvatar?: string;
+};
+
+/**
+ * Timestamp configuration for message bubbles
+ */
+export type AgentWidgetTimestampConfig = {
+  /** Whether to show timestamps */
+  show?: boolean;
+  /** Position of timestamp relative to message */
+  position?: "inline" | "below";
+  /** Custom formatter for timestamp display */
+  format?: (date: Date) => string;
+};
+
+/**
+ * Message layout configuration
+ * Allows customization of how chat messages are displayed
+ */
+export type AgentWidgetMessageLayoutConfig = {
+  /**
+   * Layout preset: "bubble" | "flat" | "minimal"
+   * - bubble: Standard chat bubble appearance (default)
+   * - flat: Flat messages without bubble styling
+   * - minimal: Minimal styling with reduced padding/borders
+   */
+  layout?: "bubble" | "flat" | "minimal";
+  /** Avatar configuration */
+  avatar?: AgentWidgetAvatarConfig;
+  /** Timestamp configuration */
+  timestamp?: AgentWidgetTimestampConfig;
+  /** Group consecutive messages from the same role */
+  groupConsecutive?: boolean;
+  /**
+   * Custom renderer for user messages
+   * When provided, replaces the default user message rendering
+   */
+  renderUserMessage?: (context: MessageRenderContext) => HTMLElement;
+  /**
+   * Custom renderer for assistant messages
+   * When provided, replaces the default assistant message rendering
+   */
+  renderAssistantMessage?: (context: MessageRenderContext) => HTMLElement;
+};
+
+/**
+ * Available layout slots for content injection
+ */
+export type WidgetLayoutSlot =
+  | "header-left"
+  | "header-center"
+  | "header-right"
+  | "body-top"
+  | "messages"
+  | "body-bottom"
+  | "footer-top"
+  | "composer"
+  | "footer-bottom";
+
+/**
+ * Slot renderer function signature
+ * Returns HTMLElement to render in the slot, or null to use default content
+ */
+export type SlotRenderer = (context: SlotRenderContext) => HTMLElement | null;
+
+/**
+ * Main layout configuration
+ * Provides comprehensive control over widget layout and appearance
+ * 
+ * @example
+ * ```typescript
+ * config: {
+ *   layout: {
+ *     header: { layout: "minimal" },
+ *     messages: {
+ *       avatar: { show: true, assistantAvatar: "/bot.png" },
+ *       timestamp: { show: true, position: "below" }
+ *     },
+ *     slots: {
+ *       "footer-top": () => {
+ *         const el = document.createElement("div");
+ *         el.textContent = "Powered by AI";
+ *         return el;
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export type AgentWidgetLayoutConfig = {
+  /** Header layout configuration */
+  header?: AgentWidgetHeaderLayoutConfig;
+  /** Message layout configuration */
+  messages?: AgentWidgetMessageLayoutConfig;
+  /** Slot renderers for custom content injection */
+  slots?: Partial<Record<WidgetLayoutSlot, SlotRenderer>>;
+};
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -581,6 +796,21 @@ export type AgentWidgetConfig = {
    * ```
    */
   parseSSEEvent?: AgentWidgetSSEEventParser;
+  /**
+   * Layout configuration for customizing widget appearance and structure.
+   * Provides control over header, messages, and content slots.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   layout: {
+   *     header: { layout: "minimal" },
+   *     messages: { avatar: { show: true } }
+   *   }
+   * }
+   * ```
+   */
+  layout?: AgentWidgetLayoutConfig;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

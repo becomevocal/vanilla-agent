@@ -9,14 +9,17 @@ import {
   AgentWidgetControllerEventMap,
   AgentWidgetVoiceStateEvent,
   AgentWidgetStateEvent,
-  AgentWidgetStateSnapshot
+  AgentWidgetStateSnapshot,
+  WidgetLayoutSlot,
+  SlotRenderer
 } from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
 import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
-import { createWrapper, buildPanel } from "./components/panel";
+import { createWrapper, buildPanel, buildHeader, buildComposer, attachHeaderToContainer } from "./components/panel";
+import type { HeaderElements, ComposerElements } from "./components/panel";
 import { MessageTransform } from "./components/message-bubble";
 import { createStandardBubble, createTypingIndicator } from "./components/message-bubble";
 import { createReasoningBubble } from "./components/reasoning-bubble";
@@ -223,7 +226,7 @@ export const createAgentExperience = (
 
   const { wrapper, panel } = createWrapper(config);
   const panelElements = buildPanel(config, launcherEnabled);
-  const {
+  let {
     container,
     body,
     messagesWrapper,
@@ -238,15 +241,296 @@ export const createAgentExperience = (
     closeButton,
     iconHolder,
     headerTitle,
-    headerSubtitle
+    headerSubtitle,
+    header,
+    footer
   } = panelElements;
   
   // Use mutable references for mic button so we can update them dynamically
   let micButton: HTMLButtonElement | null = panelElements.micButton;
   let micButtonWrapper: HTMLElement | null = panelElements.micButtonWrapper;
 
+  // Plugin hook: renderHeader - allow plugins to provide custom header
+  const headerPlugin = plugins.find(p => p.renderHeader);
+  if (headerPlugin?.renderHeader) {
+    const customHeader = headerPlugin.renderHeader({
+      config,
+      defaultRenderer: () => {
+        const headerElements = buildHeader({ config, showClose: launcherEnabled });
+        attachHeaderToContainer(container, headerElements, config);
+        return headerElements.header;
+      },
+      onClose: () => setOpenState(false, "user")
+    });
+    if (customHeader) {
+      // Replace the default header with custom header
+      const existingHeader = container.querySelector('.tvw-border-b-cw-divider');
+      if (existingHeader) {
+        existingHeader.replaceWith(customHeader);
+        header = customHeader;
+      }
+    }
+  }
+
+  // Plugin hook: renderComposer - allow plugins to provide custom composer
+  const composerPlugin = plugins.find(p => p.renderComposer);
+  if (composerPlugin?.renderComposer) {
+    const customComposer = composerPlugin.renderComposer({
+      config,
+      defaultRenderer: () => {
+        const composerElements = buildComposer({ config });
+        return composerElements.footer;
+      },
+      onSubmit: (text: string) => {
+        if (session && !session.isStreaming()) {
+          session.sendMessage(text);
+        }
+      },
+      disabled: false
+    });
+    if (customComposer) {
+      // Replace the default footer with custom composer
+      footer.replaceWith(customComposer);
+      footer = customComposer;
+      // Note: When using custom composer, textarea/sendButton/etc may not exist
+      // The plugin is responsible for providing its own submit handling
+    }
+  }
+
+  // Slot system: allow custom content injection into specific regions
+  const renderSlots = () => {
+    const slots = config.layout?.slots ?? {};
+    
+    // Helper to get default slot content
+    const getDefaultSlotContent = (slot: WidgetLayoutSlot): HTMLElement | null => {
+      switch (slot) {
+        case "body-top":
+          // Default: the intro card
+          return container.querySelector(".tvw-rounded-2xl.tvw-bg-cw-surface.tvw-p-6") as HTMLElement || null;
+        case "messages":
+          return messagesWrapper;
+        case "footer-top":
+          return suggestions;
+        case "composer":
+          return composerForm;
+        case "footer-bottom":
+          return statusText;
+        default:
+          return null;
+      }
+    };
+
+    // Helper to insert content into slot region
+    const insertSlotContent = (slot: WidgetLayoutSlot, element: HTMLElement) => {
+      switch (slot) {
+        case "header-left":
+        case "header-center":
+        case "header-right":
+          // Header slots - prepend/append to header
+          if (slot === "header-left") {
+            header.insertBefore(element, header.firstChild);
+          } else if (slot === "header-right") {
+            header.appendChild(element);
+          } else {
+            // header-center: insert after icon/title
+            const titleSection = header.querySelector(".tvw-flex-col");
+            if (titleSection) {
+              titleSection.parentNode?.insertBefore(element, titleSection.nextSibling);
+            } else {
+              header.appendChild(element);
+            }
+          }
+          break;
+        case "body-top":
+          // Replace or prepend to body
+          const introCard = body.querySelector(".tvw-rounded-2xl.tvw-bg-cw-surface.tvw-p-6");
+          if (introCard) {
+            introCard.replaceWith(element);
+          } else {
+            body.insertBefore(element, body.firstChild);
+          }
+          break;
+        case "body-bottom":
+          // Append after messages wrapper
+          body.appendChild(element);
+          break;
+        case "footer-top":
+          // Replace suggestions area
+          suggestions.replaceWith(element);
+          break;
+        case "footer-bottom":
+          // Replace or append after status text
+          statusText.replaceWith(element);
+          break;
+        default:
+          // For other slots, just append to appropriate container
+          break;
+      }
+    };
+
+    // Process each configured slot
+    for (const [slotName, renderer] of Object.entries(slots) as [WidgetLayoutSlot, SlotRenderer][]) {
+      if (renderer) {
+        try {
+          const slotElement = renderer({
+            config,
+            defaultContent: () => getDefaultSlotContent(slotName)
+          });
+          if (slotElement) {
+            insertSlotContent(slotName, slotElement);
+          }
+        } catch (error) {
+          if (typeof console !== "undefined") {
+            // eslint-disable-next-line no-console
+            console.error(`[AgentWidget] Error rendering slot "${slotName}":`, error);
+          }
+        }
+      }
+    }
+  };
+
+  // Render custom slots
+  renderSlots();
+
   panel.appendChild(container);
   mount.appendChild(wrapper);
+
+  // Apply full-height and sidebar styles if enabled
+  // This ensures the widget fills its container height with proper flex layout
+  const applyFullHeightStyles = () => {
+    const sidebarMode = config.launcher?.sidebarMode ?? false;
+    const fullHeight = sidebarMode || (config.launcher?.fullHeight ?? false);
+    const theme = config.theme ?? {};
+    
+    // Determine panel styling based on mode, with theme overrides
+    const position = config.launcher?.position ?? 'bottom-left';
+    const isLeftSidebar = position === 'bottom-left' || position === 'top-left';
+    
+    // Default values based on mode
+    const defaultPanelBorder = sidebarMode ? 'none' : '1px solid var(--tvw-cw-border)';
+    const defaultPanelShadow = sidebarMode 
+      ? (isLeftSidebar ? '2px 0 12px rgba(0, 0, 0, 0.08)' : '-2px 0 12px rgba(0, 0, 0, 0.08)')
+      : '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+    const defaultPanelBorderRadius = sidebarMode ? '0' : '16px';
+    
+    // Apply theme overrides or defaults
+    const panelBorder = theme.panelBorder ?? defaultPanelBorder;
+    const panelShadow = theme.panelShadow ?? defaultPanelShadow;
+    const panelBorderRadius = theme.panelBorderRadius ?? defaultPanelBorderRadius;
+    
+    // Apply panel styling to container (works in all modes)
+    container.style.border = panelBorder;
+    container.style.boxShadow = panelShadow;
+    container.style.borderRadius = panelBorderRadius;
+    
+    if (fullHeight) {
+      // Mount container
+      mount.style.display = 'flex';
+      mount.style.flexDirection = 'column';
+      mount.style.height = '100%';
+      mount.style.minHeight = '0';
+      
+      // Wrapper
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.flex = '1 1 0%';
+      wrapper.style.minHeight = '0';
+      wrapper.style.maxHeight = '100%';
+      wrapper.style.height = '100%';
+      wrapper.style.overflow = 'hidden';
+      
+      // Panel
+      panel.style.display = 'flex';
+      panel.style.flexDirection = 'column';
+      panel.style.flex = '1 1 0%';
+      panel.style.minHeight = '0';
+      panel.style.maxHeight = '100%';
+      panel.style.height = '100%';
+      panel.style.overflow = 'hidden';
+      
+      // Main container
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.flex = '1 1 0%';
+      container.style.minHeight = '0';
+      container.style.maxHeight = '100%';
+      container.style.overflow = 'hidden';
+      
+      // Body (scrollable messages area)
+      body.style.flex = '1 1 0%';
+      body.style.minHeight = '0';
+      body.style.overflowY = 'auto';
+      
+      // Footer (composer) - should not shrink
+      footer.style.flexShrink = '0';
+    }
+    
+    // Apply sidebar-specific styles
+    if (sidebarMode) {
+      const sidebarWidth = config.launcher?.sidebarWidth ?? '420px';
+      
+      // Remove Tailwind positioning classes that add spacing (tvw-bottom-6, tvw-right-6, etc.)
+      wrapper.classList.remove(
+        'tvw-bottom-6', 'tvw-right-6', 'tvw-left-6', 'tvw-top-6',
+        'tvw-bottom-4', 'tvw-right-4', 'tvw-left-4', 'tvw-top-4'
+      );
+      
+      // Wrapper - fixed position, flush with edges
+      wrapper.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: ${sidebarWidth} !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        ${isLeftSidebar ? 'left: 0 !important; right: auto !important;' : 'left: auto !important; right: 0 !important;'}
+      `;
+      
+      // Panel - fill wrapper (override inline width/max-width from panel.ts)
+      panel.style.cssText = `
+        position: relative !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 0% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      `;
+      // Force override any inline width/maxWidth that may be set elsewhere
+      panel.style.setProperty('width', '100%', 'important');
+      panel.style.setProperty('max-width', '100%', 'important');
+      
+      // Container - apply configurable styles with sidebar layout
+      container.style.cssText = `
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 0% !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        border-radius: ${panelBorderRadius} !important;
+        border: ${panelBorder} !important;
+        box-shadow: ${panelShadow} !important;
+      `;
+      
+      // Remove footer border in sidebar mode
+      footer.style.cssText = `
+        flex-shrink: 0 !important;
+        border-top: none !important;
+        padding: 8px 16px 12px 16px !important;
+      `;
+    }
+  };
+  applyFullHeightStyles();
 
   const destroyCallbacks: Array<() => void> = [];
   const suggestionsManager = createSuggestions(suggestions);
@@ -506,6 +790,9 @@ export const createAgentExperience = (
         return false;
       });
 
+      // Get message layout config
+      const messageLayoutConfig = config.layout?.messages;
+
       if (matchingPlugin) {
         if (message.variant === "reasoning" && message.reasoning && matchingPlugin.renderReasoning) {
           if (!showReasoning) return;
@@ -525,7 +812,7 @@ export const createAgentExperience = (
           bubble = matchingPlugin.renderMessage({
             message,
             defaultRenderer: () => {
-              const b = createStandardBubble(message, transform);
+              const b = createStandardBubble(message, transform, messageLayoutConfig);
               if (message.role !== "user") {
                 enhanceWithForms(b, message, config, session);
               }
@@ -590,8 +877,24 @@ export const createAgentExperience = (
           if (!showToolCalls) return;
           bubble = createToolBubble(message, config);
         } else {
-          bubble = createStandardBubble(message, transform);
-          if (message.role !== "user") {
+          // Check for custom message renderers in layout config
+          const messageLayoutConfig = config.layout?.messages;
+          if (messageLayoutConfig?.renderUserMessage && message.role === "user") {
+            bubble = messageLayoutConfig.renderUserMessage({
+              message,
+              config,
+              streaming: Boolean(message.streaming)
+            });
+          } else if (messageLayoutConfig?.renderAssistantMessage && message.role === "assistant") {
+            bubble = messageLayoutConfig.renderAssistantMessage({
+              message,
+              config,
+              streaming: Boolean(message.streaming)
+            });
+          } else {
+            bubble = createStandardBubble(message, transform, messageLayoutConfig);
+          }
+          if (message.role !== "user" && bubble) {
             enhanceWithForms(bubble, message, config, session);
           }
         }
@@ -662,6 +965,8 @@ export const createAgentExperience = (
       // Hide launcher button when widget is open
       if (launcherButtonInstance) {
         launcherButtonInstance.element.style.display = "none";
+      } else if (customLauncherElement) {
+        customLauncherElement.style.display = "none";
       }
     } else {
       wrapper.classList.add("tvw-pointer-events-none", "tvw-opacity-0");
@@ -670,6 +975,8 @@ export const createAgentExperience = (
       // Show launcher button when widget is closed
       if (launcherButtonInstance) {
         launcherButtonInstance.element.style.display = "";
+      } else if (customLauncherElement) {
+        customLauncherElement.style.display = "";
       }
     }
   };
@@ -1163,12 +1470,36 @@ export const createAgentExperience = (
     setOpenState(!open, "user");
   };
 
-  let launcherButtonInstance = launcherEnabled
-    ? createLauncherButton(config, toggleOpen)
-    : null;
+  // Plugin hook: renderLauncher - allow plugins to provide custom launcher
+  let launcherButtonInstance: ReturnType<typeof createLauncherButton> | null = null;
+  let customLauncherElement: HTMLElement | null = null;
+  
+  if (launcherEnabled) {
+    const launcherPlugin = plugins.find(p => p.renderLauncher);
+    if (launcherPlugin?.renderLauncher) {
+      const customLauncher = launcherPlugin.renderLauncher({
+        config,
+        defaultRenderer: () => {
+          const btn = createLauncherButton(config, toggleOpen);
+          return btn.element;
+        },
+        onToggle: toggleOpen
+      });
+      if (customLauncher) {
+        customLauncherElement = customLauncher;
+      }
+    }
+    
+    // Use custom launcher if provided, otherwise use default
+    if (!customLauncherElement) {
+      launcherButtonInstance = createLauncherButton(config, toggleOpen);
+    }
+  }
 
   if (launcherButtonInstance) {
     mount.appendChild(launcherButtonInstance.element);
+  } else if (customLauncherElement) {
+    mount.appendChild(customLauncherElement);
   }
   updateOpenState();
   suggestionsManager.render(config.suggestionChips, session, textarea, undefined, config.suggestionChipsConfig);
@@ -1178,20 +1509,31 @@ export const createAgentExperience = (
   maybeRestoreVoiceFromMetadata();
 
   const recalcPanelHeight = () => {
+    const sidebarMode = config.launcher?.sidebarMode ?? false;
+    const fullHeight = sidebarMode || (config.launcher?.fullHeight ?? false);
+    
     if (!launcherEnabled) {
       panel.style.height = "";
       panel.style.width = "";
       return;
     }
-    const launcherWidth = config?.launcher?.width ?? config?.launcherWidth;
-    const width = launcherWidth ?? "min(400px, calc(100vw - 24px))";
-    panel.style.width = width;
-    panel.style.maxWidth = width;
-    const viewportHeight = window.innerHeight;
-    const verticalMargin = 64; // leave space for launcher's offset
-    const available = Math.max(200, viewportHeight - verticalMargin);
-    const clamped = Math.min(640, available);
-    panel.style.height = `${clamped}px`;
+    
+    // In sidebar/fullHeight mode, don't override the width - it's handled by applyFullHeightStyles
+    if (!sidebarMode) {
+      const launcherWidth = config?.launcher?.width ?? config?.launcherWidth;
+      const width = launcherWidth ?? "min(400px, calc(100vw - 24px))";
+      panel.style.width = width;
+      panel.style.maxWidth = width;
+    }
+    
+    // In fullHeight mode, don't set a fixed height
+    if (!fullHeight) {
+      const viewportHeight = window.innerHeight;
+      const verticalMargin = 64; // leave space for launcher's offset
+      const available = Math.max(200, viewportHeight - verticalMargin);
+      const clamped = Math.min(640, available);
+      panel.style.height = `${clamped}px`;
+    }
   };
 
   recalcPanelHeight();
@@ -1328,6 +1670,10 @@ export const createAgentExperience = (
     destroyCallbacks.push(() => {
       launcherButtonInstance?.destroy();
     });
+  } else if (customLauncherElement) {
+    destroyCallbacks.push(() => {
+      customLauncherElement?.remove();
+    });
   }
 
   const controller: Controller = {
@@ -1335,6 +1681,7 @@ export const createAgentExperience = (
       const previousToolCallConfig = config.toolCall;
       config = { ...config, ...nextConfig };
       applyThemeVariables(mount, config);
+      applyFullHeightStyles();
 
       // Update plugins
       const newPlugins = pluginRegistry.getForInstance(config.plugins);
@@ -1350,15 +1697,38 @@ export const createAgentExperience = (
         launcherButtonInstance.destroy();
         launcherButtonInstance = null;
       }
+      if (config.launcher?.enabled === false && customLauncherElement) {
+        customLauncherElement.remove();
+        customLauncherElement = null;
+      }
 
-      if (config.launcher?.enabled !== false && !launcherButtonInstance) {
-        launcherButtonInstance = createLauncherButton(config, toggleOpen);
-        mount.appendChild(launcherButtonInstance.element);
+      if (config.launcher?.enabled !== false && !launcherButtonInstance && !customLauncherElement) {
+        // Check for launcher plugin when re-enabling
+        const launcherPlugin = plugins.find(p => p.renderLauncher);
+        if (launcherPlugin?.renderLauncher) {
+          const customLauncher = launcherPlugin.renderLauncher({
+            config,
+            defaultRenderer: () => {
+              const btn = createLauncherButton(config, toggleOpen);
+              return btn.element;
+            },
+            onToggle: toggleOpen
+          });
+          if (customLauncher) {
+            customLauncherElement = customLauncher;
+            mount.appendChild(customLauncherElement);
+          }
+        }
+        if (!customLauncherElement) {
+          launcherButtonInstance = createLauncherButton(config, toggleOpen);
+          mount.appendChild(launcherButtonInstance.element);
+        }
       }
 
       if (launcherButtonInstance) {
         launcherButtonInstance.update(config);
       }
+      // Note: Custom launcher updates are handled by the plugin's own logic
 
       // Update panel header title and subtitle
       if (headerTitle && config.launcher?.title !== undefined) {
@@ -2331,6 +2701,7 @@ export const createAgentExperience = (
       destroyCallbacks.forEach((cb) => cb());
       wrapper.remove();
       launcherButtonInstance?.destroy();
+      customLauncherElement?.remove();
       if (closeHandler) {
         closeButton.removeEventListener("click", closeHandler);
       }

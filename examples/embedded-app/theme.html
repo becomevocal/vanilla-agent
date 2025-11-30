@@ -256,6 +256,27 @@
               <input type="text" id="color-recordingBorderColor-text" />
             </div>
           </div>
+
+          <!-- Panel Styling -->
+          <h3 style="margin-top: 24px; margin-bottom: 16px; font-size: 14px; font-weight: 600; color: #374151;">Panel Styling</h3>
+          <div class="form-group">
+            <label for="theme-panelBorder">Panel Border</label>
+            <p class="color-description">Border style for the chat panel (e.g., "1px solid #e5e7eb" or "none")</p>
+            <input type="text" id="theme-panelBorder" placeholder="e.g., 1px solid #e5e7eb, none" />
+          </div>
+          <div class="form-group">
+            <label for="theme-panelShadow">Panel Shadow</label>
+            <p class="color-description">Box shadow for the chat panel</p>
+            <input type="text" id="theme-panelShadow" placeholder="e.g., 0 25px 50px -12px rgba(0,0,0,0.25), none" />
+          </div>
+          <div class="form-group">
+            <label for="theme-panelBorderRadius">Panel Border Radius</label>
+            <p class="color-description">Border radius for the chat panel</p>
+            <div class="slider-input-wrapper">
+              <input type="range" id="theme-panelBorderRadius-slider" min="0" max="48" step="1" />
+              <input type="text" id="theme-panelBorderRadius" value="16px" placeholder="e.g., 16px, 0" />
+            </div>
+          </div>
           </div>
         </section>
 
@@ -426,6 +447,27 @@
               <span class="toggle-switch"></span>
               <span class="toggle-text">Auto Expand on Load</span>
             </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="launcher-full-height" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Full Height Mode</span>
+            </label>
+            <p class="color-description">Widget fills the full height of its container</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="launcher-sidebar-mode" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Sidebar Mode</span>
+            </label>
+            <p class="color-description">Position panel as a sidebar flush with screen edges</p>
+          </div>
+          <div class="form-group">
+            <label for="launcher-sidebar-width">Sidebar Width (CSS)</label>
+            <input type="text" id="launcher-sidebar-width" value="420px" placeholder="e.g., 420px, 25vw" />
+            <p class="color-description">Width of the sidebar panel when sidebar mode is enabled</p>
           </div>
           <div class="form-group">
             <label for="launcher-call-to-action-icon-text">Call to Action Text</label>
