@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.12.0
+
+### Minor Changes
+
+- Add code generation methods to library export
+
 ## 1.11.0
 
 ### Minor Changes
