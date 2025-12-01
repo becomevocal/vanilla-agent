@@ -876,6 +876,7 @@ export class AgentWidgetClient {
               // Try to extract text from final structured content
               const parser = streamParsers.get(assistant.id);
               let extractedText: string | null = null;
+              let asyncPending = false;
               
               if (parser) {
                 // First check if parser already has extracted text
@@ -890,6 +891,7 @@ export class AgentWidgetClient {
                   // Try parser.processChunk as last resort
                   const parsedResult = parser.processChunk(contentToProcess);
                   if (parsedResult instanceof Promise) {
+                    asyncPending = true;
                     parsedResult.then((result) => {
                       // Extract text from result (could be string or object)
                       const text = typeof result === 'string' ? result : result?.text ?? null;
@@ -898,6 +900,9 @@ export class AgentWidgetClient {
                         if (currentAssistant && currentAssistant.id === assistant.id) {
                           currentAssistant.content = text;
                           currentAssistant.streaming = false;
+                          // Clean up
+                          streamParsers.delete(currentAssistant.id);
+                          rawContentBuffers.delete(currentAssistant.id);
                           emitMessage(currentAssistant);
                         }
                       }
@@ -909,26 +914,29 @@ export class AgentWidgetClient {
                 }
               }
               
-            // Set content: use extracted text if available, otherwise use raw content
-            if (extractedText !== null && extractedText.trim() !== "") {
-              assistant.content = extractedText;
-            } else if (!rawContentBuffers.has(assistant.id)) {
-              // Only use raw final content if we didn't accumulate chunks
-              assistant.content = ensureStringContent(finalContent);
-            }
-              
-              // Clean up parser and buffer
-              const parserToClose = streamParsers.get(assistant.id);
-              if (parserToClose) {
-                const closeResult = parserToClose.close?.();
-                if (closeResult instanceof Promise) {
-                  closeResult.catch(() => {});
+              // Skip sync emit if we're waiting on async parser
+              if (!asyncPending) {
+                // Set content: use extracted text if available, otherwise use raw content
+                if (extractedText !== null && extractedText.trim() !== "") {
+                  assistant.content = extractedText;
+                } else if (!rawContentBuffers.has(assistant.id)) {
+                  // Only use raw final content if we didn't accumulate chunks
+                  assistant.content = ensureStringContent(finalContent);
                 }
-                streamParsers.delete(assistant.id);
+                
+                // Clean up parser and buffer
+                const parserToClose = streamParsers.get(assistant.id);
+                if (parserToClose) {
+                  const closeResult = parserToClose.close?.();
+                  if (closeResult instanceof Promise) {
+                    closeResult.catch(() => {});
+                  }
+                  streamParsers.delete(assistant.id);
+                }
+                rawContentBuffers.delete(assistant.id);
+                assistant.streaming = false;
+                emitMessage(assistant);
               }
-              rawContentBuffers.delete(assistant.id);
-              assistant.streaming = false;
-              emitMessage(assistant);
             }
           }
         } else if (payloadType === "step_complete") {
@@ -945,6 +953,7 @@ export class AgentWidgetClient {
             // Check if we already have extracted text from streaming
             const parser = streamParsers.get(assistant.id);
             let hasExtractedText = false;
+            let asyncPending = false;
             
             if (parser) {
               // First check if parser already extracted text during streaming
@@ -971,6 +980,7 @@ export class AgentWidgetClient {
                   // Try parser
                   const parsedResult = parser.processChunk(contentToProcess);
                   if (parsedResult instanceof Promise) {
+                    asyncPending = true;
                     parsedResult.then((result) => {
                       // Extract text from result (could be string or object)
                       const text = typeof result === 'string' ? result : result?.text ?? null;
@@ -980,22 +990,27 @@ export class AgentWidgetClient {
                         if (currentAssistant && currentAssistant.id === assistant.id) {
                           currentAssistant.content = text;
                           currentAssistant.streaming = false;
+                          // Clean up
+                          streamParsers.delete(currentAssistant.id);
+                          rawContentBuffers.delete(currentAssistant.id);
                           emitMessage(currentAssistant);
                         }
                       } else {
                         // No extracted text - check if we should show raw content
                         const finalExtractedText = parser.getExtractedText();
-                        if (finalExtractedText === null || finalExtractedText.trim() === "") {
-                          // No extracted text available - show raw content only if no streaming happened
-                          const currentAssistant = assistantMessage;
-                          if (currentAssistant && currentAssistant.id === assistant.id) {
+                        const currentAssistant = assistantMessage;
+                        if (currentAssistant && currentAssistant.id === assistant.id) {
+                          if (finalExtractedText !== null && finalExtractedText.trim() !== "") {
+                            currentAssistant.content = finalExtractedText;
+                          } else if (!rawContentBuffers.has(currentAssistant.id)) {
                             // Only show raw content if we never had any extracted text
-                            if (!rawContentBuffers.has(assistant.id)) {
-                              currentAssistant.content = ensureStringContent(finalContent);
-                            }
-                            currentAssistant.streaming = false;
-                            emitMessage(currentAssistant);
+                            currentAssistant.content = ensureStringContent(finalContent);
                           }
+                          currentAssistant.streaming = false;
+                          // Clean up
+                          streamParsers.delete(currentAssistant.id);
+                          rawContentBuffers.delete(currentAssistant.id);
+                          emitMessage(currentAssistant);
                         }
                       }
                     });
@@ -1019,29 +1034,32 @@ export class AgentWidgetClient {
               }
             }
             
-            // Ensure rawContent is set even if there's no parser (for action parsing)
-            if (!assistant.rawContent) {
-              const rawBuffer = rawContentBuffers.get(assistant.id);
-              assistant.rawContent = rawBuffer ?? ensureStringContent(finalContent);
-            }
-            
-            // Only show raw content if we never extracted any text and no buffer was used
-            if (!hasExtractedText && !rawContentBuffers.has(assistant.id)) {
-              // No extracted text and no streaming happened - show raw content
-              assistant.content = ensureStringContent(finalContent);
-            }
-            
-            // Clean up parser and buffer
-            if (parser) {
-              const closeResult = parser.close?.();
-              if (closeResult instanceof Promise) {
-                closeResult.catch(() => {});
+            // Skip sync emit if we're waiting on async parser
+            if (!asyncPending) {
+              // Ensure rawContent is set even if there's no parser (for action parsing)
+              if (!assistant.rawContent) {
+                const rawBuffer = rawContentBuffers.get(assistant.id);
+                assistant.rawContent = rawBuffer ?? ensureStringContent(finalContent);
               }
+              
+              // Only show raw content if we never extracted any text and no buffer was used
+              if (!hasExtractedText && !rawContentBuffers.has(assistant.id)) {
+                // No extracted text and no streaming happened - show raw content
+                assistant.content = ensureStringContent(finalContent);
+              }
+              
+              // Clean up parser and buffer
+              if (parser) {
+                const closeResult = parser.close?.();
+                if (closeResult instanceof Promise) {
+                  closeResult.catch(() => {});
+                }
+              }
+              streamParsers.delete(assistant.id);
+              rawContentBuffers.delete(assistant.id);
+              assistant.streaming = false;
+              emitMessage(assistant);
             }
-            streamParsers.delete(assistant.id);
-            rawContentBuffers.delete(assistant.id);
-            assistant.streaming = false;
-            emitMessage(assistant);
           } else {
             // No final content, just mark as complete and clean up
             streamParsers.delete(assistant.id);
@@ -1090,12 +1108,20 @@ export class AgentWidgetClient {
             // Clean up parser and buffer
             streamParsers.delete(assistant.id);
             rawContentBuffers.delete(assistant.id);
-            if (displayContent !== assistant.content) {
+            
+            // Only emit if something actually changed to avoid flicker
+            const contentChanged = displayContent !== assistant.content;
+            const streamingChanged = assistant.streaming !== false;
+            
+            if (contentChanged) {
               assistant.content = displayContent;
-              emitMessage(assistant);
             }
             assistant.streaming = false;
-            emitMessage(assistant);
+            
+            // Only emit if content or streaming state changed
+            if (contentChanged || streamingChanged) {
+              emitMessage(assistant);
+            }
           } else {
             // No final content, just mark as complete and clean up
             if (assistantMessage !== null) {
@@ -1104,8 +1130,12 @@ export class AgentWidgetClient {
               const msg: AgentWidgetMessage = assistantMessage;
               streamParsers.delete(msg.id);
               rawContentBuffers.delete(msg.id);
-              msg.streaming = false;
-              emitMessage(msg);
+              
+              // Only emit if streaming state changed
+              if (msg.streaming !== false) {
+                msg.streaming = false;
+                emitMessage(msg);
+              }
             }
           }
           onEvent({ type: "status", status: "idle" });

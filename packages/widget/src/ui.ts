@@ -764,8 +764,8 @@ export const createAgentExperience = (
   };
 
 
-  // Message rendering with plugin support
-  const renderMessagesWithPlugins = (
+  // Message rendering with plugin support (implementation)
+  const renderMessagesWithPluginsImpl = (
     container: HTMLElement,
     messages: AgentWidgetMessage[],
     transform: MessageTransform
@@ -915,8 +915,13 @@ export const createAgentExperience = (
     const hasStreamingAssistantMessage = messages.some(
       (msg) => msg.role === "assistant" && msg.streaming
     );
+    
+    // Also check if there's a recently completed assistant message (streaming just ended)
+    // This prevents flicker when the message completes but isStreaming hasn't updated yet
+    const lastMessage = messages[messages.length - 1];
+    const hasRecentAssistantResponse = lastMessage?.role === "assistant" && !lastMessage.streaming;
 
-    if (isStreaming && messages.some((msg) => msg.role === "user") && !hasStreamingAssistantMessage) {
+    if (isStreaming && messages.some((msg) => msg.role === "user") && !hasStreamingAssistantMessage && !hasRecentAssistantResponse) {
       const typingIndicator = createTypingIndicator();
 
       // Create a bubble wrapper for the typing indicator (similar to assistant messages)
@@ -955,6 +960,9 @@ export const createAgentExperience = (
       });
     });
   };
+
+  // Alias for clarity - the implementation handles flicker prevention via typing indicator logic
+  const renderMessagesWithPlugins = renderMessagesWithPluginsImpl;
 
   const updateOpenState = () => {
     if (!launcherEnabled) return;
