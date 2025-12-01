@@ -1,4 +1,5 @@
 import type { AgentWidgetMessage } from "vanilla-agent";
+import { parse as parsePartialJson, OBJ } from "partial-json";
 
 export type ActionResponse =
   | {
@@ -115,9 +116,14 @@ export function formatPageContext(elements: PageElement[]): string {
 }
 
 /**
- * Parses JSON response from LLM
- * Handles both complete JSON and potentially malformed JSON
- * Returns null if JSON cannot be parsed or is incomplete
+ * Parses JSON response from LLM using partial-json library.
+ * Handles both complete and potentially incomplete JSON gracefully.
+ * Returns null if text is not valid JSON or doesn't contain an action.
+ * 
+ * The partial-json library handles:
+ * - Complete JSON objects
+ * - Incomplete/streaming JSON (returns partial result)
+ * - Graceful failure for non-JSON text (including template placeholders like {{variable}})
  */
 export function parseActionResponse(text: string): ActionResponse | null {
   console.log("[parseActionResponse] Called with text:", text ? text.substring(0, 200) : "NULL");
@@ -139,42 +145,23 @@ export function parseActionResponse(text: string): ActionResponse | null {
       jsonText = codeBlockMatch[1].trim();
     }
     
-    // Find the first opening brace
-    const firstBraceIndex = jsonText.indexOf('{');
-    if (firstBraceIndex === -1) {
-      console.log("[parseActionResponse] No opening brace found");
+    // Quick check: if text doesn't start with { or [, it's not JSON
+    // This also catches template placeholders like {{variable}} since they start with {{
+    if (!jsonText.startsWith('{') && !jsonText.startsWith('[')) {
+      console.log("[parseActionResponse] Text doesn't look like JSON (doesn't start with { or [)");
       return null;
     }
-    console.log("[parseActionResponse] Found opening brace at index:", firstBraceIndex);
     
-    // Start from the first opening brace and find the matching closing brace
-    let braceCount = 0;
-    let jsonEndIndex = -1;
-    
-    for (let i = firstBraceIndex; i < jsonText.length; i++) {
-      if (jsonText[i] === '{') {
-        braceCount++;
-      } else if (jsonText[i] === '}') {
-        braceCount--;
-        if (braceCount === 0) {
-          jsonEndIndex = i;
-          break;
-        }
-      }
-    }
-    
-    if (jsonEndIndex === -1) {
-      console.log("[parseActionResponse] No matching closing brace found");
-      return null; // No matching closing brace found
-    }
-    console.log("[parseActionResponse] Found closing brace at index:", jsonEndIndex);
-    
-    // Extract the JSON substring
-    jsonText = jsonText.substring(firstBraceIndex, jsonEndIndex + 1);
-    console.log("[parseActionResponse] Extracted JSON:", jsonText);
-    
-    const parsed = JSON.parse(jsonText);
+    // Use partial-json to parse - it gracefully handles incomplete JSON
+    // OBJ flag allows parsing incomplete objects during streaming
+    const parsed = parsePartialJson(jsonText, OBJ);
     console.log("[parseActionResponse] Parsed JSON:", parsed);
+    
+    // Ensure we got an object
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      console.log("[parseActionResponse] Parsed result is not an object");
+      return null;
+    }
     
     // Validate action type
     if (

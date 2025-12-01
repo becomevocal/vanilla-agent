@@ -49,6 +49,9 @@ importers:
 
   examples/embedded-app:
     dependencies:
+      partial-json:
+        specifier: ^0.1.7
+        version: 0.1.7
       vanilla-agent:
         specifier: workspace:^
         version: link:../../packages/widget

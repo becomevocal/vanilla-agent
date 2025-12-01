@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "partial-json": "^0.1.7",
     "vanilla-agent": "workspace:^"
   },
   "devDependencies": {
