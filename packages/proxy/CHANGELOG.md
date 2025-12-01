@@ -1,5 +1,13 @@
 # vanilla-agent-proxy
 
+## 1.13.0
+
+### Minor Changes
+
+- Add markdown parsing to script generation
+- Remove extra action-middleware example
+- Fix lagging typing indicator after assistant message
+
 ## 1.12.0
 
 ### Minor Changes
