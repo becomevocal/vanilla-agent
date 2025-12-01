@@ -861,3 +861,80 @@ form:focus-within textarea {
   color: inherit;
   text-decoration: underline;
 }
+
+/* Markdown paragraph styles */
+.vanilla-message-bubble p {
+  margin: 0;
+}
+
+.vanilla-message-bubble p + p {
+  margin-top: 0.75rem;
+}
+
+/* Markdown list styles */
+.vanilla-message-bubble ul,
+.vanilla-message-bubble ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.vanilla-message-bubble ul {
+  list-style-type: disc;
+}
+
+.vanilla-message-bubble ol {
+  list-style-type: decimal;
+}
+
+.vanilla-message-bubble li {
+  margin: 0.25rem 0;
+  padding-left: 0.25rem;
+}
+
+/* Nested lists */
+.vanilla-message-bubble ul ul,
+.vanilla-message-bubble ol ul {
+  list-style-type: circle;
+  margin: 0.25rem 0;
+}
+
+.vanilla-message-bubble ul ul ul,
+.vanilla-message-bubble ol ul ul,
+.vanilla-message-bubble ul ol ul,
+.vanilla-message-bubble ol ol ul {
+  list-style-type: square;
+}
+
+.vanilla-message-bubble ul ol,
+.vanilla-message-bubble ol ol {
+  list-style-type: lower-alpha;
+  margin: 0.25rem 0;
+}
+
+/* Ensure user message paragraphs and lists have proper styling too */
+.vanilla-message-user-bubble p {
+  margin: 0;
+}
+
+.vanilla-message-user-bubble p + p {
+  margin-top: 0.75rem;
+}
+
+.vanilla-message-user-bubble ul,
+.vanilla-message-user-bubble ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.vanilla-message-user-bubble ul {
+  list-style-type: disc;
+}
+
+.vanilla-message-user-bubble ol {
+  list-style-type: decimal;
+}
+
+.vanilla-message-user-bubble li {
+  margin: 0.25rem 0;
+  padding-left: 0.25rem;
+}
