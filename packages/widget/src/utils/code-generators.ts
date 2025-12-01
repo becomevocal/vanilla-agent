@@ -1208,6 +1208,7 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("      // Initialize widget with DOM context");
   lines.push("      const handle = agentWidget.initAgentWidget({");
   lines.push("        target: 'body',");
+  lines.push("        useShadowDom: false,");
   lines.push("        config: widgetConfig");
   lines.push("      });");
   lines.push("");
