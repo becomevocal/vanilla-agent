@@ -792,6 +792,7 @@ function generateScriptInstallerCode(config: any): string {
     lines.push(`      debug: ${config.debug},`);
   }
 
+  lines.push("      postprocessMessage: ({ text }) => window.AgentWidget.markdownPostprocessor(text)");
   lines.push("    }");
   lines.push("  };");
   lines.push("</script>");
@@ -925,6 +926,7 @@ function generateScriptManualCode(config: any): string {
     lines.push(`      debug: ${config.debug},`);
   }
 
+  lines.push("      postprocessMessage: ({ text }) => window.AgentWidget.markdownPostprocessor(text)");
   lines.push("    }");
   lines.push("  });");
   lines.push("</script>");
@@ -1181,7 +1183,8 @@ function generateScriptAdvancedCode(config: any): string {
   lines.push("      requestMiddleware: ({ payload }) => ({");
   lines.push("        ...payload,");
   lines.push("        metadata: domContextProvider()");
-  lines.push("      })");
+  lines.push("      }),");
+  lines.push("      postprocessMessage: ({ text }) => agentWidget.markdownPostprocessor(text)");
   lines.push("    });");
   lines.push("");
   lines.push("    // Initialize widget when DOM is loaded");
