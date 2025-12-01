@@ -1025,7 +1025,8 @@ export const createAgentExperience = (
   };
 
   const setComposerDisabled = (disabled: boolean) => {
-    textarea.disabled = disabled;
+    // Keep textarea always enabled so users can type while streaming
+    // Only disable submit controls to prevent sending during streaming
     sendButton.disabled = disabled;
     if (micButton) {
       micButton.disabled = disabled;
