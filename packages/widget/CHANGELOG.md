@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.14.0
+
+### Minor Changes
+
+- Improve user message ux and markdown styling for lists and paragraphs
+
 ## 1.13.0
 
 ### Minor Changes
