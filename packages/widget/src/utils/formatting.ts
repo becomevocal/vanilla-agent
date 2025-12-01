@@ -1,6 +1,19 @@
 import { AgentWidgetReasoning, AgentWidgetToolCall, AgentWidgetStreamParser, AgentWidgetStreamParserResult } from "../types";
 import { parse as parsePartialJson, STR, OBJ } from "partial-json";
 
+/**
+ * Unescapes JSON string escape sequences that LLMs often double-escape.
+ * Converts literal \n, \r, \t sequences to actual control characters.
+ */
+const unescapeJsonString = (str: string): string => {
+  return str
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '\r')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+};
+
 export const formatUnknownValue = (value: unknown): string => {
   if (value === null) return "null";
   if (value === undefined) return "";
@@ -277,7 +290,7 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
           // Check for component directives - extract text if present for combined text+component
           if (parsed.component && typeof parsed.component === "string") {
             // For component directives, extract text if present, otherwise empty
-            extractedText = typeof parsed.text === "string" ? parsed.text : "";
+            extractedText = typeof parsed.text === "string" ? unescapeJsonString(parsed.text) : "";
           }
           // Check for form directives - these also don't have text fields
           else if (parsed.type === "init" && parsed.form) {
@@ -286,7 +299,7 @@ export const createJsonStreamParser = (): AgentWidgetStreamParser => {
           }
           // Extract text field if available
           else if (typeof parsed.text === "string") {
-            extractedText = parsed.text;
+            extractedText = unescapeJsonString(parsed.text);
           }
         }
       } catch (error) {
@@ -332,10 +345,15 @@ export const createFlexibleJsonStreamParser = (
   const defaultExtractor = (parsed: any): string | null => {
     if (!parsed || typeof parsed !== "object") return null;
 
+    // Helper to safely extract and unescape text
+    const getText = (value: any): string | null => {
+      return typeof value === "string" ? unescapeJsonString(value) : null;
+    };
+
     // Check for component directives - extract text if present for combined text+component
     if (parsed.component && typeof parsed.component === "string") {
       // For component directives, extract text if present, otherwise empty
-      return typeof parsed.text === "string" ? parsed.text : "";
+      return typeof parsed.text === "string" ? unescapeJsonString(parsed.text) : "";
     }
     
     // Check for form directives - these also don't have text fields
@@ -348,18 +366,18 @@ export const createFlexibleJsonStreamParser = (
     if (parsed.action) {
       switch (parsed.action) {
         case 'nav_then_click':
-          return parsed.on_load_text || parsed.text || null;
+          return getText(parsed.on_load_text) || getText(parsed.text) || null;
         case 'message':
         case 'message_and_click':
         case 'checkout':
-          return parsed.text || null;
+          return getText(parsed.text) || null;
         default:
-          return parsed.text || parsed.display_text || parsed.message || null;
+          return getText(parsed.text) || getText(parsed.display_text) || getText(parsed.message) || null;
       }
     }
     
     // Fallback to common text field names
-    return parsed.text || parsed.display_text || parsed.message || parsed.content || null;
+    return getText(parsed.text) || getText(parsed.display_text) || getText(parsed.message) || getText(parsed.content) || null;
   };
   
   const extractText = textExtractor || defaultExtractor;
