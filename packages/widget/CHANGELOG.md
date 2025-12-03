@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.15.0
+
+### Minor Changes
+
+- Resolve rendering issues when in full height and sidebar mode
+
 ## 1.14.0
 
 ### Minor Changes
