@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.17.0
+
+### Minor Changes
+
+- Fix theme apply issue
+
 ## 1.16.0
 
 ### Minor Changes
