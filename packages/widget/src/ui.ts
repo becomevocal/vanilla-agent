@@ -139,7 +139,8 @@ export const createAgentExperience = (
   }
 
   let config = mergeWithDefaults(initialConfig) as AgentWidgetConfig;
-  applyThemeVariables(mount, config);
+  // Note: applyThemeVariables is called after applyFullHeightStyles() below
+  // because applyFullHeightStyles resets mount.style.cssText
 
   // Get plugins for this instance
   const plugins = pluginRegistry.getForInstance(config.plugins);
@@ -578,6 +579,8 @@ export const createAgentExperience = (
     wrapper.style.cssText += maxHeightStyles + paddingStyles;
   };
   applyFullHeightStyles();
+  // Apply theme variables after applyFullHeightStyles since it resets mount.style.cssText
+  applyThemeVariables(mount, config);
 
   const destroyCallbacks: Array<() => void> = [];
   const suggestionsManager = createSuggestions(suggestions);
@@ -1736,8 +1739,9 @@ export const createAgentExperience = (
     update(nextConfig: AgentWidgetConfig) {
       const previousToolCallConfig = config.toolCall;
       config = { ...config, ...nextConfig };
-      applyThemeVariables(mount, config);
+      // applyFullHeightStyles resets mount.style.cssText, so call it before applyThemeVariables
       applyFullHeightStyles();
+      applyThemeVariables(mount, config);
 
       // Update plugins
       const newPlugins = pluginRegistry.getForInstance(config.plugins);
