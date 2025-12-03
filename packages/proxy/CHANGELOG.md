@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.19.0
+
+### Minor Changes
+
+- Improve inline embed width and flex config
+
 ## 1.18.0
 
 ### Minor Changes
