@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.16.0
+
+### Minor Changes
+
+- Add theme config reference and resolve embedded overflow issue
+
 ## 1.15.0
 
 ### Minor Changes
