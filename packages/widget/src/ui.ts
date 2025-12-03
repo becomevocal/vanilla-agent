@@ -446,10 +446,10 @@ export const createAgentExperience = (
     container.style.border = panelBorder;
     container.style.borderRadius = panelBorderRadius;
     
+    // Check if this is inline embed mode (launcher disabled) vs launcher mode
+    const isInlineEmbed = config.launcher?.enabled === false;
+    
     if (fullHeight) {
-      // Check if this is inline embed mode (launcher disabled) vs launcher mode
-      const isInlineEmbed = config.launcher?.enabled === false;
-      
       // Mount container
       mount.style.display = 'flex';
       mount.style.flexDirection = 'column';
@@ -502,8 +502,8 @@ export const createAgentExperience = (
       'tvw-bottom-4', 'tvw-right-4', 'tvw-left-4', 'tvw-top-4'
     );
     
-    if (!sidebarMode) {
-      // Restore positioning classes when not in sidebar mode
+    if (!sidebarMode && !isInlineEmbed) {
+      // Restore positioning classes when not in sidebar mode (launcher mode only)
       const positionClasses = positionMap[position as keyof typeof positionMap] ?? positionMap['bottom-right'];
       positionClasses.split(' ').forEach(cls => wrapper.classList.add(cls));
     }
@@ -574,9 +574,12 @@ export const createAgentExperience = (
     // Apply max-height constraints to wrapper to prevent expanding past viewport top
     // Use both -moz-available (Firefox) and stretch (standard) for cross-browser support
     // Append to cssText to allow multiple fallback values for the same property
-    const maxHeightStyles = 'max-height: -moz-available !important; max-height: stretch !important;';
-    const paddingStyles = sidebarMode ? '' : 'padding-top: 1.25em !important;';
-    wrapper.style.cssText += maxHeightStyles + paddingStyles;
+    // Only apply to launcher mode (not sidebar or inline embed)
+    if (!isInlineEmbed) {
+      const maxHeightStyles = 'max-height: -moz-available !important; max-height: stretch !important;';
+      const paddingStyles = sidebarMode ? '' : 'padding-top: 1.25em !important;';
+      wrapper.style.cssText += maxHeightStyles + paddingStyles;
+    }
   };
   applyFullHeightStyles();
   // Apply theme variables after applyFullHeightStyles since it resets mount.style.cssText
