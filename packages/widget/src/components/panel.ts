@@ -36,12 +36,12 @@ export const createWrapper = (config?: AgentWidgetConfig): PanelWrapper => {
 
   const wrapper = createElement(
     "div",
-    `tvw-fixed ${position} tvw-z-50 tvw-transition`
+    `tvw-widget-wrapper tvw-fixed ${position} tvw-z-50 tvw-transition`
   );
 
   const panel = createElement(
     "div",
-    "tvw-relative tvw-min-h-[320px]"
+    "tvw-widget-panel tvw-relative tvw-min-h-[320px]"
   );
   const launcherWidth = config?.launcher?.width ?? config?.launcherWidth;
   const width = launcherWidth ?? "min(400px, calc(100vw - 24px))";
@@ -83,7 +83,7 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
   // the body (chat messages area) to scroll while header/footer stay fixed
   const container = createElement(
     "div",
-    "tvw-flex tvw-h-full tvw-w-full tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-bg-cw-surface tvw-text-cw-primary tvw-rounded-2xl tvw-overflow-hidden tvw-shadow-2xl tvw-border tvw-border-cw-border"
+    "tvw-widget-container tvw-flex tvw-h-full tvw-w-full tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-bg-cw-surface tvw-text-cw-primary tvw-rounded-2xl tvw-overflow-hidden tvw-border tvw-border-cw-border"
   );
 
   // Build header using layout config if available, otherwise use standard builder
@@ -95,7 +95,7 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
   // Build body with intro card and messages wrapper
   const body = createElement(
     "div",
-    "tvw-flex tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-gap-6 tvw-overflow-y-auto tvw-bg-cw-container tvw-px-6 tvw-py-6"
+    "tvw-widget-body tvw-flex tvw-flex-1 tvw-min-h-0 tvw-flex-col tvw-gap-6 tvw-overflow-y-auto tvw-bg-cw-container tvw-px-6 tvw-py-6"
   );
   body.id = "vanilla-agent-scroll-container";
   

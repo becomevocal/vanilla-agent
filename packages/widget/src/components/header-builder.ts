@@ -29,7 +29,7 @@ export const buildHeader = (context: HeaderBuildContext): HeaderElements => {
 
   const header = createElement(
     "div",
-    "tvw-flex tvw-items-center tvw-gap-3 tvw-bg-cw-surface tvw-px-6 tvw-py-5 tvw-border-b-cw-divider"
+    "tvw-widget-header tvw-flex tvw-items-center tvw-gap-3 tvw-bg-cw-surface tvw-px-6 tvw-py-5 tvw-border-b-cw-divider"
   );
 
   const launcher = config?.launcher ?? {};
@@ -451,4 +451,5 @@ export const attachHeaderToContainer = (
     container.appendChild(headerElements.clearChatButtonWrapper);
   }
 };
+
 

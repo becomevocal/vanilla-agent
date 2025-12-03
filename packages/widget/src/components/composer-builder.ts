@@ -46,7 +46,7 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
 
   const footer = createElement(
     "div",
-    "tvw-border-t-cw-divider tvw-bg-cw-surface tvw-px-6 tvw-py-4"
+    "tvw-widget-footer tvw-border-t-cw-divider tvw-bg-cw-surface tvw-px-6 tvw-py-4"
   );
 
   const suggestions = createElement(
@@ -67,7 +67,7 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
 
   const composerForm = createElement(
     "form",
-    `tvw-flex tvw-items-end ${gapClass} tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3`
+    `tvw-widget-composer tvw-flex tvw-items-end ${gapClass} tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3`
   ) as HTMLFormElement;
   // Prevent form from getting focus styles
   composerForm.style.outline = "none";
@@ -363,4 +363,5 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
     statusText
   };
 };
+
 

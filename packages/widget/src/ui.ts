@@ -19,6 +19,7 @@ import { createElement } from "./utils/dom";
 import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel, buildHeader, buildComposer, attachHeaderToContainer } from "./components/panel";
+import { positionMap } from "./utils/positioning";
 import type { HeaderElements, ComposerElements } from "./components/panel";
 import { MessageTransform } from "./components/message-bubble";
 import { createStandardBubble, createTypingIndicator } from "./components/message-bubble";
@@ -418,9 +419,30 @@ export const createAgentExperience = (
     const panelShadow = theme.panelShadow ?? defaultPanelShadow;
     const panelBorderRadius = theme.panelBorderRadius ?? defaultPanelBorderRadius;
     
-    // Apply panel styling to container (works in all modes)
+    // Reset all inline styles first to handle mode toggling
+    // This ensures styles don't persist when switching between modes
+    mount.style.cssText = '';
+    wrapper.style.cssText = '';
+    panel.style.cssText = '';
+    container.style.cssText = '';
+    body.style.cssText = '';
+    footer.style.cssText = '';
+    
+    // Re-apply panel width/maxWidth from initial setup
+    const launcherWidth = config?.launcher?.width ?? config?.launcherWidth;
+    const width = launcherWidth ?? "min(400px, calc(100vw - 24px))";
+    if (!sidebarMode) {
+      panel.style.width = width;
+      panel.style.maxWidth = width;
+    }
+    
+    // Apply panel styling
+    // Box-shadow is applied to panel (parent) instead of container to avoid
+    // rendering artifacts when container has overflow:hidden + border-radius
+    // Panel also gets border-radius to make the shadow follow the rounded corners
+    panel.style.boxShadow = panelShadow;
+    panel.style.borderRadius = panelBorderRadius;
     container.style.border = panelBorder;
-    container.style.boxShadow = panelShadow;
     container.style.borderRadius = panelBorderRadius;
     
     if (fullHeight) {
@@ -430,14 +452,13 @@ export const createAgentExperience = (
       mount.style.height = '100%';
       mount.style.minHeight = '0';
       
-      // Wrapper
+      // Wrapper - no overflow:hidden to allow panel's box-shadow to render fully
       wrapper.style.display = 'flex';
       wrapper.style.flexDirection = 'column';
       wrapper.style.flex = '1 1 0%';
       wrapper.style.minHeight = '0';
       wrapper.style.maxHeight = '100%';
       wrapper.style.height = '100%';
-      wrapper.style.overflow = 'hidden';
       
       // Panel
       panel.style.display = 'flex';
@@ -465,15 +486,22 @@ export const createAgentExperience = (
       footer.style.flexShrink = '0';
     }
     
+    // Handle positioning classes based on mode
+    // First remove all position classes to reset state
+    wrapper.classList.remove(
+      'tvw-bottom-6', 'tvw-right-6', 'tvw-left-6', 'tvw-top-6',
+      'tvw-bottom-4', 'tvw-right-4', 'tvw-left-4', 'tvw-top-4'
+    );
+    
+    if (!sidebarMode) {
+      // Restore positioning classes when not in sidebar mode
+      const positionClasses = positionMap[position as keyof typeof positionMap] ?? positionMap['bottom-right'];
+      positionClasses.split(' ').forEach(cls => wrapper.classList.add(cls));
+    }
+    
     // Apply sidebar-specific styles
     if (sidebarMode) {
       const sidebarWidth = config.launcher?.sidebarWidth ?? '420px';
-      
-      // Remove Tailwind positioning classes that add spacing (tvw-bottom-6, tvw-right-6, etc.)
-      wrapper.classList.remove(
-        'tvw-bottom-6', 'tvw-right-6', 'tvw-left-6', 'tvw-top-6',
-        'tvw-bottom-4', 'tvw-right-4', 'tvw-left-4', 'tvw-top-4'
-      );
       
       // Wrapper - fixed position, flush with edges
       wrapper.style.cssText = `
@@ -491,6 +519,8 @@ export const createAgentExperience = (
       `;
       
       // Panel - fill wrapper (override inline width/max-width from panel.ts)
+      // Box-shadow is on panel to avoid rendering artifacts with container's overflow:hidden
+      // Border-radius on panel ensures shadow follows rounded corners
       panel.style.cssText = `
         position: relative !important;
         display: flex !important;
@@ -502,12 +532,15 @@ export const createAgentExperience = (
         min-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
+        box-shadow: ${panelShadow} !important;
+        border-radius: ${panelBorderRadius} !important;
       `;
       // Force override any inline width/maxWidth that may be set elsewhere
       panel.style.setProperty('width', '100%', 'important');
       panel.style.setProperty('max-width', '100%', 'important');
       
       // Container - apply configurable styles with sidebar layout
+      // Note: box-shadow is on panel, not container
       container.style.cssText = `
         display: flex !important;
         flex-direction: column !important;
@@ -519,7 +552,6 @@ export const createAgentExperience = (
         overflow: hidden !important;
         border-radius: ${panelBorderRadius} !important;
         border: ${panelBorder} !important;
-        box-shadow: ${panelShadow} !important;
       `;
       
       // Remove footer border in sidebar mode
@@ -529,6 +561,13 @@ export const createAgentExperience = (
         padding: 8px 16px 12px 16px !important;
       `;
     }
+    
+    // Apply max-height constraints to wrapper to prevent expanding past viewport top
+    // Use both -moz-available (Firefox) and stretch (standard) for cross-browser support
+    // Append to cssText to allow multiple fallback values for the same property
+    const maxHeightStyles = 'max-height: -moz-available !important; max-height: stretch !important;';
+    const paddingStyles = sidebarMode ? '' : 'padding-top: 1.25em !important;';
+    wrapper.style.cssText += maxHeightStyles + paddingStyles;
   };
   applyFullHeightStyles();
 
