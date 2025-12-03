@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.18.0
+
+### Minor Changes
+
+- Fix layout shift in inline embed
+
 ## 1.17.0
 
 ### Minor Changes
