@@ -446,19 +446,27 @@ export const createAgentExperience = (
     container.style.borderRadius = panelBorderRadius;
     
     if (fullHeight) {
+      // Check if this is inline embed mode (launcher disabled) vs launcher mode
+      const isInlineEmbed = config.launcher?.enabled === false;
+      
       // Mount container
       mount.style.display = 'flex';
       mount.style.flexDirection = 'column';
       mount.style.height = '100%';
       mount.style.minHeight = '0';
       
-      // Wrapper - no overflow:hidden to allow panel's box-shadow to render fully
+      // Wrapper
+      // - Inline embed: needs overflow:hidden to contain the flex layout
+      // - Launcher mode: no overflow:hidden to allow panel's box-shadow to render fully
       wrapper.style.display = 'flex';
       wrapper.style.flexDirection = 'column';
       wrapper.style.flex = '1 1 0%';
       wrapper.style.minHeight = '0';
       wrapper.style.maxHeight = '100%';
       wrapper.style.height = '100%';
+      if (isInlineEmbed) {
+        wrapper.style.overflow = 'hidden';
+      }
       
       // Panel
       panel.style.display = 'flex';
