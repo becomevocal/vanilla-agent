@@ -25,6 +25,7 @@ createAgentExperience(inlineMount, {
   apiUrl: proxyUrl,
   launcher: {
     ...DEFAULT_WIDGET_CONFIG.launcher,
+    width: "100%",
     enabled: false
   },
   theme: {

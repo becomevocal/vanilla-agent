@@ -18,12 +18,18 @@ export const createWrapper = (config?: AgentWidgetConfig): PanelWrapper => {
     // and only the chat messages area scrolls
     const wrapper = createElement(
       "div",
-      "tvw-relative tvw-w-full tvw-h-full tvw-flex tvw-flex-col tvw-flex-1 tvw-min-h-0"
+      "tvw-relative tvw-h-full tvw-flex tvw-flex-col tvw-flex-1 tvw-min-h-0"
     );
     const panel = createElement(
       "div",
-      "tvw-relative tvw-w-full tvw-flex-1 tvw-flex tvw-flex-col tvw-min-h-0"
+      "tvw-relative tvw-flex-1 tvw-flex tvw-flex-col tvw-min-h-0"
     );
+    
+    // Apply width from config, defaulting to 100% for inline embed mode
+    const inlineWidth = config?.launcher?.width ?? "100%";
+    wrapper.style.width = inlineWidth;
+    panel.style.width = "100%";
+    
     wrapper.appendChild(panel);
     return { wrapper, panel };
   }

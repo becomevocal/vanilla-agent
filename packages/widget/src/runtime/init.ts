@@ -94,12 +94,9 @@ export const initAgentWidget = (
   host.className = "vanilla-agent-host";
   
   // When launcher is disabled (inline embed mode), ensure the host fills its container
-  // This allows the widget to respect the parent container's height
   const launcherEnabled = options.config?.launcher?.enabled ?? true;
   if (!launcherEnabled) {
     host.style.height = "100%";
-    host.style.display = "flex";
-    host.style.flexDirection = "column";
   }
   
   target.appendChild(host);

@@ -31,7 +31,7 @@ createAgentExperience(inlineMount, {
   apiUrl: proxyUrl,
   parserType: "json", // Use JSON parser for component directives
   enableComponentStreaming: true,
-  launcher: { enabled: false },
+  launcher: { enabled: false, width: "100%" },
   formEndpoint: "/form",
   theme: {
     ...DEFAULT_WIDGET_CONFIG.theme,
