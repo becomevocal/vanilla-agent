@@ -217,6 +217,14 @@ export type AgentWidgetLauncherConfig = {
    * @default "420px"
    */
   sidebarWidth?: string;
+  /**
+   * Offset (in pixels) to subtract from the calculated panel height.
+   * Useful for adjusting the panel height when there are other fixed elements on the page.
+   * Only applies when not in fullHeight or sidebarMode.
+   * 
+   * @default 0
+   */
+  heightOffset?: number;
   callToActionIconText?: string;
   callToActionIconName?: string;
   callToActionIconColor?: string;

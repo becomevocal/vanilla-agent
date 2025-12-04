@@ -1592,9 +1592,11 @@ export const createAgentExperience = (
     if (!fullHeight) {
       const viewportHeight = window.innerHeight;
       const verticalMargin = 64; // leave space for launcher's offset
+      const heightOffset = config.launcher?.heightOffset ?? 0;
       const available = Math.max(200, viewportHeight - verticalMargin);
       const clamped = Math.min(640, available);
-      panel.style.height = `${clamped}px`;
+      const finalHeight = Math.max(200, clamped - heightOffset);
+      panel.style.height = `${finalHeight}px`;
     }
   };
 

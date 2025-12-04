@@ -48,6 +48,7 @@ export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
     agentIconText: "💬",
     position: "bottom-right",
     width: "min(400px, calc(100vw - 24px))",
+    heightOffset: 0,
     autoExpand: false,
     callToActionIconHidden: false,
     agentIconSize: "40px",

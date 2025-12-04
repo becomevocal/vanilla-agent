@@ -64,6 +64,7 @@ This document provides definitions of all themable configuration options.
 | `fullHeight` | `false` | Fill full height of container |
 | `sidebarMode` | `false` | Position as sidebar flush with viewport |
 | `sidebarWidth` | `"420px"` | Sidebar width |
+| `heightOffset` | `0` | Pixel offset to subtract from calculated panel height |
 
 ### Agent Icon
 | Property | Description |
