@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.20.0
+
+### Minor Changes
+
+- Add panel height offset config
+
 ## 1.19.0
 
 ### Minor Changes
