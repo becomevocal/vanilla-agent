@@ -259,7 +259,8 @@ const getDefaultConfig = (): AgentWidgetConfig => ({
     // For assistant messages, check if the response is JSON and extract the text field
     if (message.role === "assistant" && !message.variant) {
       const trimmed = text.trim();
-      const looksLikeJson = trimmed.startsWith('{') || text.includes('{');
+      // Only treat as JSON if text STARTS with { (not just contains it - that would match markdown with JSON code blocks)
+      const looksLikeJson = trimmed.startsWith('{');
       
       if (streaming) {
         // During streaming, suppress JSON chunks to avoid showing partial JSON
@@ -279,8 +280,8 @@ const getDefaultConfig = (): AgentWidgetConfig => ({
             // For other action types that have text, return the text
             return markdownPostprocessor(action.text);
           }
-          // If JSON parsing failed, return empty to suppress invalid JSON
-          return "";
+          // If JSON parsing failed, fall through to return the original text
+          // (Don't return empty - the content might be valid non-JSON)
         }
       }
     }
