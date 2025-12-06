@@ -158,10 +158,19 @@ export const createLauncherButton = (
         ? positionMap[launcher.position]
         : positionMap["bottom-right"];
 
+    // Removed hardcoded border/shadow classes (tvw-shadow-lg, tvw-border, tvw-border-gray-200)
+    // These are now applied via inline styles from config
     const base =
-      "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-launcher tvw-bg-cw-surface tvw-py-2.5 tvw-pl-3 tvw-pr-3 tvw-shadow-lg tvw-border tvw-border-gray-200 tvw-transition hover:tvw-translate-y-[-2px] tvw-cursor-pointer tvw-z-50";
+      "tvw-fixed tvw-flex tvw-items-center tvw-gap-3 tvw-rounded-launcher tvw-bg-cw-surface tvw-py-2.5 tvw-pl-3 tvw-pr-3 tvw-transition hover:tvw-translate-y-[-2px] tvw-cursor-pointer tvw-z-50";
 
     button.className = `${base} ${positionClass}`;
+    
+    // Apply launcher border and shadow from config (with defaults matching previous Tailwind classes)
+    const defaultBorder = "1px solid #e5e7eb";
+    const defaultShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)";
+    
+    button.style.border = launcher.border ?? defaultBorder;
+    button.style.boxShadow = launcher.shadow ?? defaultShadow;
   };
 
   const destroy = () => {

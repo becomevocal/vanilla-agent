@@ -85,6 +85,12 @@ This document provides definitions of all themable configuration options.
 | `callToActionIconPadding` | Padding |
 | `callToActionIconSize` | Size |
 
+### Launcher Styling
+| Property | Default | Description |
+|----------|---------|-------------|
+| `border` | `"1px solid #e5e7eb"` | Border style for the launcher button |
+| `shadow` | `"0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"` | Box shadow for the launcher button |
+
 ### Header Icon
 | Property | Description |
 |----------|-------------|

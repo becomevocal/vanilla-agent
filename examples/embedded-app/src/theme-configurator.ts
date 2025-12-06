@@ -1359,6 +1359,8 @@ function setupLauncherControls() {
   const callToActionIconHiddenInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-hidden");
   const callToActionIconBackgroundColorInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color");
   const callToActionIconBackgroundColorTextInput = getInput<HTMLInputElement>("launcher-call-to-action-icon-background-color-text");
+  const launcherBorderInput = getInput<HTMLInputElement>("launcher-border");
+  const launcherShadowInput = getInput<HTMLInputElement>("launcher-shadow");
 
   // Size inputs - these will be handled by sliders, but we still need references for the update function
   const agentIconSizeInput = getInput<HTMLInputElement>("launcher-agent-icon-size");
@@ -1382,6 +1384,8 @@ function setupLauncherControls() {
   callToActionIconTextInput.value = currentConfig.launcher?.callToActionIconText ?? "↗";
   callToActionIconNameInput.value = currentConfig.launcher?.callToActionIconName ?? "";
   callToActionIconHiddenInput.checked = currentConfig.launcher?.callToActionIconHidden ?? false;
+  launcherBorderInput.value = currentConfig.launcher?.border ?? "1px solid #e5e7eb";
+  launcherShadowInput.value = currentConfig.launcher?.shadow ?? "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)";
 
   // Setup color inputs with transparent support
   setupColorInput(
@@ -1424,7 +1428,9 @@ function setupLauncherControls() {
         callToActionIconBackgroundColor: callToActionIconBackgroundColorTextInput.value === "transparent" ? undefined : (callToActionIconBackgroundColorTextInput.value || undefined),
         agentIconSize: agentIconSizeInput.value,
         callToActionIconSize: callToActionIconSizeInput.value,
-        callToActionIconPadding: callToActionIconPaddingInput.value || undefined
+        callToActionIconPadding: callToActionIconPaddingInput.value || undefined,
+        border: launcherBorderInput.value || undefined,
+        shadow: launcherShadowInput.value || undefined
       }
     };
     debouncedUpdate(newConfig);
@@ -1469,7 +1475,7 @@ function setupLauncherControls() {
     }
   });
 
-  [enabledInput, titleInput, subtitleInput, textHiddenInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput, positionInput, widthInput, autoExpandInput, fullHeightInput, sidebarModeInput, sidebarWidthInput, callToActionIconTextInput, callToActionIconNameInput, callToActionIconHiddenInput]
+  [enabledInput, titleInput, subtitleInput, textHiddenInput, agentIconTextInput, agentIconNameInput, agentIconHiddenInput, positionInput, widthInput, autoExpandInput, fullHeightInput, sidebarModeInput, sidebarWidthInput, callToActionIconTextInput, callToActionIconNameInput, callToActionIconHiddenInput, launcherBorderInput, launcherShadowInput]
     .forEach((input) => {
       input.addEventListener("input", updateLauncher);
       input.addEventListener("change", updateLauncher);

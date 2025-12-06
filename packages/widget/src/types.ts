@@ -250,6 +250,18 @@ export type AgentWidgetLauncherConfig = {
   closeButtonTooltipText?: string;
   closeButtonShowTooltip?: boolean;
   clearChat?: AgentWidgetClearChatConfig;
+  /**
+   * Border style for the launcher button.
+   * @example "1px solid #e5e7eb" | "2px solid #3b82f6" | "none"
+   * @default "1px solid #e5e7eb"
+   */
+  border?: string;
+  /**
+   * Box shadow for the launcher button.
+   * @example "0 10px 15px -3px rgba(0,0,0,0.1)" | "none"
+   * @default "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
+   */
+  shadow?: string;
 };
 
 export type AgentWidgetSendButtonConfig = {
