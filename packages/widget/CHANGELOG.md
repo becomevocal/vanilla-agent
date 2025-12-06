@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.21.0
+
+### Minor Changes
+
+- Improved markdown and launcher button styling
+
 ## 1.20.0
 
 ### Minor Changes
