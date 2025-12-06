@@ -1,4 +1,4 @@
-import { escapeHtml } from "./postprocessors";
+import { escapeHtml, createMarkdownProcessorFromConfig } from "./postprocessors";
 import { AgentWidgetSession, AgentWidgetSessionStatus } from "./session";
 import {
   AgentWidgetConfig,
@@ -96,6 +96,12 @@ const buildPostprocessor = (
   cfg: AgentWidgetConfig | undefined,
   actionManager?: ReturnType<typeof createActionManager>
 ): MessageTransform => {
+  // Create markdown processor from config if markdown config is provided
+  // This allows users to enable markdown rendering via config.markdown
+  const markdownProcessor = cfg?.markdown 
+    ? createMarkdownProcessorFromConfig(cfg.markdown)
+    : null;
+
   return (context) => {
     let nextText = context.text ?? "";
     const rawPayload = context.message.rawContent ?? null;
@@ -116,12 +122,18 @@ const buildPostprocessor = (
       }
     }
 
+    // Priority: postprocessMessage > markdown config > escapeHtml
     if (cfg?.postprocessMessage) {
       return cfg.postprocessMessage({
         ...context,
         text: nextText,
         raw: rawPayload ?? context.text ?? ""
       });
+    }
+
+    // Use markdown processor if markdown config is provided
+    if (markdownProcessor) {
+      return markdownProcessor(nextText);
     }
 
     return escapeHtml(nextText);

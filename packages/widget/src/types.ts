@@ -610,6 +610,271 @@ export type AgentWidgetLayoutConfig = {
   slots?: Partial<Record<WidgetLayoutSlot, SlotRenderer>>;
 };
 
+// ============================================================================
+// Markdown Configuration Types
+// ============================================================================
+
+/**
+ * Token types for marked renderer methods
+ */
+export type AgentWidgetMarkdownHeadingToken = {
+  type: "heading";
+  raw: string;
+  depth: 1 | 2 | 3 | 4 | 5 | 6;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownCodeToken = {
+  type: "code";
+  raw: string;
+  text: string;
+  lang?: string;
+  escaped?: boolean;
+};
+
+export type AgentWidgetMarkdownBlockquoteToken = {
+  type: "blockquote";
+  raw: string;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownTableToken = {
+  type: "table";
+  raw: string;
+  header: Array<{ text: string; tokens: unknown[] }>;
+  rows: Array<Array<{ text: string; tokens: unknown[] }>>;
+  align: Array<"left" | "center" | "right" | null>;
+};
+
+export type AgentWidgetMarkdownLinkToken = {
+  type: "link";
+  raw: string;
+  href: string;
+  title: string | null;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownImageToken = {
+  type: "image";
+  raw: string;
+  href: string;
+  title: string | null;
+  text: string;
+};
+
+export type AgentWidgetMarkdownListToken = {
+  type: "list";
+  raw: string;
+  ordered: boolean;
+  start: number | "";
+  loose: boolean;
+  items: unknown[];
+};
+
+export type AgentWidgetMarkdownListItemToken = {
+  type: "list_item";
+  raw: string;
+  task: boolean;
+  checked?: boolean;
+  loose: boolean;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownParagraphToken = {
+  type: "paragraph";
+  raw: string;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownCodespanToken = {
+  type: "codespan";
+  raw: string;
+  text: string;
+};
+
+export type AgentWidgetMarkdownStrongToken = {
+  type: "strong";
+  raw: string;
+  text: string;
+  tokens: unknown[];
+};
+
+export type AgentWidgetMarkdownEmToken = {
+  type: "em";
+  raw: string;
+  text: string;
+  tokens: unknown[];
+};
+
+/**
+ * Custom renderer overrides for markdown elements.
+ * Each method receives the token and should return an HTML string.
+ * Return `false` to use the default renderer.
+ * 
+ * @example
+ * ```typescript
+ * renderer: {
+ *   heading(token) {
+ *     return `<h${token.depth} class="custom-heading">${token.text}</h${token.depth}>`;
+ *   },
+ *   link(token) {
+ *     return `<a href="${token.href}" target="_blank" rel="noopener">${token.text}</a>`;
+ *   }
+ * }
+ * ```
+ */
+export type AgentWidgetMarkdownRendererOverrides = {
+  /** Override heading rendering (h1-h6) */
+  heading?: (token: AgentWidgetMarkdownHeadingToken) => string | false;
+  /** Override code block rendering */
+  code?: (token: AgentWidgetMarkdownCodeToken) => string | false;
+  /** Override blockquote rendering */
+  blockquote?: (token: AgentWidgetMarkdownBlockquoteToken) => string | false;
+  /** Override table rendering */
+  table?: (token: AgentWidgetMarkdownTableToken) => string | false;
+  /** Override link rendering */
+  link?: (token: AgentWidgetMarkdownLinkToken) => string | false;
+  /** Override image rendering */
+  image?: (token: AgentWidgetMarkdownImageToken) => string | false;
+  /** Override list rendering (ul/ol) */
+  list?: (token: AgentWidgetMarkdownListToken) => string | false;
+  /** Override list item rendering */
+  listitem?: (token: AgentWidgetMarkdownListItemToken) => string | false;
+  /** Override paragraph rendering */
+  paragraph?: (token: AgentWidgetMarkdownParagraphToken) => string | false;
+  /** Override inline code rendering */
+  codespan?: (token: AgentWidgetMarkdownCodespanToken) => string | false;
+  /** Override strong/bold rendering */
+  strong?: (token: AgentWidgetMarkdownStrongToken) => string | false;
+  /** Override emphasis/italic rendering */
+  em?: (token: AgentWidgetMarkdownEmToken) => string | false;
+  /** Override horizontal rule rendering */
+  hr?: () => string | false;
+  /** Override line break rendering */
+  br?: () => string | false;
+  /** Override deleted/strikethrough rendering */
+  del?: (token: { type: "del"; raw: string; text: string; tokens: unknown[] }) => string | false;
+  /** Override checkbox rendering (in task lists) */
+  checkbox?: (token: { checked: boolean }) => string | false;
+  /** Override HTML passthrough */
+  html?: (token: { type: "html"; raw: string; text: string }) => string | false;
+  /** Override text rendering */
+  text?: (token: { type: "text"; raw: string; text: string }) => string | false;
+};
+
+/**
+ * Markdown parsing options (subset of marked options)
+ */
+export type AgentWidgetMarkdownOptions = {
+  /** 
+   * Enable GitHub Flavored Markdown (tables, strikethrough, autolinks).
+   * @default true 
+   */
+  gfm?: boolean;
+  /** 
+   * Convert \n in paragraphs into <br>.
+   * @default true 
+   */
+  breaks?: boolean;
+  /** 
+   * Conform to original markdown.pl as much as possible.
+   * @default false 
+   */
+  pedantic?: boolean;
+  /** 
+   * Add id attributes to headings.
+   * @default false 
+   */
+  headerIds?: boolean;
+  /** 
+   * Prefix for heading id attributes.
+   * @default "" 
+   */
+  headerPrefix?: string;
+  /** 
+   * Mangle email addresses for spam protection.
+   * @default true 
+   */
+  mangle?: boolean;
+  /** 
+   * Silent mode - don't throw on parse errors.
+   * @default false 
+   */
+  silent?: boolean;
+};
+
+/**
+ * Markdown configuration for customizing how markdown is rendered in chat messages.
+ * Provides three levels of control:
+ * 
+ * 1. **CSS Variables** - Override styles via `--cw-md-*` CSS custom properties
+ * 2. **Parsing Options** - Configure marked behavior via `options`
+ * 3. **Custom Renderers** - Full control via `renderer` overrides
+ * 
+ * @example
+ * ```typescript
+ * // Level 2: Configure parsing options
+ * config: {
+ *   markdown: {
+ *     options: {
+ *       gfm: true,
+ *       breaks: true,
+ *       headerIds: true
+ *     }
+ *   }
+ * }
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Level 3: Custom renderers
+ * config: {
+ *   markdown: {
+ *     renderer: {
+ *       heading(token) {
+ *         return `<h${token.depth} class="custom-h${token.depth}">${token.text}</h${token.depth}>`;
+ *       },
+ *       link(token) {
+ *         return `<a href="${token.href}" target="_blank">${token.text}</a>`;
+ *       },
+ *       table(token) {
+ *         // Wrap tables in a scrollable container
+ *         return `<div class="table-scroll">${this.parser.parse(token.tokens)}</div>`;
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export type AgentWidgetMarkdownConfig = {
+  /**
+   * Markdown parsing options.
+   * These are passed directly to the marked parser.
+   */
+  options?: AgentWidgetMarkdownOptions;
+  
+  /**
+   * Custom renderer overrides for specific markdown elements.
+   * Each method receives a token object and should return an HTML string.
+   * Return `false` to fall back to the default renderer.
+   */
+  renderer?: AgentWidgetMarkdownRendererOverrides;
+  
+  /**
+   * Disable default markdown CSS styles.
+   * When true, the widget won't apply any default styles to markdown elements,
+   * allowing you to provide your own CSS.
+   * 
+   * @default false
+   */
+  disableDefaultStyles?: boolean;
+};
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -819,6 +1084,32 @@ export type AgentWidgetConfig = {
    * ```
    */
   layout?: AgentWidgetLayoutConfig;
+  
+  /**
+   * Markdown rendering configuration.
+   * Customize how markdown is parsed and rendered in chat messages.
+   * 
+   * Override methods:
+   * 1. **CSS Variables** - Override `--cw-md-*` variables in your stylesheet
+   * 2. **Options** - Configure marked parser behavior
+   * 3. **Renderers** - Custom rendering functions for specific elements
+   * 4. **postprocessMessage** - Complete control over message transformation
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   markdown: {
+   *     options: { breaks: true, gfm: true },
+   *     renderer: {
+   *       link(token) {
+   *         return `<a href="${token.href}" target="_blank">${token.text}</a>`;
+   *       }
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  markdown?: AgentWidgetMarkdownConfig;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

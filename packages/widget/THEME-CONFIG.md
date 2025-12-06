@@ -217,6 +217,209 @@ This document provides definitions of all themable configuration options.
 ### Slots (`layout.slots.*`)
 Available: `header-left`, `header-center`, `header-right`, `body-top`, `messages`, `body-bottom`, `footer-top`, `composer`, `footer-bottom`
 
+## Markdown (`config.markdown.*`)
+
+The widget supports markdown rendering with multiple levels of customization.
+
+### Options (`markdown.options.*`)
+| Property | Default | Description |
+|----------|---------|-------------|
+| `gfm` | `true` | Enable GitHub Flavored Markdown (tables, strikethrough) |
+| `breaks` | `true` | Convert `\n` in paragraphs into `<br>` |
+| `pedantic` | `false` | Conform to original markdown.pl behavior |
+| `headerIds` | `false` | Add id attributes to headings |
+| `headerPrefix` | `""` | Prefix for heading id attributes |
+| `mangle` | `true` | Mangle email addresses for spam protection |
+| `silent` | `false` | Silent mode - don't throw on parse errors |
+
+### Other Options
+| Property | Default | Description |
+|----------|---------|-------------|
+| `disableDefaultStyles` | `false` | Disable default markdown CSS styles |
+| `renderer` | `undefined` | Custom renderer overrides (see examples below) |
+
+### Override Methods (4 Levels)
+
+**Level 1: CSS Variables** (simplest)
+
+Override markdown element styles via CSS custom properties:
+
+```css
+:root {
+  /* Headers */
+  --cw-md-h1-size: 1.5rem;
+  --cw-md-h1-weight: 700;
+  --cw-md-h2-size: 1.25rem;
+  --cw-md-h3-size: 1.125rem;
+  
+  /* Tables */
+  --cw-md-table-border-color: #e5e7eb;
+  --cw-md-table-header-bg: #f8fafc;
+  --cw-md-table-cell-padding: 0.5rem 0.75rem;
+  
+  /* Blockquotes */
+  --cw-md-blockquote-border-color: #3b82f6;
+  --cw-md-blockquote-text-color: #6b7280;
+  
+  /* Code blocks */
+  --cw-md-code-block-bg: #1f2937;  /* Dark background for dark themes */
+  --cw-md-code-block-border-color: #374151;
+  
+  /* Inline code */
+  --cw-md-inline-code-bg: #1f2937;
+  
+  /* Horizontal rules */
+  --cw-md-hr-color: #e5e7eb;
+}
+```
+
+> **Dark Theme Support:** Code blocks, inline code, tables, blockquotes, and horizontal rules automatically inherit from theme colors (`--cw-container`, `--cw-border`, `--cw-divider`, `--cw-accent`, `--cw-muted`). When you configure a dark theme via `config.theme`, these markdown elements adapt automatically.
+
+**Level 2: Markdown Options** (moderate)
+
+Configure markdown parsing behavior via config:
+
+```typescript
+config: {
+  markdown: {
+    options: {
+      gfm: true,
+      breaks: true,
+      headerIds: true,
+      headerPrefix: 'chat-'
+    }
+  }
+}
+```
+
+**Level 3: Custom Renderers** (full control)
+
+Override rendering of specific elements:
+
+```typescript
+config: {
+  markdown: {
+    renderer: {
+      // Custom heading renderer
+      heading(token) {
+        return `<h${token.depth} class="custom-h${token.depth}">${token.text}</h${token.depth}>`;
+      },
+      // Open links in new tab
+      link(token) {
+        return `<a href="${token.href}" target="_blank" rel="noopener">${token.text}</a>`;
+      },
+      // Wrap tables in scrollable container
+      table(token) {
+        // Return false to use default renderer
+        return false;
+      }
+    }
+  }
+}
+```
+
+Available renderer overrides: `heading`, `code`, `blockquote`, `table`, `link`, `image`, `list`, `listitem`, `paragraph`, `codespan`, `strong`, `em`, `hr`, `br`, `del`, `checkbox`, `html`, `text`
+
+**Level 4: postprocessMessage** (complete override)
+
+Full control over message transformation:
+
+```typescript
+import { markdownPostprocessor, createMarkdownProcessorFromConfig } from 'vanilla-agent';
+
+config: {
+  // Option A: Use built-in markdown processor
+  postprocessMessage: ({ text }) => markdownPostprocessor(text),
+  
+  // Option B: Create custom processor with config
+  postprocessMessage: ({ text }) => {
+    const processor = createMarkdownProcessorFromConfig({
+      options: { gfm: true },
+      renderer: {
+        link(token) {
+          return `<a href="${token.href}" class="custom-link">${token.text}</a>`;
+        }
+      }
+    });
+    return processor(text);
+  },
+  
+  // Option C: Use any markdown library
+  postprocessMessage: ({ text }) => myCustomMarkdownRenderer(text)
+}
+```
+
+### CSS Variables Reference
+
+```css
+:root {
+  /* Headers */
+  --cw-md-h1-size: 1.5rem;
+  --cw-md-h1-weight: 700;
+  --cw-md-h1-margin: 1rem 0 0.5rem;
+  --cw-md-h1-line-height: 1.25;
+  --cw-md-h2-size: 1.25rem;
+  --cw-md-h2-weight: 700;
+  --cw-md-h2-margin: 0.875rem 0 0.5rem;
+  --cw-md-h2-line-height: 1.3;
+  --cw-md-h3-size: 1.125rem;
+  --cw-md-h3-weight: 600;
+  --cw-md-h3-margin: 0.75rem 0 0.375rem;
+  --cw-md-h3-line-height: 1.4;
+  --cw-md-h4-size: 1rem;
+  --cw-md-h4-weight: 600;
+  --cw-md-h4-margin: 0.625rem 0 0.25rem;
+  --cw-md-h4-line-height: 1.5;
+  --cw-md-h5-size: 0.875rem;
+  --cw-md-h5-weight: 600;
+  --cw-md-h5-margin: 0.5rem 0 0.25rem;
+  --cw-md-h5-line-height: 1.5;
+  --cw-md-h6-size: 0.75rem;
+  --cw-md-h6-weight: 600;
+  --cw-md-h6-margin: 0.5rem 0 0.25rem;
+  --cw-md-h6-line-height: 1.5;
+
+  /* Tables */
+  --cw-md-table-border-color: var(--cw-border, #e5e7eb);
+  --cw-md-table-header-bg: var(--cw-container, #f8fafc);
+  --cw-md-table-header-weight: 600;
+  --cw-md-table-cell-padding: 0.5rem 0.75rem;
+  --cw-md-table-border-radius: 0.375rem;
+
+  /* Horizontal Rule */
+  --cw-md-hr-color: var(--cw-divider, #e5e7eb);
+  --cw-md-hr-height: 1px;
+  --cw-md-hr-margin: 1rem 0;
+
+  /* Blockquotes */
+  --cw-md-blockquote-border-color: var(--cw-accent, #3b82f6);
+  --cw-md-blockquote-border-width: 3px;
+  --cw-md-blockquote-padding: 0.5rem 1rem;
+  --cw-md-blockquote-margin: 0.5rem 0;
+  --cw-md-blockquote-bg: transparent;
+  --cw-md-blockquote-text-color: var(--cw-muted, #6b7280);
+  --cw-md-blockquote-font-style: italic;
+
+  /* Code Blocks (fenced code) - inherits from --cw-container */
+  --cw-md-code-block-bg: #f3f4f6;           /* auto: var(--cw-container) */
+  --cw-md-code-block-border-color: #e5e7eb; /* auto: var(--cw-border) */
+  --cw-md-code-block-text-color: inherit;
+  --cw-md-code-block-padding: 0.75rem;
+  --cw-md-code-block-border-radius: 0.375rem;
+  --cw-md-code-block-font-size: 0.875rem;
+
+  /* Inline Code - inherits from --cw-container */
+  --cw-md-inline-code-bg: #f3f4f6;          /* auto: var(--cw-container) */
+  --cw-md-inline-code-padding: 0.125rem 0.375rem;
+  --cw-md-inline-code-border-radius: 0.25rem;
+  --cw-md-inline-code-font-size: 0.875em;
+
+  /* Strong/Emphasis */
+  --cw-md-strong-weight: 600;
+  --cw-md-em-style: italic;
+}
+```
+
 ## Copy / Text (`config.copy.*`)
 
 | Property | Description |

@@ -159,6 +159,13 @@ export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
     },
     slots: {},
   },
+  markdown: {
+    options: {
+      gfm: true,
+      breaks: true,
+    },
+    disableDefaultStyles: false,
+  },
   debug: false,
 };
 
@@ -233,6 +240,14 @@ export function mergeWithDefaults(
       slots: {
         ...DEFAULT_WIDGET_CONFIG.layout?.slots,
         ...config.layout?.slots,
+      },
+    },
+    markdown: {
+      ...DEFAULT_WIDGET_CONFIG.markdown,
+      ...config.markdown,
+      options: {
+        ...DEFAULT_WIDGET_CONFIG.markdown?.options,
+        ...config.markdown?.options,
       },
     },
   };

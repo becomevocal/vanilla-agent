@@ -28,7 +28,11 @@ export type {
   SlotRenderer,
   SlotRenderContext,
   HeaderRenderContext,
-  MessageRenderContext
+  MessageRenderContext,
+  // Markdown types
+  AgentWidgetMarkdownConfig,
+  AgentWidgetMarkdownOptions,
+  AgentWidgetMarkdownRendererOverrides
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
@@ -50,8 +54,12 @@ export {
 export {
   markdownPostprocessor,
   escapeHtml,
-  directivePostprocessor
+  directivePostprocessor,
+  createMarkdownProcessor,
+  createMarkdownProcessorFromConfig,
+  createDirectivePostprocessor
 } from "./postprocessors";
+export type { MarkdownProcessorOptions } from "./postprocessors";
 export {
   createPlainTextParser,
   createJsonStreamParser,
