@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.22.0
+
+### Minor Changes
+
+- Message feedback mechanisms and client token support
+
 ## 1.21.0
 
 ### Minor Changes
