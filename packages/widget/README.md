@@ -218,6 +218,93 @@ window.addEventListener("vanilla-agent:clear-chat", (event) => {
 
 **Note:** The widget automatically clears the `"vanilla-agent-chat-history"` localStorage key by default when chat is cleared. If you set `clearChatHistoryStorageKey` in the config, it will also clear that additional key. You can still listen to this event for additional custom behavior.
 
+### Message Actions (Copy, Upvote, Downvote)
+
+The widget includes built-in action buttons for assistant messages that allow users to copy message content and provide feedback through upvote/downvote buttons.
+
+#### Configuration
+
+```ts
+const controller = initAgentWidget({
+  target: '#app',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    
+    // Message actions configuration
+    messageActions: {
+      enabled: true,              // Enable/disable all action buttons (default: true)
+      showCopy: true,             // Show copy button (default: true)
+      showUpvote: true,           // Show upvote button (default: false - requires backend)
+      showDownvote: true,         // Show downvote button (default: false - requires backend)
+      visibility: 'hover',        // 'hover' or 'always' (default: 'hover')
+      align: 'right',             // 'left', 'center', or 'right' (default: 'right')
+      layout: 'pill-inside',      // 'pill-inside' (compact floating) or 'row-inside' (full-width bar)
+      
+      // Optional callbacks (called in addition to events)
+      onCopy: (message) => {
+        console.log('Copied:', message.id);
+      },
+      onFeedback: (feedback) => {
+        console.log('Feedback:', feedback.type, feedback.messageId);
+        // Send to your analytics/backend
+        fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedback)
+        });
+      }
+    }
+  }
+});
+```
+
+#### Feedback Events
+
+Listen to feedback events via the controller:
+
+```ts
+// Copy event - fired when user copies a message
+controller.on('message:copy', (message) => {
+  console.log('Message copied:', message.id, message.content);
+});
+
+// Feedback event - fired when user upvotes or downvotes
+controller.on('message:feedback', (feedback) => {
+  console.log('Feedback received:', {
+    type: feedback.type,         // 'upvote' or 'downvote'
+    messageId: feedback.messageId,
+    message: feedback.message    // Full message object
+  });
+});
+```
+
+#### Feedback Types
+
+```typescript
+type AgentWidgetMessageFeedback = {
+  type: 'upvote' | 'downvote';
+  messageId: string;
+  message: AgentWidgetMessage;
+};
+
+type AgentWidgetMessageActionsConfig = {
+  enabled?: boolean;
+  showCopy?: boolean;
+  showUpvote?: boolean;
+  showDownvote?: boolean;
+  visibility?: 'always' | 'hover';
+  onFeedback?: (feedback: AgentWidgetMessageFeedback) => void;
+  onCopy?: (message: AgentWidgetMessage) => void;
+};
+```
+
+#### Visual Behavior
+
+- **Hover mode** (`visibility: 'hover'`): Action buttons appear when hovering over assistant messages
+- **Always mode** (`visibility: 'always'`): Action buttons are always visible
+- **Copy button**: Shows a checkmark briefly after successful copy
+- **Vote buttons**: Toggle active state and are mutually exclusive (upvoting clears downvote and vice versa)
+
 ### Travrse adapter
 
 This package ships with a Travrse adapter by default. The proxy handles all flow configuration, keeping the client lightweight and flexible.

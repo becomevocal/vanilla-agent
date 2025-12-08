@@ -93,6 +93,66 @@ export type AgentWidgetActionEventPayload = {
   message: AgentWidgetMessage;
 };
 
+/**
+ * Feedback event payload for upvote/downvote actions on messages
+ */
+export type AgentWidgetMessageFeedback = {
+  type: "upvote" | "downvote";
+  messageId: string;
+  message: AgentWidgetMessage;
+};
+
+/**
+ * Configuration for message action buttons (copy, upvote, downvote)
+ */
+export type AgentWidgetMessageActionsConfig = {
+  /**
+   * Enable/disable message actions entirely
+   * @default true
+   */
+  enabled?: boolean;
+  /**
+   * Show copy button
+   * @default true
+   */
+  showCopy?: boolean;
+  /**
+   * Show upvote button
+   * @default false (requires backend)
+   */
+  showUpvote?: boolean;
+  /**
+   * Show downvote button
+   * @default false (requires backend)
+   */
+  showDownvote?: boolean;
+  /**
+   * Visibility mode: 'always' shows buttons always, 'hover' shows on hover only
+   * @default 'hover'
+   */
+  visibility?: "always" | "hover";
+  /**
+   * Horizontal alignment of action buttons
+   * @default 'right'
+   */
+  align?: "left" | "center" | "right";
+  /**
+   * Layout style for action buttons
+   * - 'pill-inside': Compact floating pill around just the buttons (default for hover)
+   * - 'row-inside': Full-width row at the bottom of the message
+   * @default 'pill-inside'
+   */
+  layout?: "pill-inside" | "row-inside";
+  /**
+   * Callback when user submits feedback (upvote/downvote)
+   */
+  onFeedback?: (feedback: AgentWidgetMessageFeedback) => void;
+  /**
+   * Callback when user copies a message
+   */
+  onCopy?: (message: AgentWidgetMessage) => void;
+};
+
 export type AgentWidgetStateEvent = {
   open: boolean;
   source: "user" | "auto" | "api" | "system";
@@ -114,6 +174,8 @@ export type AgentWidgetControllerEventMap = {
   "widget:opened": AgentWidgetStateEvent;
   "widget:closed": AgentWidgetStateEvent;
   "widget:state": AgentWidgetStateSnapshot;
+  "message:feedback": AgentWidgetMessageFeedback;
+  "message:copy": AgentWidgetMessage;
 };
 
 export type AgentWidgetFeatureFlags = {
@@ -1122,6 +1184,31 @@ export type AgentWidgetConfig = {
    * ```
    */
   markdown?: AgentWidgetMarkdownConfig;
+  
+  /**
+   * Configuration for message action buttons (copy, upvote, downvote).
+   * Shows action buttons on assistant messages for user feedback.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   messageActions: {
+   *     enabled: true,
+   *     showCopy: true,
+   *     showUpvote: true,
+   *     showDownvote: true,
+   *     visibility: 'hover',
+   *     onFeedback: (feedback) => {
+   *       console.log('Feedback:', feedback.type, feedback.messageId);
+   *     },
+   *     onCopy: (message) => {
+   *       console.log('Copied message:', message.id);
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  messageActions?: AgentWidgetMessageActionsConfig;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

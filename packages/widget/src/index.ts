@@ -32,7 +32,10 @@ export type {
   // Markdown types
   AgentWidgetMarkdownConfig,
   AgentWidgetMarkdownOptions,
-  AgentWidgetMarkdownRendererOverrides
+  AgentWidgetMarkdownRendererOverrides,
+  // Message actions types
+  AgentWidgetMessageActionsConfig,
+  AgentWidgetMessageFeedback
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
@@ -120,8 +123,9 @@ export type {
 export {
   createStandardBubble,
   createBubbleWithLayout,
-  createTypingIndicator
+  createTypingIndicator,
+  createMessageActions
 } from "./components/message-bubble";
-export type { MessageTransform } from "./components/message-bubble";
+export type { MessageTransform, MessageActionCallbacks } from "./components/message-bubble";
 
 export default initAgentWidgetFn;

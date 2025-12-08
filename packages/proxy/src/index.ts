@@ -16,6 +16,23 @@ export type TravrseFlowConfig = {
   steps: TravrseFlowStep[];
 };
 
+/**
+ * Payload for message feedback (upvote/downvote)
+ */
+export type FeedbackPayload = {
+  type: "upvote" | "downvote";
+  messageId: string;
+  content?: string;
+  timestamp?: string;
+  sessionId?: string;
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * Handler function for processing feedback
+ */
+export type FeedbackHandler = (feedback: FeedbackPayload) => Promise<void> | void;
+
 export type ChatProxyOptions = {
   upstreamUrl?: string;
   apiKey?: string;
@@ -23,6 +40,22 @@ export type ChatProxyOptions = {
   allowedOrigins?: string[];
   flowId?: string;
   flowConfig?: TravrseFlowConfig;
+  /**
+   * Path for the feedback endpoint (default: "/api/feedback")
+   */
+  feedbackPath?: string;
+  /**
+   * Custom handler for processing feedback.
+   * Use this to store feedback in a database or send to analytics.
+   * 
+   * @example
+   * ```ts
+   * onFeedback: async (feedback) => {
+   *   await db.feedback.create({ data: feedback });
+   * }
+   * ```
+   */
+  onFeedback?: FeedbackHandler;
 };
 
 const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
@@ -106,10 +139,71 @@ const withCors =
 export const createChatProxyApp = (options: ChatProxyOptions = {}) => {
   const app = new Hono();
   const path = options.path ?? DEFAULT_PATH;
+  const feedbackPath = options.feedbackPath ?? "/api/feedback";
   const upstream = options.upstreamUrl ?? DEFAULT_ENDPOINT;
 
   app.use("*", withCors(options.allowedOrigins));
 
+  // Feedback endpoint for collecting upvote/downvote data
+  app.post(feedbackPath, async (c) => {
+    let payload: FeedbackPayload;
+    try {
+      payload = await c.req.json();
+    } catch (error) {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+
+    // Validate payload
+    if (!payload.type || !["upvote", "downvote"].includes(payload.type)) {
+      return c.json(
+        { error: "Invalid feedback type. Must be 'upvote' or 'downvote'" },
+        400
+      );
+    }
+    if (!payload.messageId) {
+      return c.json({ error: "Missing messageId" }, 400);
+    }
+
+    // Add timestamp if not provided
+    payload.timestamp = payload.timestamp ?? new Date().toISOString();
+
+    const isDevelopment =
+      process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+
+    if (isDevelopment) {
+      console.log("\n=== Feedback Received ===");
+      console.log("Type:", payload.type);
+      console.log("Message ID:", payload.messageId);
+      console.log(
+        "Content Preview:",
+        payload.content?.substring(0, 100) ?? "(none)"
+      );
+      console.log("Timestamp:", payload.timestamp);
+      console.log("=== End Feedback ===\n");
+    }
+
+    // Call custom handler if provided
+    if (options.onFeedback) {
+      try {
+        await options.onFeedback(payload);
+      } catch (error) {
+        console.error("[Feedback] Handler error:", error);
+        return c.json({ error: "Feedback handler failed" }, 500);
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: "Feedback recorded",
+      feedback: {
+        type: payload.type,
+        messageId: payload.messageId,
+        timestamp: payload.timestamp
+      }
+    });
+  });
+
+  // Chat dispatch endpoint
   app.post(path, async (c) => {
     const apiKey = options.apiKey ?? process.env.TRAVRSE_API_KEY;
     if (!apiKey) {

@@ -11,7 +11,8 @@ import {
   AgentWidgetStateEvent,
   AgentWidgetStateSnapshot,
   WidgetLayoutSlot,
-  SlotRenderer
+  SlotRenderer,
+  AgentWidgetMessageFeedback
 } from "./types";
 import { applyThemeVariables } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
@@ -21,7 +22,7 @@ import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel, buildHeader, buildComposer, attachHeaderToContainer } from "./components/panel";
 import { positionMap } from "./utils/positioning";
 import type { HeaderElements, ComposerElements } from "./components/panel";
-import { MessageTransform } from "./components/message-bubble";
+import { MessageTransform, MessageActionCallbacks } from "./components/message-bubble";
 import { createStandardBubble, createTypingIndicator } from "./components/message-bubble";
 import { createReasoningBubble } from "./components/reasoning-bubble";
 import { createToolBubble } from "./components/tool-bubble";
@@ -227,6 +228,16 @@ export const createAgentExperience = (
   let postprocess = buildPostprocessor(config, actionManager);
   let showReasoning = config.features?.showReasoning ?? true;
   let showToolCalls = config.features?.showToolCalls ?? true;
+  
+  // Create message action callbacks that emit events
+  const messageActionCallbacks: MessageActionCallbacks = {
+    onCopy: (message: AgentWidgetMessage) => {
+      eventBus.emit("message:copy", message);
+    },
+    onFeedback: (feedback: AgentWidgetMessageFeedback) => {
+      eventBus.emit("message:feedback", feedback);
+    }
+  };
   
   // Get status indicator config
   const statusConfig = config.statusIndicator ?? {};
@@ -877,7 +888,13 @@ export const createAgentExperience = (
           bubble = matchingPlugin.renderMessage({
             message,
             defaultRenderer: () => {
-              const b = createStandardBubble(message, transform, messageLayoutConfig);
+              const b = createStandardBubble(
+                message, 
+                transform, 
+                messageLayoutConfig, 
+                config.messageActions, 
+                messageActionCallbacks
+              );
               if (message.role !== "user") {
                 enhanceWithForms(b, message, config, session);
               }
@@ -957,7 +974,13 @@ export const createAgentExperience = (
               streaming: Boolean(message.streaming)
             });
           } else {
-            bubble = createStandardBubble(message, transform, messageLayoutConfig);
+            bubble = createStandardBubble(
+              message, 
+              transform, 
+              messageLayoutConfig, 
+              config.messageActions, 
+              messageActionCallbacks
+            );
           }
           if (message.role !== "user" && bubble) {
             enhanceWithForms(bubble, message, config, session);

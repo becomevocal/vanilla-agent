@@ -3,8 +3,11 @@ import {
   AgentWidgetMessage, 
   AgentWidgetMessageLayoutConfig,
   AgentWidgetAvatarConfig,
-  AgentWidgetTimestampConfig
+  AgentWidgetTimestampConfig,
+  AgentWidgetMessageActionsConfig,
+  AgentWidgetMessageFeedback
 } from "../types";
+import { renderLucideIcon } from "../utils/icons";
 
 export type MessageTransform = (context: {
   text: string;
@@ -12,6 +15,11 @@ export type MessageTransform = (context: {
   streaming: boolean;
   raw?: string;
 }) => string;
+
+export type MessageActionCallbacks = {
+  onCopy?: (message: AgentWidgetMessage) => void;
+  onFeedback?: (feedback: AgentWidgetMessageFeedback) => void;
+};
 
 // Create typing indicator element
 export const createTypingIndicator = (): HTMLElement => {
@@ -205,13 +213,194 @@ const getBubbleClasses = (
 };
 
 /**
+ * Create message action buttons (copy, upvote, downvote)
+ */
+export const createMessageActions = (
+  message: AgentWidgetMessage,
+  actionsConfig: AgentWidgetMessageActionsConfig,
+  callbacks?: MessageActionCallbacks
+): HTMLElement => {
+  const showCopy = actionsConfig.showCopy ?? true;
+  const showUpvote = actionsConfig.showUpvote ?? true;
+  const showDownvote = actionsConfig.showDownvote ?? true;
+  const visibility = actionsConfig.visibility ?? "hover";
+  const align = actionsConfig.align ?? "right";
+  const layout = actionsConfig.layout ?? "pill-inside";
+
+  // Map alignment to CSS class
+  const alignClass = {
+    left: "tvw-message-actions-left",
+    center: "tvw-message-actions-center",
+    right: "tvw-message-actions-right",
+  }[align];
+
+  // Map layout to CSS class
+  const layoutClass = {
+    "pill-inside": "tvw-message-actions-pill",
+    "row-inside": "tvw-message-actions-row",
+  }[layout];
+
+  const container = createElement(
+    "div",
+    `tvw-message-actions tvw-flex tvw-items-center tvw-gap-1 tvw-mt-2 ${alignClass} ${layoutClass} ${
+      visibility === "hover" ? "tvw-message-actions-hover" : ""
+    }`
+  );
+
+  // Track vote state for this message
+  let currentVote: "upvote" | "downvote" | null = null;
+
+  const createActionButton = (
+    iconName: string,
+    label: string,
+    onClick: () => void,
+    dataAction?: string
+  ): HTMLButtonElement => {
+    const button = document.createElement("button");
+    button.className = "tvw-message-action-btn";
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
+    if (dataAction) {
+      button.setAttribute("data-action", dataAction);
+    }
+
+    const icon = renderLucideIcon(iconName, 14, "currentColor", 2);
+    if (icon) {
+      button.appendChild(icon);
+    }
+
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    });
+
+    return button;
+  };
+
+  // Copy button
+  if (showCopy) {
+    const copyButton = createActionButton("copy", "Copy message", () => {
+      // Copy to clipboard
+      const textToCopy = message.content || "";
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        // Show success feedback - swap icon temporarily
+        copyButton.classList.add("tvw-message-action-success");
+        const checkIcon = renderLucideIcon("check", 14, "currentColor", 2);
+        if (checkIcon) {
+          copyButton.innerHTML = "";
+          copyButton.appendChild(checkIcon);
+        }
+        
+        // Restore original icon after 2 seconds
+        setTimeout(() => {
+          copyButton.classList.remove("tvw-message-action-success");
+          const originalIcon = renderLucideIcon("copy", 14, "currentColor", 2);
+          if (originalIcon) {
+            copyButton.innerHTML = "";
+            copyButton.appendChild(originalIcon);
+          }
+        }, 2000);
+      }).catch((err) => {
+        if (typeof console !== "undefined") {
+          console.error("[AgentWidget] Failed to copy message:", err);
+        }
+      });
+
+      // Trigger callback
+      if (callbacks?.onCopy) {
+        callbacks.onCopy(message);
+      }
+      if (actionsConfig.onCopy) {
+        actionsConfig.onCopy(message);
+      }
+    }, "copy");
+    container.appendChild(copyButton);
+  }
+
+  // Upvote button
+  if (showUpvote) {
+    const upvoteButton = createActionButton("thumbs-up", "Upvote", () => {
+      const wasActive = currentVote === "upvote";
+      
+      // Toggle state
+      if (wasActive) {
+        currentVote = null;
+        upvoteButton.classList.remove("tvw-message-action-active");
+      } else {
+        // Remove downvote if active
+        const downvoteBtn = container.querySelector('[data-action="downvote"]');
+        if (downvoteBtn) {
+          downvoteBtn.classList.remove("tvw-message-action-active");
+        }
+        currentVote = "upvote";
+        upvoteButton.classList.add("tvw-message-action-active");
+        
+        // Trigger feedback
+        const feedback: AgentWidgetMessageFeedback = {
+          type: "upvote",
+          messageId: message.id,
+          message
+        };
+        if (callbacks?.onFeedback) {
+          callbacks.onFeedback(feedback);
+        }
+        if (actionsConfig.onFeedback) {
+          actionsConfig.onFeedback(feedback);
+        }
+      }
+    }, "upvote");
+    container.appendChild(upvoteButton);
+  }
+
+  // Downvote button
+  if (showDownvote) {
+    const downvoteButton = createActionButton("thumbs-down", "Downvote", () => {
+      const wasActive = currentVote === "downvote";
+      
+      // Toggle state
+      if (wasActive) {
+        currentVote = null;
+        downvoteButton.classList.remove("tvw-message-action-active");
+      } else {
+        // Remove upvote if active
+        const upvoteBtn = container.querySelector('[data-action="upvote"]');
+        if (upvoteBtn) {
+          upvoteBtn.classList.remove("tvw-message-action-active");
+        }
+        currentVote = "downvote";
+        downvoteButton.classList.add("tvw-message-action-active");
+        
+        // Trigger feedback
+        const feedback: AgentWidgetMessageFeedback = {
+          type: "downvote",
+          messageId: message.id,
+          message
+        };
+        if (callbacks?.onFeedback) {
+          callbacks.onFeedback(feedback);
+        }
+        if (actionsConfig.onFeedback) {
+          actionsConfig.onFeedback(feedback);
+        }
+      }
+    }, "downvote");
+    container.appendChild(downvoteButton);
+  }
+
+  return container;
+};
+
+/**
  * Create standard message bubble
  * Supports layout configuration for avatars, timestamps, and visual presets
  */
 export const createStandardBubble = (
   message: AgentWidgetMessage,
   transform: MessageTransform,
-  layoutConfig?: AgentWidgetMessageLayoutConfig
+  layoutConfig?: AgentWidgetMessageLayoutConfig,
+  actionsConfig?: AgentWidgetMessageActionsConfig,
+  actionCallbacks?: MessageActionCallbacks
 ): HTMLElement => {
   const config = layoutConfig ?? {};
   const layout = config.layout ?? "bubble";
@@ -259,6 +448,19 @@ export const createStandardBubble = (
     }
   }
 
+  // Add message actions for assistant messages (only when not streaming and has content)
+  const shouldShowActions = 
+    message.role === "assistant" && 
+    !message.streaming && 
+    message.content && 
+    message.content.trim() &&
+    actionsConfig?.enabled !== false;
+
+  if (shouldShowActions && actionsConfig) {
+    const actions = createMessageActions(message, actionsConfig, actionCallbacks);
+    bubble.appendChild(actions);
+  }
+
   // If no avatar needed, return bubble directly
   if (!showAvatar || message.role === "system") {
     return bubble;
@@ -292,7 +494,9 @@ export const createStandardBubble = (
 export const createBubbleWithLayout = (
   message: AgentWidgetMessage,
   transform: MessageTransform,
-  layoutConfig?: AgentWidgetMessageLayoutConfig
+  layoutConfig?: AgentWidgetMessageLayoutConfig,
+  actionsConfig?: AgentWidgetMessageActionsConfig,
+  actionCallbacks?: MessageActionCallbacks
 ): HTMLElement => {
   const config = layoutConfig ?? {};
 
@@ -314,5 +518,5 @@ export const createBubbleWithLayout = (
   }
 
   // Fall back to standard bubble
-  return createStandardBubble(message, transform, layoutConfig);
+  return createStandardBubble(message, transform, layoutConfig, actionsConfig, actionCallbacks);
 };

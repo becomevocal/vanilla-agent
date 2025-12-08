@@ -1,6 +1,6 @@
 import { createElement, createFragment } from "../utils/dom";
 import { AgentWidgetMessage, AgentWidgetConfig } from "../types";
-import { MessageTransform } from "./message-bubble";
+import { MessageTransform, MessageActionCallbacks } from "./message-bubble";
 import { createStandardBubble } from "./message-bubble";
 import { createReasoningBubble } from "./reasoning-bubble";
 import { createToolBubble } from "./tool-bubble";
@@ -11,7 +11,8 @@ export const renderMessages = (
   transform: MessageTransform,
   showReasoning: boolean,
   showToolCalls: boolean,
-  config?: AgentWidgetConfig
+  config?: AgentWidgetConfig,
+  actionCallbacks?: MessageActionCallbacks
 ) => {
   container.innerHTML = "";
   const fragment = createFragment();
@@ -25,7 +26,13 @@ export const renderMessages = (
       if (!showToolCalls) return;
       bubble = createToolBubble(message, config);
     } else {
-      bubble = createStandardBubble(message, transform);
+      bubble = createStandardBubble(
+        message, 
+        transform, 
+        config?.layout?.messages, 
+        config?.messageActions, 
+        actionCallbacks
+      );
     }
 
     const wrapper = createElement("div", "tvw-flex");

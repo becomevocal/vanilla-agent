@@ -168,6 +168,15 @@ export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
     },
     disableDefaultStyles: false,
   },
+  messageActions: {
+    enabled: true,
+    showCopy: true,
+    showUpvote: false,  // Requires backend - disabled by default
+    showDownvote: false, // Requires backend - disabled by default
+    visibility: "hover",
+    align: "right",
+    layout: "pill-inside",
+  },
   debug: false,
 };
 
@@ -251,6 +260,10 @@ export function mergeWithDefaults(
         ...DEFAULT_WIDGET_CONFIG.markdown?.options,
         ...config.markdown?.options,
       },
+    },
+    messageActions: {
+      ...DEFAULT_WIDGET_CONFIG.messageActions,
+      ...config.messageActions,
     },
   };
 }
