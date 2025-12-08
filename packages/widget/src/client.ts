@@ -9,7 +9,10 @@ import {
   AgentWidgetCustomFetch,
   AgentWidgetSSEEventParser,
   AgentWidgetHeadersFunction,
-  AgentWidgetSSEEventResult
+  AgentWidgetSSEEventResult,
+  ClientSession,
+  ClientInitResponse,
+  ClientChatRequest
 } from "./types";
 import { 
   extractTextFromJson, 
@@ -27,6 +30,7 @@ type DispatchOptions = {
 type SSEHandler = (event: AgentWidgetEvent) => void;
 
 const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
+const DEFAULT_CLIENT_API_BASE = "https://api.travrse.ai";
 
 /**
  * Maps parserType string to the corresponding parser factory function
@@ -55,6 +59,10 @@ export class AgentWidgetClient {
   private readonly customFetch?: AgentWidgetCustomFetch;
   private readonly parseSSEEvent?: AgentWidgetSSEEventParser;
   private readonly getHeaders?: AgentWidgetHeadersFunction;
+  
+  // Client token mode properties
+  private clientSession: ClientSession | null = null;
+  private sessionInitPromise: Promise<ClientSession> | null = null;
 
   constructor(private config: AgentWidgetConfig = {}) {
     this.apiUrl = config.apiUrl ?? DEFAULT_ENDPOINT;
@@ -72,7 +80,213 @@ export class AgentWidgetClient {
     this.getHeaders = config.getHeaders;
   }
 
+  /**
+   * Check if running in client token mode
+   */
+  public isClientTokenMode(): boolean {
+    return !!this.config.clientToken;
+  }
+
+  /**
+   * Get the appropriate API URL based on mode
+   */
+  private getClientApiUrl(endpoint: 'init' | 'chat'): string {
+    const baseUrl = this.config.apiUrl?.replace(/\/+$/, '').replace(/\/v1\/dispatch$/, '') || DEFAULT_CLIENT_API_BASE;
+    return endpoint === 'init'
+      ? `${baseUrl}/v1/client/init`
+      : `${baseUrl}/v1/client/chat`;
+  }
+
+  /**
+   * Get the current client session (if any)
+   */
+  public getClientSession(): ClientSession | null {
+    return this.clientSession;
+  }
+
+  /**
+   * Initialize session for client token mode.
+   * Called automatically on first message if not already initialized.
+   */
+  public async initSession(): Promise<ClientSession> {
+    if (!this.isClientTokenMode()) {
+      throw new Error('initSession() only available in client token mode');
+    }
+
+    // Return existing session if valid
+    if (this.clientSession && new Date() < this.clientSession.expiresAt) {
+      return this.clientSession;
+    }
+
+    // Deduplicate concurrent init calls
+    if (this.sessionInitPromise) {
+      return this.sessionInitPromise;
+    }
+
+    this.sessionInitPromise = this._doInitSession();
+    try {
+      const session = await this.sessionInitPromise;
+      this.clientSession = session;
+      this.config.onSessionInit?.(session);
+      return session;
+    } finally {
+      this.sessionInitPromise = null;
+    }
+  }
+
+  private async _doInitSession(): Promise<ClientSession> {
+    const response = await fetch(this.getClientApiUrl('init'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: this.config.clientToken,
+        flow_id: this.config.flowId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Session initialization failed' }));
+      if (response.status === 401) {
+        throw new Error(`Invalid client token: ${error.hint || error.error}`);
+      }
+      if (response.status === 403) {
+        throw new Error(`Origin not allowed: ${error.hint || error.error}`);
+      }
+      throw new Error(error.error || 'Failed to initialize session');
+    }
+
+    const data: ClientInitResponse = await response.json();
+    return {
+      sessionId: data.session_id,
+      expiresAt: new Date(data.expires_at),
+      flow: data.flow,
+      config: {
+        welcomeMessage: data.config.welcome_message,
+        placeholder: data.config.placeholder,
+        theme: data.config.theme,
+      },
+    };
+  }
+
+  /**
+   * Clear the current client session
+   */
+  public clearClientSession(): void {
+    this.clientSession = null;
+    this.sessionInitPromise = null;
+  }
+
+  /**
+   * Send a message - handles both proxy and client token modes
+   */
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {
+    if (this.isClientTokenMode()) {
+      return this.dispatchClientToken(options, onEvent);
+    }
+    return this.dispatchProxy(options, onEvent);
+  }
+
+  /**
+   * Client token mode dispatch
+   */
+  private async dispatchClientToken(options: DispatchOptions, onEvent: SSEHandler) {
+    const controller = new AbortController();
+    if (options.signal) {
+      options.signal.addEventListener("abort", () => controller.abort());
+    }
+
+    onEvent({ type: "status", status: "connecting" });
+
+    try {
+      // Ensure session is initialized
+      const session = await this.initSession();
+
+      // Check if session is about to expire (within 1 minute)
+      if (new Date() >= new Date(session.expiresAt.getTime() - 60000)) {
+        // Session expired or expiring soon
+        this.clientSession = null;
+        this.config.onSessionExpired?.();
+        const error = new Error('Session expired. Please refresh to continue.');
+        onEvent({ type: "error", error });
+        throw error;
+      }
+
+      // Build the chat request payload
+      const chatRequest: ClientChatRequest = {
+        session_id: session.sessionId,
+        messages: options.messages.map(m => ({
+          role: m.role,
+          content: m.rawContent || m.content,
+        })),
+      };
+
+      if (this.debug) {
+        // eslint-disable-next-line no-console
+        console.debug("[AgentWidgetClient] client token dispatch", chatRequest);
+      }
+
+      const response = await fetch(this.getClientApiUrl('chat'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chatRequest),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Chat request failed' }));
+        
+        if (response.status === 401) {
+          // Session expired
+          this.clientSession = null;
+          this.config.onSessionExpired?.();
+          const error = new Error('Session expired. Please refresh to continue.');
+          onEvent({ type: "error", error });
+          throw error;
+        }
+        
+        if (response.status === 429) {
+          const error = new Error(errorData.hint || 'Message limit reached for this session.');
+          onEvent({ type: "error", error });
+          throw error;
+        }
+        
+        const error = new Error(errorData.error || 'Failed to send message');
+        onEvent({ type: "error", error });
+        throw error;
+      }
+
+      if (!response.body) {
+        const error = new Error('No response body received');
+        onEvent({ type: "error", error });
+        throw error;
+      }
+
+      onEvent({ type: "status", status: "connected" });
+      
+      // Stream the response (same SSE handling as proxy mode)
+      try {
+        await this.streamResponse(response.body, onEvent);
+      } finally {
+        onEvent({ type: "status", status: "idle" });
+      }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      // Only emit error if it wasn't already emitted
+      if (!err.message.includes('Session expired') && !err.message.includes('Message limit')) {
+        onEvent({ type: "error", error: err });
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Proxy mode dispatch (original implementation)
+   */
+  private async dispatchProxy(options: DispatchOptions, onEvent: SSEHandler) {
     const controller = new AbortController();
     if (options.signal) {
       options.signal.addEventListener("abort", () => controller.abort());

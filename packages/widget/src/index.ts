@@ -35,7 +35,11 @@ export type {
   AgentWidgetMarkdownRendererOverrides,
   // Message actions types
   AgentWidgetMessageActionsConfig,
-  AgentWidgetMessageFeedback
+  AgentWidgetMessageFeedback,
+  // Client token types
+  ClientSession,
+  ClientInitResponse,
+  ClientChatRequest
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };

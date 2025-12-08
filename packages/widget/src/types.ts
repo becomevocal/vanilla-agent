@@ -517,6 +517,62 @@ export type AgentWidgetCustomFetch = (
 export type AgentWidgetHeadersFunction = () => Record<string, string> | Promise<Record<string, string>>;
 
 // ============================================================================
+// Client Token Types
+// ============================================================================
+
+/**
+ * Session information returned after client token initialization.
+ * Contains session ID, expiry time, flow info, and config from the server.
+ */
+export type ClientSession = {
+  /** Unique session identifier */
+  sessionId: string;
+  /** When the session expires */
+  expiresAt: Date;
+  /** Flow information */
+  flow: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  /** Configuration from the server */
+  config: {
+    welcomeMessage: string | null;
+    placeholder: string;
+    theme: Record<string, unknown> | null;
+  };
+};
+
+/**
+ * Raw API response from /v1/client/init endpoint
+ */
+export type ClientInitResponse = {
+  session_id: string;
+  expires_at: string;
+  flow: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  config: {
+    welcome_message: string | null;
+    placeholder: string;
+    theme: Record<string, unknown> | null;
+  };
+};
+
+/**
+ * Request payload for /v1/client/chat endpoint
+ */
+export type ClientChatRequest = {
+  session_id: string;
+  messages: Array<{
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+  }>;
+};
+
+// ============================================================================
 // Layout Configuration Types
 // ============================================================================
 
@@ -952,6 +1008,47 @@ export type AgentWidgetMarkdownConfig = {
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
+  /**
+   * Client token for direct browser-to-API communication.
+   * When set, the widget uses /v1/client/* endpoints instead of /v1/dispatch.
+   * Mutually exclusive with apiKey/headers authentication.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   clientToken: 'ct_live_flow01k7_a8b9c0d1e2f3g4h5i6j7k8l9'
+   * }
+   * ```
+   */
+  clientToken?: string;
+  /**
+   * Callback when session is initialized (client token mode only).
+   * Receives session info including expiry time.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   onSessionInit: (session) => {
+   *     console.log('Session started:', session.sessionId);
+   *   }
+   * }
+   * ```
+   */
+  onSessionInit?: (session: ClientSession) => void;
+  /**
+   * Callback when session expires or errors (client token mode only).
+   * Widget should prompt user to refresh.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   onSessionExpired: () => {
+   *     alert('Your session has expired. Please refresh the page.');
+   *   }
+   * }
+   * ```
+   */
+  onSessionExpired?: () => void;
   /**
    * Static headers to include with each request.
    * For dynamic headers (e.g., auth tokens), use `getHeaders` instead.

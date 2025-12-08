@@ -12,6 +12,10 @@ interface SiteAgentInstallConfig {
   target?: string | HTMLElement;
   config?: any;
   autoInit?: boolean;
+  // Client token mode options (can also be set via data attributes)
+  clientToken?: string;
+  flowId?: string;
+  apiUrl?: string;
 }
 
 declare global {
@@ -30,7 +34,45 @@ declare global {
   }
   (window as any).__siteAgentInstallerLoaded = true;
 
-  const config: SiteAgentInstallConfig = window.siteAgentConfig || {};
+  /**
+   * Read configuration from data attributes on the current script tag.
+   * Supports: data-travrse-token, data-flow-id, data-api-url
+   */
+  const getConfigFromScript = (): Partial<SiteAgentInstallConfig> => {
+    // Try to get the current script element
+    const script = document.currentScript as HTMLScriptElement | null;
+    if (!script) return {};
+
+    const scriptConfig: Partial<SiteAgentInstallConfig> = {};
+
+    // Client token from data attribute (primary method for client token mode)
+    const token = script.getAttribute('data-travrse-token');
+    if (token) {
+      scriptConfig.clientToken = token;
+    }
+
+    // Optional flow ID
+    const flowId = script.getAttribute('data-flow-id');
+    if (flowId) {
+      scriptConfig.flowId = flowId;
+    }
+
+    // Optional API URL override
+    const apiUrl = script.getAttribute('data-api-url');
+    if (apiUrl) {
+      scriptConfig.apiUrl = apiUrl;
+    }
+
+    return scriptConfig;
+  };
+
+  // Get config from script attributes (must be called synchronously during script execution)
+  const scriptConfig = getConfigFromScript();
+
+  // Merge script attributes with window config (script attributes take precedence)
+  const windowConfig: SiteAgentInstallConfig = window.siteAgentConfig || {};
+  const config: SiteAgentInstallConfig = { ...windowConfig, ...scriptConfig };
+  
   const version = config.version || "latest";
   const cdn = config.cdn || "jsdelivr";
   const autoInit = config.autoInit !== false; // Default to true
@@ -113,14 +155,27 @@ declare global {
     }
 
     const target = config.target || "body";
-    // Merge apiUrl from top-level config into widget config if present
+    // Merge top-level config options into widget config
     const widgetConfig = { ...config.config };
-    if ((config as any).apiUrl && !widgetConfig.apiUrl) {
-      widgetConfig.apiUrl = (config as any).apiUrl;
+    
+    // Merge apiUrl from top-level config into widget config if present
+    if (config.apiUrl && !widgetConfig.apiUrl) {
+      widgetConfig.apiUrl = config.apiUrl;
+    }
+    
+    // Merge clientToken from top-level config into widget config if present
+    if (config.clientToken && !widgetConfig.clientToken) {
+      widgetConfig.clientToken = config.clientToken;
+    }
+    
+    // Merge flowId from top-level config into widget config if present
+    if (config.flowId && !widgetConfig.flowId) {
+      widgetConfig.flowId = config.flowId;
     }
 
-    // Only initialize if config is provided
-    if (!widgetConfig.apiUrl && Object.keys(widgetConfig).length === 0) {
+    // Only initialize if we have either apiUrl OR clientToken (or other config)
+    const hasApiConfig = widgetConfig.apiUrl || widgetConfig.clientToken;
+    if (!hasApiConfig && Object.keys(widgetConfig).length === 0) {
       return;
     }
 
@@ -140,7 +195,14 @@ declare global {
       await loadCSS();
       await loadJS();
       
-      if (autoInit && (config.config || (config as any).apiUrl)) {
+      // Auto-init if we have config OR apiUrl OR clientToken
+      const shouldAutoInit = autoInit && (
+        config.config || 
+        config.apiUrl || 
+        config.clientToken
+      );
+      
+      if (shouldAutoInit) {
         // Wait a tick to ensure AgentWidget is fully initialized
         setTimeout(initWidget, 0);
       }

@@ -2,7 +2,8 @@ import { AgentWidgetClient } from "./client";
 import {
   AgentWidgetConfig,
   AgentWidgetEvent,
-  AgentWidgetMessage
+  AgentWidgetMessage,
+  ClientSession
 } from "./types";
 
 export type AgentWidgetSessionStatus =
@@ -25,6 +26,9 @@ export class AgentWidgetSession {
   private streaming = false;
   private abortController: AbortController | null = null;
   private sequenceCounter = Date.now();
+  
+  // Client token session management
+  private clientSession: ClientSession | null = null;
 
   constructor(
     private config: AgentWidgetConfig = {},
@@ -41,6 +45,78 @@ export class AgentWidgetSession {
       this.callbacks.onMessagesChanged([...this.messages]);
     }
     this.callbacks.onStatusChanged(this.status);
+  }
+
+  /**
+   * Check if running in client token mode
+   */
+  public isClientTokenMode(): boolean {
+    return this.client.isClientTokenMode();
+  }
+
+  /**
+   * Initialize the client session (for client token mode).
+   * This is called automatically on first message, but can be called
+   * explicitly to pre-initialize the session and get config from server.
+   */
+  public async initClientSession(): Promise<ClientSession | null> {
+    if (!this.isClientTokenMode()) {
+      return null;
+    }
+    
+    try {
+      const session = await this.client.initSession();
+      this.setClientSession(session);
+      return session;
+    } catch (error) {
+      this.callbacks.onError?.(
+        error instanceof Error ? error : new Error(String(error))
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Set the client session after initialization
+   */
+  public setClientSession(session: ClientSession): void {
+    this.clientSession = session;
+    
+    // Optionally add welcome message from session config
+    if (session.config.welcomeMessage && this.messages.length === 0) {
+      const welcomeMessage: AgentWidgetMessage = {
+        id: `welcome-${Date.now()}`,
+        role: "assistant",
+        content: session.config.welcomeMessage,
+        createdAt: new Date().toISOString(),
+        sequence: this.nextSequence()
+      };
+      this.appendMessage(welcomeMessage);
+    }
+  }
+
+  /**
+   * Get current client session
+   */
+  public getClientSession(): ClientSession | null {
+    return this.clientSession ?? this.client.getClientSession();
+  }
+
+  /**
+   * Check if session is valid and not expired
+   */
+  public isSessionValid(): boolean {
+    const session = this.getClientSession();
+    if (!session) return false;
+    return new Date() < session.expiresAt;
+  }
+
+  /**
+   * Clear session (on expiry or error)
+   */
+  public clearClientSession(): void {
+    this.clientSession = null;
+    this.client.clearClientSession();
   }
 
   public updateConfig(next: AgentWidgetConfig) {

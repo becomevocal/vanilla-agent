@@ -6,6 +6,8 @@ import type { AgentWidgetConfig } from "./types";
  */
 export const DEFAULT_WIDGET_CONFIG: Partial<AgentWidgetConfig> = {
   apiUrl: "http://localhost:43111/api/chat/dispatch",
+  // Client token mode defaults (optional, only used when clientToken is set)
+  clientToken: undefined,
   theme: {
     primary: "#111827",
     accent: "#1d4ed8",
