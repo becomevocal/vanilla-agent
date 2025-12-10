@@ -213,6 +213,9 @@ export class AgentWidgetClient {
         throw error;
       }
 
+      // Build the standard payload to get context/metadata from middleware
+      const basePayload = await this.buildPayload(options.messages);
+
       // Build the chat request payload
       const chatRequest: ClientChatRequest = {
         session_id: session.sessionId,
@@ -220,6 +223,9 @@ export class AgentWidgetClient {
           role: m.role,
           content: m.rawContent || m.content,
         })),
+        // Include metadata/context from middleware if present
+        ...(basePayload.metadata && { metadata: basePayload.metadata }),
+        ...(basePayload.context && { context: basePayload.context }),
       };
 
       if (this.debug) {

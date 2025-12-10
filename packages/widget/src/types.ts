@@ -22,6 +22,7 @@ export type AgentWidgetRequestPayload = {
   messages: AgentWidgetRequestPayloadMessage[];
   flowId?: string;
   context?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 };
 
 export type AgentWidgetRequestMiddlewareContext = {
@@ -570,6 +571,8 @@ export type ClientChatRequest = {
     role: 'user' | 'assistant' | 'system';
     content: string;
   }>;
+  metadata?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 };
 
 // ============================================================================
