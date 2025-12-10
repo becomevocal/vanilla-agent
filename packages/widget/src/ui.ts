@@ -43,6 +43,12 @@ import {
   extractComponentDirectiveFromMessage,
   hasComponentDirective
 } from "./utils/component-middleware";
+import {
+  createCSATFeedback,
+  createNPSFeedback,
+  type CSATFeedbackOptions,
+  type NPSFeedbackOptions
+} from "./components/feedback";
 
 // Default localStorage key for chat history (automatically cleared on clear chat)
 const DEFAULT_CHAT_HISTORY_STORAGE_KEY = "vanilla-agent-chat-history";
@@ -91,6 +97,11 @@ type Controller = {
   isOpen: () => boolean;
   isVoiceActive: () => boolean;
   getState: () => AgentWidgetStateSnapshot;
+  // Feedback methods (CSAT/NPS)
+  showCSATFeedback: (options?: Partial<CSATFeedbackOptions>) => void;
+  showNPSFeedback: (options?: Partial<NPSFeedbackOptions>) => void;
+  submitCSATFeedback: (rating: number, comment?: string) => Promise<void>;
+  submitNPSFeedback: (rating: number, comment?: string) => Promise<void>;
 };
 
 const buildPostprocessor = (
@@ -229,13 +240,35 @@ export const createAgentExperience = (
   let showReasoning = config.features?.showReasoning ?? true;
   let showToolCalls = config.features?.showToolCalls ?? true;
   
-  // Create message action callbacks that emit events
+  // Create message action callbacks that emit events and optionally send to API
   const messageActionCallbacks: MessageActionCallbacks = {
     onCopy: (message: AgentWidgetMessage) => {
       eventBus.emit("message:copy", message);
+      // Send copy feedback to API if in client token mode
+      if (session?.isClientTokenMode()) {
+        session.submitMessageFeedback(message.id, 'copy').catch((error) => {
+          if (config.debug) {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to submit copy feedback:", error);
+          }
+        });
+      }
+      // Call user-provided callback
+      config.messageActions?.onCopy?.(message);
     },
     onFeedback: (feedback: AgentWidgetMessageFeedback) => {
       eventBus.emit("message:feedback", feedback);
+      // Send feedback to API if in client token mode
+      if (session?.isClientTokenMode()) {
+        session.submitMessageFeedback(feedback.messageId, feedback.type).catch((error) => {
+          if (config.debug) {
+            // eslint-disable-next-line no-console
+            console.error("[AgentWidget] Failed to submit feedback:", error);
+          }
+        });
+      }
+      // Call user-provided callback
+      config.messageActions?.onFeedback?.(feedback);
     }
   };
   
@@ -2796,6 +2829,67 @@ export const createAgentExperience = (
         voiceActive: voiceState.active,
         streaming: session.isStreaming()
       };
+    },
+    // Feedback methods (CSAT/NPS)
+    showCSATFeedback(options?: Partial<CSATFeedbackOptions>) {
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true, "system");
+      }
+      
+      // Remove any existing feedback forms
+      const existingFeedback = messagesWrapper.querySelector('.tvw-feedback-container');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+      
+      const feedbackEl = createCSATFeedback({
+        onSubmit: async (rating, comment) => {
+          if (session.isClientTokenMode()) {
+            await session.submitCSATFeedback(rating, comment);
+          }
+          options?.onSubmit?.(rating, comment);
+        },
+        onDismiss: options?.onDismiss,
+        ...options,
+      });
+      
+      // Append to messages area at the bottom
+      messagesWrapper.appendChild(feedbackEl);
+      feedbackEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    },
+    showNPSFeedback(options?: Partial<NPSFeedbackOptions>) {
+      // Auto-open widget if closed and launcher is enabled
+      if (!open && launcherEnabled) {
+        setOpenState(true, "system");
+      }
+      
+      // Remove any existing feedback forms
+      const existingFeedback = messagesWrapper.querySelector('.tvw-feedback-container');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+      
+      const feedbackEl = createNPSFeedback({
+        onSubmit: async (rating, comment) => {
+          if (session.isClientTokenMode()) {
+            await session.submitNPSFeedback(rating, comment);
+          }
+          options?.onSubmit?.(rating, comment);
+        },
+        onDismiss: options?.onDismiss,
+        ...options,
+      });
+      
+      // Append to messages area at the bottom
+      messagesWrapper.appendChild(feedbackEl);
+      feedbackEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    },
+    async submitCSATFeedback(rating: number, comment?: string): Promise<void> {
+      return session.submitCSATFeedback(rating, comment);
+    },
+    async submitNPSFeedback(rating: number, comment?: string): Promise<void> {
+      return session.submitNPSFeedback(rating, comment);
     },
     destroy() {
       destroyCallbacks.forEach((cb) => cb());

@@ -5,6 +5,10 @@ import {
   AgentWidgetMessage,
   ClientSession
 } from "./types";
+import {
+  generateUserMessageId,
+  generateAssistantMessageId
+} from "./utils/message-id";
 
 export type AgentWidgetSessionStatus =
   | "idle"
@@ -119,6 +123,49 @@ export class AgentWidgetSession {
     this.client.clearClientSession();
   }
 
+  /**
+   * Get the underlying client instance (for advanced use cases like feedback)
+   */
+  public getClient(): AgentWidgetClient {
+    return this.client;
+  }
+
+  /**
+   * Submit message feedback (upvote, downvote, or copy) to the API.
+   * Only available in client token mode.
+   * 
+   * @param messageId - The ID of the message to provide feedback for
+   * @param type - The feedback type: 'upvote', 'downvote', or 'copy'
+   */
+  public async submitMessageFeedback(
+    messageId: string,
+    type: 'upvote' | 'downvote' | 'copy'
+  ): Promise<void> {
+    return this.client.submitMessageFeedback(messageId, type);
+  }
+
+  /**
+   * Submit CSAT (Customer Satisfaction) feedback to the API.
+   * Only available in client token mode.
+   * 
+   * @param rating - Rating from 1 to 5
+   * @param comment - Optional comment
+   */
+  public async submitCSATFeedback(rating: number, comment?: string): Promise<void> {
+    return this.client.submitCSATFeedback(rating, comment);
+  }
+
+  /**
+   * Submit NPS (Net Promoter Score) feedback to the API.
+   * Only available in client token mode.
+   * 
+   * @param rating - Rating from 0 to 10
+   * @param comment - Optional comment
+   */
+  public async submitNPSFeedback(rating: number, comment?: string): Promise<void> {
+    return this.client.submitNPSFeedback(rating, comment);
+  }
+
   public updateConfig(next: AgentWidgetConfig) {
     this.config = { ...this.config, ...next };
     this.client = new AgentWidgetClient(this.config);
@@ -146,8 +193,12 @@ export class AgentWidgetSession {
 
     this.abortController?.abort();
 
+    // Generate IDs for both user message and expected assistant response
+    const userMessageId = generateUserMessageId();
+    const assistantMessageId = generateAssistantMessageId();
+
     const userMessage: AgentWidgetMessage = {
-      id: `user-${Date.now()}`,
+      id: userMessageId,
       role: "user",
       content: input,
       createdAt: new Date().toISOString(),
@@ -167,13 +218,14 @@ export class AgentWidgetSession {
       await this.client.dispatch(
         {
           messages: snapshot,
-          signal: controller.signal
+          signal: controller.signal,
+          assistantMessageId // Pass expected assistant message ID for tracking
         },
         this.handleEvent
       );
     } catch (error) {
       const fallback: AgentWidgetMessage = {
-        id: `assistant-${Date.now()}`,
+        id: assistantMessageId, // Use the pre-generated ID for fallback too
         role: "assistant",
         createdAt: new Date().toISOString(),
         content:

@@ -39,7 +39,9 @@ export type {
   // Client token types
   ClientSession,
   ClientInitResponse,
-  ClientChatRequest
+  ClientChatRequest,
+  ClientFeedbackRequest,
+  ClientFeedbackType
 } from "./types";
 
 export { initAgentWidgetFn as initAgentWidget };
@@ -74,6 +76,11 @@ export {
   createRegexJsonParser,
   createXmlParser
 } from "./utils/formatting";
+export {
+  generateMessageId,
+  generateUserMessageId,
+  generateAssistantMessageId
+} from "./utils/message-id";
 export { generateCodeSnippet } from "./utils/code-generators";
 export type { CodeFormat } from "./utils/code-generators";
 export type { AgentWidgetInitHandle };
@@ -131,5 +138,10 @@ export {
   createMessageActions
 } from "./components/message-bubble";
 export type { MessageTransform, MessageActionCallbacks } from "./components/message-bubble";
+export {
+  createCSATFeedback,
+  createNPSFeedback
+} from "./components/feedback";
+export type { CSATFeedbackOptions, NPSFeedbackOptions } from "./components/feedback";
 
 export default initAgentWidgetFn;

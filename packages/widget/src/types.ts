@@ -568,11 +568,33 @@ export type ClientInitResponse = {
 export type ClientChatRequest = {
   session_id: string;
   messages: Array<{
+    id?: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
   }>;
+  /** ID for the expected assistant response message */
+  assistant_message_id?: string;
   metadata?: Record<string, unknown>;
   context?: Record<string, unknown>;
+};
+
+/**
+ * Feedback types supported by the API
+ */
+export type ClientFeedbackType = 'upvote' | 'downvote' | 'copy' | 'csat' | 'nps';
+
+/**
+ * Request payload for /v1/client/feedback endpoint
+ */
+export type ClientFeedbackRequest = {
+  session_id: string;
+  /** Required for upvote, downvote, copy feedback types */
+  message_id?: string;
+  type: ClientFeedbackType;
+  /** Required for csat (1-5) and nps (0-10) feedback types */
+  rating?: number;
+  /** Optional comment for any feedback type */
+  comment?: string;
 };
 
 // ============================================================================

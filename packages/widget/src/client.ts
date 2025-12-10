@@ -12,7 +12,9 @@ import {
   AgentWidgetSSEEventResult,
   ClientSession,
   ClientInitResponse,
-  ClientChatRequest
+  ClientChatRequest,
+  ClientFeedbackRequest,
+  ClientFeedbackType
 } from "./types";
 import { 
   extractTextFromJson, 
@@ -25,6 +27,8 @@ import {
 type DispatchOptions = {
   messages: AgentWidgetMessage[];
   signal?: AbortSignal;
+  /** Pre-generated ID for the expected assistant response (for feedback tracking) */
+  assistantMessageId?: string;
 };
 
 type SSEHandler = (event: AgentWidgetEvent) => void;
@@ -179,6 +183,166 @@ export class AgentWidgetClient {
   }
 
   /**
+   * Get the feedback API URL
+   */
+  private getFeedbackApiUrl(): string {
+    const baseUrl = this.config.apiUrl?.replace(/\/+$/, '').replace(/\/v1\/dispatch$/, '') || DEFAULT_CLIENT_API_BASE;
+    return `${baseUrl}/v1/client/feedback`;
+  }
+
+  /**
+   * Send feedback for a message (client token mode only).
+   * Supports upvote, downvote, copy, csat, and nps feedback types.
+   * 
+   * @param feedback - The feedback request payload
+   * @returns Promise that resolves when feedback is sent successfully
+   * @throws Error if not in client token mode or if session is invalid
+   * 
+   * @example
+   * ```typescript
+   * // Message feedback (upvote/downvote/copy)
+   * await client.sendFeedback({
+   *   session_id: sessionId,
+   *   message_id: messageId,
+   *   type: 'upvote'
+   * });
+   * 
+   * // CSAT feedback (1-5 rating)
+   * await client.sendFeedback({
+   *   session_id: sessionId,
+   *   type: 'csat',
+   *   rating: 5,
+   *   comment: 'Great experience!'
+   * });
+   * 
+   * // NPS feedback (0-10 rating)
+   * await client.sendFeedback({
+   *   session_id: sessionId,
+   *   type: 'nps',
+   *   rating: 9
+   * });
+   * ```
+   */
+  public async sendFeedback(feedback: ClientFeedbackRequest): Promise<void> {
+    if (!this.isClientTokenMode()) {
+      throw new Error('sendFeedback() only available in client token mode');
+    }
+
+    const session = this.getClientSession();
+    if (!session) {
+      throw new Error('No active session. Please initialize session first.');
+    }
+
+    // Validate message_id is provided for message-level feedback types
+    const messageFeedbackTypes: ClientFeedbackType[] = ['upvote', 'downvote', 'copy'];
+    if (messageFeedbackTypes.includes(feedback.type) && !feedback.message_id) {
+      throw new Error(`message_id is required for ${feedback.type} feedback type`);
+    }
+
+    // Validate rating is provided for csat/nps feedback types
+    if (feedback.type === 'csat') {
+      if (feedback.rating === undefined || feedback.rating < 1 || feedback.rating > 5) {
+        throw new Error('CSAT rating must be between 1 and 5');
+      }
+    }
+    if (feedback.type === 'nps') {
+      if (feedback.rating === undefined || feedback.rating < 0 || feedback.rating > 10) {
+        throw new Error('NPS rating must be between 0 and 10');
+      }
+    }
+
+    if (this.debug) {
+      // eslint-disable-next-line no-console
+      console.debug("[AgentWidgetClient] sending feedback", feedback);
+    }
+
+    const response = await fetch(this.getFeedbackApiUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(feedback),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Feedback submission failed' }));
+      
+      if (response.status === 401) {
+        this.clientSession = null;
+        this.config.onSessionExpired?.();
+        throw new Error('Session expired. Please refresh to continue.');
+      }
+      
+      throw new Error(errorData.error || 'Failed to submit feedback');
+    }
+  }
+
+  /**
+   * Submit message feedback (upvote, downvote, or copy).
+   * Convenience method for sendFeedback with message-level feedback.
+   * 
+   * @param messageId - The ID of the message to provide feedback for
+   * @param type - The feedback type: 'upvote', 'downvote', or 'copy'
+   */
+  public async submitMessageFeedback(
+    messageId: string, 
+    type: 'upvote' | 'downvote' | 'copy'
+  ): Promise<void> {
+    const session = this.getClientSession();
+    if (!session) {
+      throw new Error('No active session. Please initialize session first.');
+    }
+
+    return this.sendFeedback({
+      session_id: session.sessionId,
+      message_id: messageId,
+      type,
+    });
+  }
+
+  /**
+   * Submit CSAT (Customer Satisfaction) feedback.
+   * Convenience method for sendFeedback with CSAT feedback.
+   * 
+   * @param rating - Rating from 1 to 5
+   * @param comment - Optional comment
+   */
+  public async submitCSATFeedback(rating: number, comment?: string): Promise<void> {
+    const session = this.getClientSession();
+    if (!session) {
+      throw new Error('No active session. Please initialize session first.');
+    }
+
+    return this.sendFeedback({
+      session_id: session.sessionId,
+      type: 'csat',
+      rating,
+      comment,
+    });
+  }
+
+  /**
+   * Submit NPS (Net Promoter Score) feedback.
+   * Convenience method for sendFeedback with NPS feedback.
+   * 
+   * @param rating - Rating from 0 to 10
+   * @param comment - Optional comment
+   */
+  public async submitNPSFeedback(rating: number, comment?: string): Promise<void> {
+    const session = this.getClientSession();
+    if (!session) {
+      throw new Error('No active session. Please initialize session first.');
+    }
+
+    return this.sendFeedback({
+      session_id: session.sessionId,
+      type: 'nps',
+      rating,
+      comment,
+    });
+  }
+
+  /**
    * Send a message - handles both proxy and client token modes
    */
   public async dispatch(options: DispatchOptions, onEvent: SSEHandler) {
@@ -216,13 +380,16 @@ export class AgentWidgetClient {
       // Build the standard payload to get context/metadata from middleware
       const basePayload = await this.buildPayload(options.messages);
 
-      // Build the chat request payload
+      // Build the chat request payload with message IDs for feedback tracking
       const chatRequest: ClientChatRequest = {
         session_id: session.sessionId,
         messages: options.messages.map(m => ({
+          id: m.id, // Include message ID for tracking
           role: m.role,
           content: m.rawContent || m.content,
         })),
+        // Include pre-generated assistant message ID if provided
+        ...(options.assistantMessageId && { assistant_message_id: options.assistantMessageId }),
         // Include metadata/context from middleware if present
         ...(basePayload.metadata && { metadata: basePayload.metadata }),
         ...(basePayload.context && { context: basePayload.context }),
@@ -275,7 +442,7 @@ export class AgentWidgetClient {
       
       // Stream the response (same SSE handling as proxy mode)
       try {
-        await this.streamResponse(response.body, onEvent);
+        await this.streamResponse(response.body, onEvent, options.assistantMessageId);
       } finally {
         onEvent({ type: "status", status: "idle" });
       }
@@ -498,7 +665,8 @@ export class AgentWidgetClient {
 
   private async streamResponse(
     body: ReadableStream<Uint8Array>,
-    onEvent: SSEHandler
+    onEvent: SSEHandler,
+    assistantMessageId?: string
   ) {
     const reader = body.getReader();
     const decoder = new TextDecoder();
@@ -591,7 +759,8 @@ export class AgentWidgetClient {
     const ensureAssistantMessage = () => {
       if (assistantMessage) return assistantMessage;
       assistantMessage = {
-        id: `assistant-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        // Use pre-generated ID if provided, otherwise generate one
+        id: assistantMessageId ?? `assistant-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         role: "assistant",
         content: "",
         createdAt: new Date().toISOString(),
