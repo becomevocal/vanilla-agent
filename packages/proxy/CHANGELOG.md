@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.23.0
+
+### Minor Changes
+
+- Add feedback api support and include metadata in the chat message requests
+
 ## 1.22.0
 
 ### Minor Changes
