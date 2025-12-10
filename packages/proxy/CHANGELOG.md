@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.24.0
+
+### Minor Changes
+
+- Enable tool call, message action, markdown, and layout config in code export
+
 ## 1.23.0
 
 ### Minor Changes
