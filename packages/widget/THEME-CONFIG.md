@@ -191,6 +191,31 @@ This document provides definitions of all themable configuration options.
 | `toggleTextColor` | Expand/collapse toggle color |
 | `labelTextColor` | Label color |
 
+## Message Actions (`config.messageActions.*`)
+
+Action buttons (copy, upvote, downvote) that appear on assistant messages.
+
+### Basic Options
+| Property | Default | Description |
+|----------|---------|-------------|
+| `enabled` | `true` | Enable/disable message actions entirely |
+| `showCopy` | `true` | Show copy button |
+| `showUpvote` | `false` | Show upvote button (requires backend) |
+| `showDownvote` | `false` | Show downvote button (requires backend) |
+
+### Appearance
+| Property | Default | Description |
+|----------|---------|-------------|
+| `visibility` | `"hover"` | `"always"` shows buttons always, `"hover"` shows on hover only |
+| `align` | `"right"` | Horizontal alignment: `"left"` \| `"center"` \| `"right"` |
+| `layout` | `"pill-inside"` | Layout style: `"pill-inside"` (compact floating pill) \| `"row-inside"` (full-width row) |
+
+### Callbacks
+| Property | Description |
+|----------|-------------|
+| `onFeedback` | Callback when user submits feedback: `(feedback: { type: 'upvote' \| 'downvote', messageId: string }) => void` |
+| `onCopy` | Callback when user copies a message: `(message: AgentWidgetMessage) => void` |
+
 ## Suggestion Chips (`config.suggestionChipsConfig.*`)
 
 | Property | Description |
