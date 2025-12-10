@@ -1053,6 +1053,281 @@
           </div>
         </section>
 
+        <!-- Message Actions Section -->
+        <section class="config-section accordion">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Message Actions</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <p class="color-description" style="margin-bottom: 16px;">
+            Configure copy, upvote, and downvote buttons that appear on assistant messages.
+          </p>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="message-actions-enabled" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Enable Message Actions</span>
+            </label>
+            <p class="color-description">Show action buttons on assistant messages</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="message-actions-show-copy" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Copy Button</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="message-actions-show-upvote" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Upvote Button</span>
+            </label>
+            <p class="color-description">Requires backend support for feedback</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="message-actions-show-downvote" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Downvote Button</span>
+            </label>
+            <p class="color-description">Requires backend support for feedback</p>
+          </div>
+          <div class="form-group">
+            <label for="message-actions-visibility">Visibility</label>
+            <select id="message-actions-visibility">
+              <option value="hover">On Hover</option>
+              <option value="always">Always Visible</option>
+            </select>
+            <p class="color-description">When to show the action buttons</p>
+          </div>
+          <div class="form-group">
+            <label for="message-actions-align">Alignment</label>
+            <select id="message-actions-align">
+              <option value="right">Right</option>
+              <option value="center">Center</option>
+              <option value="left">Left</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message-actions-layout">Layout Style</label>
+            <select id="message-actions-layout">
+              <option value="pill-inside">Pill (Compact)</option>
+              <option value="row-inside">Row (Full Width)</option>
+            </select>
+            <p class="color-description">How the action buttons are displayed</p>
+          </div>
+          </div>
+        </section>
+
+        <!-- Markdown Options Section -->
+        <section class="config-section accordion">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Markdown Options</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <p class="color-description" style="margin-bottom: 16px;">
+            Configure how markdown is parsed and rendered in chat messages.
+          </p>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-gfm" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">GitHub Flavored Markdown (GFM)</span>
+            </label>
+            <p class="color-description">Enable tables, strikethrough, and autolinks</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-breaks" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Line Breaks</span>
+            </label>
+            <p class="color-description">Convert \n in paragraphs into &lt;br&gt;</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-header-ids" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Header IDs</span>
+            </label>
+            <p class="color-description">Add id attributes to headings</p>
+          </div>
+          <div class="form-group">
+            <label for="markdown-header-prefix">Header ID Prefix</label>
+            <input type="text" id="markdown-header-prefix" placeholder="e.g., chat-" />
+            <p class="color-description">Prefix for heading id attributes (requires Header IDs enabled)</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-pedantic" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Pedantic Mode</span>
+            </label>
+            <p class="color-description">Conform to original markdown.pl behavior</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-mangle" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Mangle Emails</span>
+            </label>
+            <p class="color-description">Obfuscate email addresses for spam protection</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-silent" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Silent Mode</span>
+            </label>
+            <p class="color-description">Don't throw on parse errors</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="markdown-disable-default-styles" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Disable Default Styles</span>
+            </label>
+            <p class="color-description">Don't apply default CSS to markdown elements (use your own styles)</p>
+          </div>
+          </div>
+        </section>
+
+        <!-- Layout Configuration Section -->
+        <section class="config-section accordion">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Layout Configuration</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <p class="color-description" style="margin-bottom: 16px;">
+            Configure header and message layout options.
+          </p>
+          
+          <!-- Header Layout -->
+          <h3 class="form-subsection-title">Header</h3>
+          <div class="form-group">
+            <label for="layout-header-layout">Header Layout</label>
+            <select id="layout-header-layout">
+              <option value="default">Default</option>
+              <option value="minimal">Minimal</option>
+              <option value="expanded">Expanded</option>
+            </select>
+            <p class="color-description">Overall header layout style</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-header-show-icon" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Header Icon</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-header-show-title" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Title</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-header-show-subtitle" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Subtitle</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-header-show-close-button" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Close Button</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-header-show-clear-chat" checked />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Clear Chat Button</span>
+            </label>
+          </div>
+          
+          <!-- Messages Layout -->
+          <h3 class="form-subsection-title">Messages</h3>
+          <div class="form-group">
+            <label for="layout-messages-layout">Message Layout</label>
+            <select id="layout-messages-layout">
+              <option value="bubble">Bubble</option>
+              <option value="flat">Flat</option>
+              <option value="minimal">Minimal</option>
+            </select>
+            <p class="color-description">Overall message display style</p>
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-messages-group-consecutive" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Group Consecutive Messages</span>
+            </label>
+            <p class="color-description">Group messages from the same sender</p>
+          </div>
+          
+          <!-- Avatar Settings -->
+          <h3 class="form-subsection-title">Avatars</h3>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-avatar-show" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Avatars</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="layout-avatar-position">Avatar Position</label>
+            <select id="layout-avatar-position">
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="layout-avatar-user">User Avatar</label>
+            <input type="text" id="layout-avatar-user" placeholder="URL or emoji, e.g., 👤 or /user.png" />
+            <p class="color-description">URL or emoji for user avatar</p>
+          </div>
+          <div class="form-group">
+            <label for="layout-avatar-assistant">Assistant Avatar</label>
+            <input type="text" id="layout-avatar-assistant" placeholder="URL or emoji, e.g., 🤖 or /bot.png" />
+            <p class="color-description">URL or emoji for assistant avatar</p>
+          </div>
+          
+          <!-- Timestamp Settings -->
+          <h3 class="form-subsection-title">Timestamps</h3>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="layout-timestamp-show" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Show Timestamps</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="layout-timestamp-position">Timestamp Position</label>
+            <select id="layout-timestamp-position">
+              <option value="inline">Inline</option>
+              <option value="below">Below</option>
+            </select>
+          </div>
+          </div>
+        </section>
+
         <!-- Form Styling Section -->
         <section class="config-section accordion">
           <div class="accordion-header">

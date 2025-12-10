@@ -22,6 +22,154 @@ function getParserTypeFromConfig(config: AgentWidgetConfig): ParserType {
   return config.parserType ?? detectParserTypeFromStreamParser(config.streamParser) ?? "plain";
 }
 
+// Helper to generate toolCall config
+function generateToolCallConfig(config: any, indent: string): string[] {
+  const lines: string[] = [];
+  if (config.toolCall) {
+    lines.push(`${indent}toolCall: {`);
+    Object.entries(config.toolCall).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        lines.push(`${indent}  ${key}: "${value}",`);
+      }
+    });
+    lines.push(`${indent}},`);
+  }
+  return lines;
+}
+
+// Helper to generate messageActions config (excluding callbacks)
+function generateMessageActionsConfig(config: any, indent: string): string[] {
+  const lines: string[] = [];
+  if (config.messageActions) {
+    const hasSerializableProps = Object.entries(config.messageActions).some(
+      ([key, value]) => key !== "onFeedback" && key !== "onCopy" && value !== undefined
+    );
+    if (hasSerializableProps) {
+      lines.push(`${indent}messageActions: {`);
+      Object.entries(config.messageActions).forEach(([key, value]) => {
+        // Skip function callbacks
+        if (key === "onFeedback" || key === "onCopy") return;
+        if (typeof value === "string") {
+          lines.push(`${indent}  ${key}: "${value}",`);
+        } else if (typeof value === "boolean") {
+          lines.push(`${indent}  ${key}: ${value},`);
+        }
+      });
+      lines.push(`${indent}},`);
+    }
+  }
+  return lines;
+}
+
+// Helper to generate markdown config (excluding renderer functions)
+function generateMarkdownConfig(config: any, indent: string): string[] {
+  const lines: string[] = [];
+  if (config.markdown) {
+    const hasOptions = config.markdown.options && Object.keys(config.markdown.options).length > 0;
+    const hasDisableDefaultStyles = config.markdown.disableDefaultStyles !== undefined;
+    
+    if (hasOptions || hasDisableDefaultStyles) {
+      lines.push(`${indent}markdown: {`);
+      
+      if (hasOptions) {
+        lines.push(`${indent}  options: {`);
+        Object.entries(config.markdown.options).forEach(([key, value]) => {
+          if (typeof value === "string") {
+            lines.push(`${indent}    ${key}: "${value}",`);
+          } else if (typeof value === "boolean") {
+            lines.push(`${indent}    ${key}: ${value},`);
+          }
+        });
+        lines.push(`${indent}  },`);
+      }
+      
+      if (hasDisableDefaultStyles) {
+        lines.push(`${indent}  disableDefaultStyles: ${config.markdown.disableDefaultStyles},`);
+      }
+      
+      lines.push(`${indent}},`);
+    }
+  }
+  return lines;
+}
+
+// Helper to generate layout config (excluding render functions and slots)
+function generateLayoutConfig(config: any, indent: string): string[] {
+  const lines: string[] = [];
+  if (config.layout) {
+    const hasHeader = config.layout.header && Object.keys(config.layout.header).some(
+      (key: string) => key !== "render"
+    );
+    const hasMessages = config.layout.messages && Object.keys(config.layout.messages).some(
+      (key: string) => key !== "renderUserMessage" && key !== "renderAssistantMessage"
+    );
+    
+    if (hasHeader || hasMessages) {
+      lines.push(`${indent}layout: {`);
+      
+      // Header config (excluding render function)
+      if (hasHeader) {
+        lines.push(`${indent}  header: {`);
+        Object.entries(config.layout.header).forEach(([key, value]) => {
+          if (key === "render") return; // Skip render function
+          if (typeof value === "string") {
+            lines.push(`${indent}    ${key}: "${value}",`);
+          } else if (typeof value === "boolean") {
+            lines.push(`${indent}    ${key}: ${value},`);
+          }
+        });
+        lines.push(`${indent}  },`);
+      }
+      
+      // Messages config (excluding render functions)
+      if (hasMessages) {
+        lines.push(`${indent}  messages: {`);
+        Object.entries(config.layout.messages).forEach(([key, value]) => {
+          // Skip render functions
+          if (key === "renderUserMessage" || key === "renderAssistantMessage") return;
+          
+          if (key === "avatar" && typeof value === "object" && value !== null) {
+            lines.push(`${indent}    avatar: {`);
+            Object.entries(value as Record<string, unknown>).forEach(([avatarKey, avatarValue]) => {
+              if (typeof avatarValue === "string") {
+                lines.push(`${indent}      ${avatarKey}: "${avatarValue}",`);
+              } else if (typeof avatarValue === "boolean") {
+                lines.push(`${indent}      ${avatarKey}: ${avatarValue},`);
+              }
+            });
+            lines.push(`${indent}    },`);
+          } else if (key === "timestamp" && typeof value === "object" && value !== null) {
+            // Only emit serializable timestamp properties (skip format function)
+            const hasSerializableTimestamp = Object.entries(value as Record<string, unknown>).some(
+              ([k]) => k !== "format"
+            );
+            if (hasSerializableTimestamp) {
+              lines.push(`${indent}    timestamp: {`);
+              Object.entries(value as Record<string, unknown>).forEach(([tsKey, tsValue]) => {
+                if (tsKey === "format") return; // Skip format function
+                if (typeof tsValue === "string") {
+                  lines.push(`${indent}      ${tsKey}: "${tsValue}",`);
+                } else if (typeof tsValue === "boolean") {
+                  lines.push(`${indent}      ${tsKey}: ${tsValue},`);
+                }
+              });
+              lines.push(`${indent}    },`);
+            }
+          } else if (typeof value === "string") {
+            lines.push(`${indent}    ${key}: "${value}",`);
+          } else if (typeof value === "boolean") {
+            lines.push(`${indent}    ${key}: ${value},`);
+          }
+        });
+        lines.push(`${indent}  },`);
+      }
+      
+      lines.push(`${indent}},`);
+    }
+  }
+  return lines;
+}
+
 export function generateCodeSnippet(config: any, format: CodeFormat = "esm"): string {
   // Remove non-serializable properties
   const cleanConfig = { ...config };
@@ -159,6 +307,18 @@ function generateESMCode(config: any): string {
     lines.push("    },");
   }
 
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "    "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "    "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "    "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "    "));
+
   if (config.debug) {
     lines.push(`    debug: ${config.debug},`);
   }
@@ -294,6 +454,18 @@ function generateReactComponentCode(config: any): string {
     }
     lines.push("        },");
   }
+
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "        "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "        "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "        "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "        "));
 
   if (config.debug) {
     lines.push(`        debug: ${config.debug},`);
@@ -548,6 +720,18 @@ function generateReactAdvancedCode(config: any): string {
     lines.push("        },");
   }
 
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "        "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "        "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "        "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "        "));
+
   if (config.debug) {
     lines.push(`        debug: ${config.debug},`);
   }
@@ -788,6 +972,18 @@ function generateScriptInstallerCode(config: any): string {
     lines.push("      },");
   }
 
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "      "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "      "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "      "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "      "));
+
   if (config.debug) {
     lines.push(`      debug: ${config.debug},`);
   }
@@ -922,6 +1118,18 @@ function generateScriptManualCode(config: any): string {
     lines.push("      },");
   }
 
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "      "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "      "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "      "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "      "));
+
   if (config.debug) {
     lines.push(`      debug: ${config.debug},`);
   }
@@ -1028,6 +1236,35 @@ function generateScriptAdvancedCode(config: any): string {
     });
     lines.push("    ],");
   }
+
+  if (config.suggestionChipsConfig) {
+    lines.push("    suggestionChipsConfig: {");
+    if (config.suggestionChipsConfig.fontFamily) {
+      lines.push(`      fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
+    }
+    if (config.suggestionChipsConfig.fontWeight) {
+      lines.push(`      fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    }
+    if (config.suggestionChipsConfig.paddingX) {
+      lines.push(`      paddingX: "${config.suggestionChipsConfig.paddingX}",`);
+    }
+    if (config.suggestionChipsConfig.paddingY) {
+      lines.push(`      paddingY: "${config.suggestionChipsConfig.paddingY}",`);
+    }
+    lines.push("    },");
+  }
+
+  // Add toolCall config
+  lines.push(...generateToolCallConfig(config, "    "));
+
+  // Add messageActions config
+  lines.push(...generateMessageActionsConfig(config, "    "));
+
+  // Add markdown config
+  lines.push(...generateMarkdownConfig(config, "    "));
+
+  // Add layout config
+  lines.push(...generateLayoutConfig(config, "    "));
 
   lines.push("  };");
   lines.push("</script>");

@@ -3315,6 +3315,204 @@ function setupToolCallControls() {
   });
 }
 
+// Message Actions controls
+function setupMessageActionsControls() {
+  const enabledInput = getInput<HTMLInputElement>("message-actions-enabled");
+  const showCopyInput = getInput<HTMLInputElement>("message-actions-show-copy");
+  const showUpvoteInput = getInput<HTMLInputElement>("message-actions-show-upvote");
+  const showDownvoteInput = getInput<HTMLInputElement>("message-actions-show-downvote");
+  const visibilitySelect = getInput<HTMLSelectElement>("message-actions-visibility");
+  const alignSelect = getInput<HTMLSelectElement>("message-actions-align");
+  const layoutSelect = getInput<HTMLSelectElement>("message-actions-layout");
+
+  // Set initial values
+  enabledInput.checked = currentConfig.messageActions?.enabled ?? true;
+  showCopyInput.checked = currentConfig.messageActions?.showCopy ?? true;
+  showUpvoteInput.checked = currentConfig.messageActions?.showUpvote ?? false;
+  showDownvoteInput.checked = currentConfig.messageActions?.showDownvote ?? false;
+  visibilitySelect.value = currentConfig.messageActions?.visibility ?? "hover";
+  alignSelect.value = currentConfig.messageActions?.align ?? "right";
+  layoutSelect.value = currentConfig.messageActions?.layout ?? "pill-inside";
+
+  const updateMessageActions = () => {
+    const newConfig = {
+      ...currentConfig,
+      messageActions: {
+        ...currentConfig.messageActions,
+        enabled: enabledInput.checked,
+        showCopy: showCopyInput.checked,
+        showUpvote: showUpvoteInput.checked,
+        showDownvote: showDownvoteInput.checked,
+        visibility: visibilitySelect.value as "hover" | "always",
+        align: alignSelect.value as "left" | "center" | "right",
+        layout: layoutSelect.value as "pill-inside" | "row-inside"
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  [enabledInput, showCopyInput, showUpvoteInput, showDownvoteInput].forEach(input => {
+    input.addEventListener("change", updateMessageActions);
+  });
+
+  [visibilitySelect, alignSelect, layoutSelect].forEach(select => {
+    select.addEventListener("change", updateMessageActions);
+  });
+}
+
+// Markdown Options controls
+function setupMarkdownControls() {
+  const gfmInput = getInput<HTMLInputElement>("markdown-gfm");
+  const breaksInput = getInput<HTMLInputElement>("markdown-breaks");
+  const headerIdsInput = getInput<HTMLInputElement>("markdown-header-ids");
+  const headerPrefixInput = getInput<HTMLInputElement>("markdown-header-prefix");
+  const pedanticInput = getInput<HTMLInputElement>("markdown-pedantic");
+  const mangleInput = getInput<HTMLInputElement>("markdown-mangle");
+  const silentInput = getInput<HTMLInputElement>("markdown-silent");
+  const disableDefaultStylesInput = getInput<HTMLInputElement>("markdown-disable-default-styles");
+
+  // Set initial values
+  gfmInput.checked = currentConfig.markdown?.options?.gfm ?? true;
+  breaksInput.checked = currentConfig.markdown?.options?.breaks ?? true;
+  headerIdsInput.checked = currentConfig.markdown?.options?.headerIds ?? false;
+  headerPrefixInput.value = currentConfig.markdown?.options?.headerPrefix ?? "";
+  pedanticInput.checked = currentConfig.markdown?.options?.pedantic ?? false;
+  mangleInput.checked = currentConfig.markdown?.options?.mangle ?? true;
+  silentInput.checked = currentConfig.markdown?.options?.silent ?? false;
+  disableDefaultStylesInput.checked = currentConfig.markdown?.disableDefaultStyles ?? false;
+
+  const updateMarkdown = () => {
+    const newConfig = {
+      ...currentConfig,
+      markdown: {
+        ...currentConfig.markdown,
+        options: {
+          ...currentConfig.markdown?.options,
+          gfm: gfmInput.checked,
+          breaks: breaksInput.checked,
+          headerIds: headerIdsInput.checked,
+          headerPrefix: headerPrefixInput.value || undefined,
+          pedantic: pedanticInput.checked,
+          mangle: mangleInput.checked,
+          silent: silentInput.checked
+        },
+        disableDefaultStyles: disableDefaultStylesInput.checked
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  [gfmInput, breaksInput, headerIdsInput, pedanticInput, mangleInput, silentInput, disableDefaultStylesInput].forEach(input => {
+    input.addEventListener("change", updateMarkdown);
+  });
+
+  headerPrefixInput.addEventListener("input", updateMarkdown);
+}
+
+// Layout Configuration controls
+function setupLayoutControls() {
+  // Header layout controls
+  const headerLayoutSelect = getInput<HTMLSelectElement>("layout-header-layout");
+  const headerShowIconInput = getInput<HTMLInputElement>("layout-header-show-icon");
+  const headerShowTitleInput = getInput<HTMLInputElement>("layout-header-show-title");
+  const headerShowSubtitleInput = getInput<HTMLInputElement>("layout-header-show-subtitle");
+  const headerShowCloseButtonInput = getInput<HTMLInputElement>("layout-header-show-close-button");
+  const headerShowClearChatInput = getInput<HTMLInputElement>("layout-header-show-clear-chat");
+
+  // Messages layout controls
+  const messagesLayoutSelect = getInput<HTMLSelectElement>("layout-messages-layout");
+  const messagesGroupConsecutiveInput = getInput<HTMLInputElement>("layout-messages-group-consecutive");
+
+  // Avatar controls
+  const avatarShowInput = getInput<HTMLInputElement>("layout-avatar-show");
+  const avatarPositionSelect = getInput<HTMLSelectElement>("layout-avatar-position");
+  const avatarUserInput = getInput<HTMLInputElement>("layout-avatar-user");
+  const avatarAssistantInput = getInput<HTMLInputElement>("layout-avatar-assistant");
+
+  // Timestamp controls
+  const timestampShowInput = getInput<HTMLInputElement>("layout-timestamp-show");
+  const timestampPositionSelect = getInput<HTMLSelectElement>("layout-timestamp-position");
+
+  // Set initial values - Header
+  headerLayoutSelect.value = currentConfig.layout?.header?.layout ?? "default";
+  headerShowIconInput.checked = currentConfig.layout?.header?.showIcon ?? true;
+  headerShowTitleInput.checked = currentConfig.layout?.header?.showTitle ?? true;
+  headerShowSubtitleInput.checked = currentConfig.layout?.header?.showSubtitle ?? true;
+  headerShowCloseButtonInput.checked = currentConfig.layout?.header?.showCloseButton ?? true;
+  headerShowClearChatInput.checked = currentConfig.layout?.header?.showClearChat ?? true;
+
+  // Set initial values - Messages
+  messagesLayoutSelect.value = currentConfig.layout?.messages?.layout ?? "bubble";
+  messagesGroupConsecutiveInput.checked = currentConfig.layout?.messages?.groupConsecutive ?? false;
+
+  // Set initial values - Avatar
+  avatarShowInput.checked = currentConfig.layout?.messages?.avatar?.show ?? false;
+  avatarPositionSelect.value = currentConfig.layout?.messages?.avatar?.position ?? "left";
+  avatarUserInput.value = currentConfig.layout?.messages?.avatar?.userAvatar ?? "";
+  avatarAssistantInput.value = currentConfig.layout?.messages?.avatar?.assistantAvatar ?? "";
+
+  // Set initial values - Timestamp
+  timestampShowInput.checked = currentConfig.layout?.messages?.timestamp?.show ?? false;
+  timestampPositionSelect.value = currentConfig.layout?.messages?.timestamp?.position ?? "inline";
+
+  const updateLayout = () => {
+    const newConfig = {
+      ...currentConfig,
+      layout: {
+        ...currentConfig.layout,
+        header: {
+          ...currentConfig.layout?.header,
+          layout: headerLayoutSelect.value as "default" | "minimal" | "expanded",
+          showIcon: headerShowIconInput.checked,
+          showTitle: headerShowTitleInput.checked,
+          showSubtitle: headerShowSubtitleInput.checked,
+          showCloseButton: headerShowCloseButtonInput.checked,
+          showClearChat: headerShowClearChatInput.checked
+        },
+        messages: {
+          ...currentConfig.layout?.messages,
+          layout: messagesLayoutSelect.value as "bubble" | "flat" | "minimal",
+          groupConsecutive: messagesGroupConsecutiveInput.checked,
+          avatar: {
+            ...currentConfig.layout?.messages?.avatar,
+            show: avatarShowInput.checked,
+            position: avatarPositionSelect.value as "left" | "right",
+            userAvatar: avatarUserInput.value || undefined,
+            assistantAvatar: avatarAssistantInput.value || undefined
+          },
+          timestamp: {
+            ...currentConfig.layout?.messages?.timestamp,
+            show: timestampShowInput.checked,
+            position: timestampPositionSelect.value as "inline" | "below"
+          }
+        }
+      }
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  // Header event listeners
+  headerLayoutSelect.addEventListener("change", updateLayout);
+  [headerShowIconInput, headerShowTitleInput, headerShowSubtitleInput, headerShowCloseButtonInput, headerShowClearChatInput].forEach(input => {
+    input.addEventListener("change", updateLayout);
+  });
+
+  // Messages event listeners
+  messagesLayoutSelect.addEventListener("change", updateLayout);
+  messagesGroupConsecutiveInput.addEventListener("change", updateLayout);
+
+  // Avatar event listeners
+  avatarShowInput.addEventListener("change", updateLayout);
+  avatarPositionSelect.addEventListener("change", updateLayout);
+  [avatarUserInput, avatarAssistantInput].forEach(input => {
+    input.addEventListener("input", updateLayout);
+  });
+
+  // Timestamp event listeners
+  timestampShowInput.addEventListener("change", updateLayout);
+  timestampPositionSelect.addEventListener("change", updateLayout);
+}
+
 // Form styling controls
 function setupFormStyleControls() {
   // Helper to update formStyles in config
@@ -3558,6 +3756,9 @@ function init() {
   setupStatusIndicatorControls();
   setupFeatureControls();
   setupToolCallControls();
+  setupMessageActionsControls();
+  setupMarkdownControls();
+  setupLayoutControls();
   setupFormStyleControls();
   setupSuggestionChipsControls();
   setupOtherOptionsControls();
