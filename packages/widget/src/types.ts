@@ -105,6 +105,23 @@ export type AgentWidgetMessageFeedback = {
 
 /**
  * Configuration for message action buttons (copy, upvote, downvote)
+ * 
+ * **Client Token Mode**: When using `clientToken`, feedback is automatically
+ * sent to your Travrse backend. Just enable the buttons and you're done!
+ * The `onFeedback` and `onCopy` callbacks are optional for additional local handling.
+ * 
+ * @example
+ * ```typescript
+ * // With clientToken - feedback is automatic!
+ * config: {
+ *   clientToken: 'ct_live_...',
+ *   messageActions: {
+ *     showUpvote: true,
+ *     showDownvote: true,
+ *     // No onFeedback needed - sent to backend automatically
+ *   }
+ * }
+ * ```
  */
 export type AgentWidgetMessageActionsConfig = {
   /**
@@ -118,13 +135,15 @@ export type AgentWidgetMessageActionsConfig = {
    */
   showCopy?: boolean;
   /**
-   * Show upvote button
-   * @default false (requires backend)
+   * Show upvote button.
+   * When using `clientToken`, feedback is sent to the backend automatically.
+   * @default false
    */
   showUpvote?: boolean;
   /**
-   * Show downvote button
-   * @default false (requires backend)
+   * Show downvote button.
+   * When using `clientToken`, feedback is sent to the backend automatically.
+   * @default false
    */
   showDownvote?: boolean;
   /**
@@ -145,11 +164,19 @@ export type AgentWidgetMessageActionsConfig = {
    */
   layout?: "pill-inside" | "row-inside";
   /**
-   * Callback when user submits feedback (upvote/downvote)
+   * Callback when user submits feedback (upvote/downvote).
+   * 
+   * **Note**: When using `clientToken`, feedback is AUTOMATICALLY sent to your
+   * backend via `/v1/client/feedback`. This callback is called IN ADDITION to
+   * the automatic submission, useful for updating local UI or analytics.
    */
   onFeedback?: (feedback: AgentWidgetMessageFeedback) => void;
   /**
-   * Callback when user copies a message
+   * Callback when user copies a message.
+   * 
+   * **Note**: When using `clientToken`, copy events are AUTOMATICALLY tracked
+   * via `/v1/client/feedback`. This callback is called IN ADDITION to the
+   * automatic tracking.
    */
   onCopy?: (message: AgentWidgetMessage) => void;
 };
