@@ -15,19 +15,6 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2
 
-  examples/action-middleware:
-    dependencies:
-      vanilla-agent:
-        specifier: workspace:^
-        version: link:../../packages/widget
-    devDependencies:
-      typescript:
-        specifier: ^5.4.5
-        version: 5.9.3
-      vite:
-        specifier: ^5.4.1
-        version: 5.4.20(@types/node@20.19.22)
-
   examples/cloudflare-workers:
     dependencies:
       hono:
