@@ -105,7 +105,12 @@ export {
 } from "./utils/component-middleware";
 
 // Default configuration exports
-export { DEFAULT_WIDGET_CONFIG, mergeWithDefaults } from "./defaults";
+export {
+  DEFAULT_WIDGET_CONFIG,
+  DEFAULT_LIGHT_THEME,
+  DEFAULT_DARK_THEME,
+  mergeWithDefaults
+} from "./defaults";
 
 // Layout system exports
 export {

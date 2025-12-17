@@ -1124,6 +1124,34 @@ export type AgentWidgetConfig = {
     sendButtonLabel?: string;
   };
   theme?: AgentWidgetTheme;
+  /**
+   * Theme colors for dark mode. Applied when dark mode is detected
+   * (when colorScheme is 'dark' or 'auto' with dark mode active).
+   * If not provided, falls back to `theme` colors.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   theme: { primary: '#111827', surface: '#ffffff' },
+   *   darkTheme: { primary: '#f9fafb', surface: '#1f2937' },
+   *   colorScheme: 'auto'
+   * }
+   * ```
+   */
+  darkTheme?: AgentWidgetTheme;
+  /**
+   * Color scheme mode for the widget.
+   * - 'light': Always use light theme (default)
+   * - 'dark': Always use dark theme
+   * - 'auto': Automatically detect from page (HTML class or prefers-color-scheme)
+   * 
+   * When 'auto', detection order:
+   * 1. Check if `<html>` has 'dark' class
+   * 2. Fall back to `prefers-color-scheme: dark` media query
+   * 
+   * @default 'light'
+   */
+  colorScheme?: 'auto' | 'light' | 'dark';
   features?: AgentWidgetFeatureFlags;
   launcher?: AgentWidgetLauncherConfig;
   initialMessages?: AgentWidgetMessage[];

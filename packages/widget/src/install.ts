@@ -36,7 +36,7 @@ declare global {
 
   /**
    * Read configuration from data attributes on the current script tag.
-   * Supports: data-travrse-token, data-flow-id, data-api-url
+   * Supports: data-config (JSON), data-travrse-token, data-flow-id, data-api-url
    */
   const getConfigFromScript = (): Partial<SiteAgentInstallConfig> => {
     // Try to get the current script element
@@ -44,6 +44,23 @@ declare global {
     if (!script) return {};
 
     const scriptConfig: Partial<SiteAgentInstallConfig> = {};
+
+    // Full config from data-config attribute (JSON string)
+    const configJson = script.getAttribute('data-config');
+    if (configJson) {
+      try {
+        const parsedConfig = JSON.parse(configJson);
+        // If it has nested 'config' property, use it; otherwise treat as widget config
+        if (parsedConfig.config) {
+          Object.assign(scriptConfig, parsedConfig);
+        } else {
+          // Treat the entire object as widget config
+          scriptConfig.config = parsedConfig;
+        }
+      } catch (e) {
+        console.error("Failed to parse data-config JSON:", e);
+      }
+    }
 
     // Client token from data attribute (primary method for client token mode)
     const token = script.getAttribute('data-travrse-token');
@@ -177,6 +194,12 @@ declare global {
     const hasApiConfig = widgetConfig.apiUrl || widgetConfig.clientToken;
     if (!hasApiConfig && Object.keys(widgetConfig).length === 0) {
       return;
+    }
+
+    // Auto-apply markdown postprocessor if not explicitly set and available
+    if (!widgetConfig.postprocessMessage && window.AgentWidget.markdownPostprocessor) {
+      widgetConfig.postprocessMessage = ({ text }: { text: string }) => 
+        window.AgentWidget.markdownPostprocessor(text);
     }
 
     try {

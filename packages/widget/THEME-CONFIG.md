@@ -2,6 +2,105 @@
 
 This document provides definitions of all themable configuration options.
 
+## Dark Mode Support
+
+The widget supports automatic dark mode detection and theme switching.
+
+### Configuration Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `theme` | `AgentWidgetTheme` | (light colors) | Theme colors for light mode |
+| `darkTheme` | `AgentWidgetTheme` | (dark colors) | Theme colors for dark mode |
+| `colorScheme` | `'light' \| 'dark' \| 'auto'` | `'light'` | Color scheme mode |
+
+### Color Scheme Modes
+
+- **`'light'`** (default): Always use `theme` colors
+- **`'dark'`**: Always use `darkTheme` colors (falls back to `theme` if not provided)
+- **`'auto'`**: Automatically detect and switch based on page settings
+
+### Auto Detection Order
+
+When `colorScheme: 'auto'`, the widget detects dark mode by:
+1. Checking if `<html>` element has `dark` class (e.g., `<html class="dark">`)
+2. Falling back to `prefers-color-scheme: dark` media query
+
+The widget automatically updates when:
+- The `dark` class is added/removed from `<html>`
+- System color scheme preference changes
+
+### Usage Examples
+
+**Basic dark mode with auto-detection:**
+
+```typescript
+initAgentWidget({
+  target: '#chat',
+  config: {
+    colorScheme: 'auto',
+    theme: {
+      primary: '#111827',
+      surface: '#ffffff',
+      container: '#f8fafc',
+    },
+    darkTheme: {
+      primary: '#f9fafb',
+      surface: '#1f2937',
+      container: '#111827',
+    }
+  }
+});
+```
+
+**Force dark mode:**
+
+```typescript
+initAgentWidget({
+  target: '#chat',
+  config: {
+    colorScheme: 'dark',
+    darkTheme: {
+      primary: '#f9fafb',
+      surface: '#1f2937',
+      accent: '#3b82f6',
+    }
+  }
+});
+```
+
+**Runtime theme switching:**
+
+```typescript
+const controller = initAgentWidget({
+  target: '#chat',
+  config: { colorScheme: 'auto' }
+});
+
+// Switch to forced dark mode
+controller.update({ colorScheme: 'dark' });
+
+// Switch back to auto-detection
+controller.update({ colorScheme: 'auto' });
+```
+
+### Default Dark Theme
+
+When using `colorScheme: 'auto'` or `colorScheme: 'dark'` without providing a `darkTheme`, the widget uses these default dark colors:
+
+| Property | Value |
+|----------|-------|
+| `primary` | `#f9fafb` |
+| `accent` | `#3b82f6` |
+| `surface` | `#1f2937` |
+| `muted` | `#9ca3af` |
+| `container` | `#111827` |
+| `border` | `#374151` |
+| `divider` | `#374151` |
+| `inputBackground` | `#111827` |
+
+---
+
 ## Theme Colors (`config.theme.*`)
 
 | Property | Description |

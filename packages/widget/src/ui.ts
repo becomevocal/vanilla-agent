@@ -14,7 +14,7 @@ import {
   SlotRenderer,
   AgentWidgetMessageFeedback
 } from "./types";
-import { applyThemeVariables } from "./utils/theme";
+import { applyThemeVariables, createThemeObserver } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
 import { statusCopy } from "./utils/constants";
@@ -642,6 +642,31 @@ export const createAgentExperience = (
   applyThemeVariables(mount, config);
 
   const destroyCallbacks: Array<() => void> = [];
+
+  // Set up theme observer for auto color scheme detection
+  let cleanupThemeObserver: (() => void) | null = null;
+  const setupThemeObserver = () => {
+    // Clean up existing observer if any
+    if (cleanupThemeObserver) {
+      cleanupThemeObserver();
+      cleanupThemeObserver = null;
+    }
+    // Set up new observer if colorScheme is 'auto'
+    if (config.colorScheme === 'auto') {
+      cleanupThemeObserver = createThemeObserver(() => {
+        // Re-apply theme when color scheme changes
+        applyThemeVariables(mount, config);
+      });
+    }
+  };
+  setupThemeObserver();
+  destroyCallbacks.push(() => {
+    if (cleanupThemeObserver) {
+      cleanupThemeObserver();
+      cleanupThemeObserver = null;
+    }
+  });
+
   const suggestionsManager = createSuggestions(suggestions);
   let closeHandler: (() => void) | null = null;
   let session: AgentWidgetSession;
@@ -1811,10 +1836,16 @@ export const createAgentExperience = (
   const controller: Controller = {
     update(nextConfig: AgentWidgetConfig) {
       const previousToolCallConfig = config.toolCall;
+      const previousColorScheme = config.colorScheme;
       config = { ...config, ...nextConfig };
       // applyFullHeightStyles resets mount.style.cssText, so call it before applyThemeVariables
       applyFullHeightStyles();
       applyThemeVariables(mount, config);
+
+      // Re-setup theme observer if colorScheme changed
+      if (config.colorScheme !== previousColorScheme) {
+        setupThemeObserver();
+      }
 
       // Update plugins
       const newPlugins = pluginRegistry.getForInstance(config.plugins);

@@ -858,143 +858,123 @@ function generateReactAdvancedCode(config: any): string {
   return lines.join("\n");
 }
 
-function generateScriptInstallerCode(config: any): string {
+// Helper to build a serializable config object for JSON export
+function buildSerializableConfig(config: any): Record<string, any> {
   const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
   const shouldEmitParserType = parserType !== "plain";
-
-  const lines: string[] = [
-    "<script>",
-    "  window.siteAgentConfig = {",
-    "    target: 'body',",
-    "    config: {"
-  ];
-
-  if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
-  if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
-  if (shouldEmitParserType) lines.push(`      parserType: "${parserType}",`);
-
-  if (config.theme) {
-    lines.push("      theme: {");
-    Object.entries(config.theme).forEach(([key, value]) => {
-      lines.push(`        ${key}: "${value}",`);
+  
+  const serializableConfig: Record<string, any> = {};
+  
+  if (config.apiUrl) serializableConfig.apiUrl = config.apiUrl;
+  if (config.flowId) serializableConfig.flowId = config.flowId;
+  if (shouldEmitParserType) serializableConfig.parserType = parserType;
+  if (config.theme) serializableConfig.theme = config.theme;
+  if (config.launcher) serializableConfig.launcher = config.launcher;
+  if (config.copy) serializableConfig.copy = config.copy;
+  if (config.sendButton) serializableConfig.sendButton = config.sendButton;
+  if (config.voiceRecognition) serializableConfig.voiceRecognition = config.voiceRecognition;
+  if (config.statusIndicator) serializableConfig.statusIndicator = config.statusIndicator;
+  if (config.features) serializableConfig.features = config.features;
+  if (config.suggestionChips?.length > 0) serializableConfig.suggestionChips = config.suggestionChips;
+  if (config.suggestionChipsConfig) serializableConfig.suggestionChipsConfig = config.suggestionChipsConfig;
+  if (config.debug) serializableConfig.debug = config.debug;
+  
+  // Add toolCall config (only serializable parts)
+  if (config.toolCall) {
+    const toolCallConfig: Record<string, any> = {};
+    Object.entries(config.toolCall).forEach(([key, value]) => {
+      if (typeof value === "string") toolCallConfig[key] = value;
     });
-    lines.push("      },");
+    if (Object.keys(toolCallConfig).length > 0) {
+      serializableConfig.toolCall = toolCallConfig;
+    }
   }
-
-  if (config.launcher) {
-    lines.push("      launcher: {");
-    Object.entries(config.launcher).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`        ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`        ${key}: ${value},`);
+  
+  // Add messageActions config (excluding callbacks)
+  if (config.messageActions) {
+    const messageActionsConfig: Record<string, any> = {};
+    Object.entries(config.messageActions).forEach(([key, value]) => {
+      if (key !== "onFeedback" && key !== "onCopy" && value !== undefined) {
+        if (typeof value === "string" || typeof value === "boolean") {
+          messageActionsConfig[key] = value;
+        }
       }
     });
-    lines.push("      },");
+    if (Object.keys(messageActionsConfig).length > 0) {
+      serializableConfig.messageActions = messageActionsConfig;
+    }
   }
-
-  if (config.copy) {
-    lines.push("      copy: {");
-    Object.entries(config.copy).forEach(([key, value]) => {
-      lines.push(`        ${key}: "${value}",`);
-    });
-    lines.push("      },");
+  
+  // Add markdown config (excluding renderer functions)
+  if (config.markdown) {
+    const markdownConfig: Record<string, any> = {};
+    if (config.markdown.options) markdownConfig.options = config.markdown.options;
+    if (config.markdown.disableDefaultStyles !== undefined) {
+      markdownConfig.disableDefaultStyles = config.markdown.disableDefaultStyles;
+    }
+    if (Object.keys(markdownConfig).length > 0) {
+      serializableConfig.markdown = markdownConfig;
+    }
   }
-
-  if (config.sendButton) {
-    lines.push("      sendButton: {");
-    Object.entries(config.sendButton).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`        ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`        ${key}: ${value},`);
+  
+  // Add layout config (excluding render functions)
+  if (config.layout) {
+    const layoutConfig: Record<string, any> = {};
+    
+    if (config.layout.header) {
+      const headerConfig: Record<string, any> = {};
+      Object.entries(config.layout.header).forEach(([key, value]) => {
+        if (key !== "render" && (typeof value === "string" || typeof value === "boolean")) {
+          headerConfig[key] = value;
+        }
+      });
+      if (Object.keys(headerConfig).length > 0) {
+        layoutConfig.header = headerConfig;
       }
-    });
-    lines.push("      },");
-  }
-
-  if (config.voiceRecognition) {
-    lines.push("      voiceRecognition: {");
-    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`        ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`        ${key}: ${value},`);
-      } else if (typeof value === "number") {
-        lines.push(`        ${key}: ${value},`);
+    }
+    
+    if (config.layout.messages) {
+      const messagesConfig: Record<string, any> = {};
+      Object.entries(config.layout.messages).forEach(([key, value]) => {
+        if (key !== "renderUserMessage" && key !== "renderAssistantMessage") {
+          if (key === "avatar" && typeof value === "object" && value !== null) {
+            messagesConfig.avatar = value;
+          } else if (key === "timestamp" && typeof value === "object" && value !== null) {
+            // Exclude format function
+            const tsConfig: Record<string, any> = {};
+            Object.entries(value as Record<string, unknown>).forEach(([tsKey, tsValue]) => {
+              if (tsKey !== "format" && (typeof tsValue === "string" || typeof tsValue === "boolean")) {
+                tsConfig[tsKey] = tsValue;
+              }
+            });
+            if (Object.keys(tsConfig).length > 0) {
+              messagesConfig.timestamp = tsConfig;
+            }
+          } else if (typeof value === "string" || typeof value === "boolean") {
+            messagesConfig[key] = value;
+          }
+        }
+      });
+      if (Object.keys(messagesConfig).length > 0) {
+        layoutConfig.messages = messagesConfig;
       }
-    });
-    lines.push("      },");
-  }
-
-  if (config.statusIndicator) {
-    lines.push("      statusIndicator: {");
-    Object.entries(config.statusIndicator).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`        ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`        ${key}: ${value},`);
-      }
-    });
-    lines.push("      },");
-  }
-
-  if (config.features) {
-    lines.push("      features: {");
-    Object.entries(config.features).forEach(([key, value]) => {
-      lines.push(`        ${key}: ${value},`);
-    });
-    lines.push("      },");
-  }
-
-  if (config.suggestionChips && config.suggestionChips.length > 0) {
-    lines.push("      suggestionChips: [");
-    config.suggestionChips.forEach((chip: string) => {
-      lines.push(`        "${chip}",`);
-    });
-    lines.push("      ],");
-  }
-
-  if (config.suggestionChipsConfig) {
-    lines.push("      suggestionChipsConfig: {");
-    if (config.suggestionChipsConfig.fontFamily) {
-      lines.push(`        fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
     }
-    if (config.suggestionChipsConfig.fontWeight) {
-      lines.push(`        fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
+    
+    if (Object.keys(layoutConfig).length > 0) {
+      serializableConfig.layout = layoutConfig;
     }
-    if (config.suggestionChipsConfig.paddingX) {
-      lines.push(`        paddingX: "${config.suggestionChipsConfig.paddingX}",`);
-    }
-    if (config.suggestionChipsConfig.paddingY) {
-      lines.push(`        paddingY: "${config.suggestionChipsConfig.paddingY}",`);
-    }
-    lines.push("      },");
   }
+  
+  return serializableConfig;
+}
 
-  // Add toolCall config
-  lines.push(...generateToolCallConfig(config, "      "));
-
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "      "));
-
-  // Add markdown config
-  lines.push(...generateMarkdownConfig(config, "      "));
-
-  // Add layout config
-  lines.push(...generateLayoutConfig(config, "      "));
-
-  if (config.debug) {
-    lines.push(`      debug: ${config.debug},`);
-  }
-
-  lines.push("      postprocessMessage: ({ text }) => window.AgentWidget.markdownPostprocessor(text)");
-  lines.push("    }");
-  lines.push("  };");
-  lines.push("</script>");
-  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js\"></script>");
-
-  return lines.join("\n");
+function generateScriptInstallerCode(config: any): string {
+  const serializableConfig = buildSerializableConfig(config);
+  
+  // Escape single quotes in JSON for HTML attribute
+  const configJson = JSON.stringify(serializableConfig, null, 0).replace(/'/g, "&#39;");
+  
+  return `<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js" data-config='${configJson}'></script>`;
 }
 
 function generateScriptManualCode(config: any): string {
@@ -1143,341 +1123,224 @@ function generateScriptManualCode(config: any): string {
 }
 
 function generateScriptAdvancedCode(config: any): string {
+  const serializableConfig = buildSerializableConfig(config);
+  const configJson = JSON.stringify(serializableConfig, null, 2);
+  
   const lines: string[] = [
-    "<!-- Load CSS -->",
-    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/widget.css\" />",
-    "",
-    "<!-- Chat Widget Configuration -->",
     "<script>",
-    "  window.ChatWidgetConfig = {"
+    "(function() {",
+    "  'use strict';",
+    "",
+    "  // Configuration",
+    `  var CONFIG = ${configJson.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n')};`,
+    "",
+    "  // Constants",
+    "  var CDN_BASE = 'https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist';",
+    "  var STORAGE_KEY = 'chat-widget-state';",
+    "  var PROCESSED_ACTIONS_KEY = 'chat-widget-processed-actions';",
+    "",
+    "  // DOM context provider - extracts page elements for AI context",
+    "  var domContextProvider = function() {",
+    "    var selectors = {",
+    "      products: '[data-product-id], .product-card, .product-item, [role=\"article\"]',",
+    "      buttons: 'button, [role=\"button\"], .btn',",
+    "      links: 'a[href]',",
+    "      inputs: 'input, textarea, select'",
+    "    };",
+    "",
+    "    var elements = [];",
+    "    Object.entries(selectors).forEach(function(entry) {",
+    "      var type = entry[0], selector = entry[1];",
+    "      document.querySelectorAll(selector).forEach(function(element) {",
+    "        if (!(element instanceof HTMLElement)) return;",
+    "        var widgetHost = element.closest('.vanilla-agent-host');",
+    "        if (widgetHost) return;",
+    "        var text = element.innerText ? element.innerText.trim() : '';",
+    "        if (!text) return;",
+    "",
+    "        var selectorString = element.id ? '#' + element.id :",
+    "          element.getAttribute('data-testid') ? '[data-testid=\"' + element.getAttribute('data-testid') + '\"]' :",
+    "          element.getAttribute('data-product-id') ? '[data-product-id=\"' + element.getAttribute('data-product-id') + '\"]' :",
+    "          element.tagName.toLowerCase();",
+    "",
+    "        var elementData = {",
+    "          type: type,",
+    "          tagName: element.tagName.toLowerCase(),",
+    "          selector: selectorString,",
+    "          innerText: text.substring(0, 200)",
+    "        };",
+    "",
+    "        if (type === 'links' && element instanceof HTMLAnchorElement && element.href) {",
+    "          elementData.href = element.href;",
+    "        }",
+    "        elements.push(elementData);",
+    "      });",
+    "    });",
+    "",
+    "    var counts = elements.reduce(function(acc, el) {",
+    "      acc[el.type] = (acc[el.type] || 0) + 1;",
+    "      return acc;",
+    "    }, {});",
+    "",
+    "    return {",
+    "      page_elements: elements.slice(0, 50),",
+    "      page_element_count: elements.length,",
+    "      element_types: counts,",
+    "      page_url: window.location.href,",
+    "      page_title: document.title,",
+    "      timestamp: new Date().toISOString()",
+    "    };",
+    "  };",
+    "",
+    "  // Load CSS dynamically",
+    "  var loadCSS = function() {",
+    "    if (document.querySelector('link[data-vanilla-agent]')) return;",
+    "    var link = document.createElement('link');",
+    "    link.rel = 'stylesheet';",
+    "    link.href = CDN_BASE + '/widget.css';",
+    "    link.setAttribute('data-vanilla-agent', 'true');",
+    "    document.head.appendChild(link);",
+    "  };",
+    "",
+    "  // Load JS dynamically",
+    "  var loadJS = function(callback) {",
+    "    if (window.AgentWidget) { callback(); return; }",
+    "    var script = document.createElement('script');",
+    "    script.src = CDN_BASE + '/index.global.js';",
+    "    script.onload = callback;",
+    "    script.onerror = function() { console.error('Failed to load AgentWidget'); };",
+    "    document.head.appendChild(script);",
+    "  };",
+    "",
+    "  // Create widget config with advanced features",
+    "  var createWidgetConfig = function(agentWidget) {",
+    "    var widgetConfig = Object.assign({}, CONFIG);",
+    "",
+    "    // Flexible JSON stream parser for handling structured actions",
+    "    widgetConfig.streamParser = function() {",
+    "      return agentWidget.createFlexibleJsonStreamParser(function(parsed) {",
+    "        if (!parsed || typeof parsed !== 'object') return null;",
+    "        if (parsed.action === 'nav_then_click') return 'Navigating...';",
+    "        if (parsed.action === 'message') return parsed.text || '';",
+    "        if (parsed.action === 'message_and_click') return parsed.text || 'Processing...';",
+    "        return parsed.text || null;",
+    "      });",
+    "    };",
+    "",
+    "    // Action parsers to detect JSON actions in responses",
+    "    widgetConfig.actionParsers = [",
+    "      agentWidget.defaultJsonActionParser,",
+    "      function(ctx) {",
+    "        var jsonSource = ctx.message.rawContent || ctx.text || ctx.message.content;",
+    "        if (!jsonSource || typeof jsonSource !== 'string') return null;",
+    "        var cleanJson = jsonSource",
+    "          .replace(/^```(?:json)?\\s*\\n?/, '')",
+    "          .replace(/\\n?```\\s*$/, '')",
+    "          .trim();",
+    "        if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;",
+    "        try {",
+    "          var parsed = JSON.parse(cleanJson);",
+    "          if (parsed.action) return { type: parsed.action, payload: parsed };",
+    "        } catch (e) { return null; }",
+    "        return null;",
+    "      }",
+    "    ];",
+    "",
+    "    // Action handlers for navigation and other actions",
+    "    widgetConfig.actionHandlers = [",
+    "      agentWidget.defaultActionHandlers.message,",
+    "      agentWidget.defaultActionHandlers.messageAndClick,",
+    "      function(action, context) {",
+    "        if (action.type !== 'nav_then_click') return;",
+    "        var payload = action.payload || action.raw || {};",
+    "        var url = payload.page;",
+    "        var text = payload.on_load_text || 'Navigating...';",
+    "        if (!url) return { handled: true, displayText: text };",
+    "        var messageId = context.message ? context.message.id : null;",
+    "        var processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');",
+    "        var actionKey = 'nav_' + messageId + '_' + url;",
+    "        if (processedActions.includes(actionKey)) {",
+    "          return { handled: true, displayText: text };",
+    "        }",
+    "        processedActions.push(actionKey);",
+    "        localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));",
+    "        var targetUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).toString();",
+    "        window.location.href = targetUrl;",
+    "        return { handled: true, displayText: text };",
+    "      }",
+    "    ];",
+    "",
+    "    // Send DOM context with each request",
+    "    widgetConfig.requestMiddleware = function(ctx) {",
+    "      return Object.assign({}, ctx.payload, { metadata: domContextProvider() });",
+    "    };",
+    "",
+    "    // Markdown postprocessor",
+    "    widgetConfig.postprocessMessage = function(ctx) {",
+    "      return agentWidget.markdownPostprocessor(ctx.text);",
+    "    };",
+    "",
+    "    return widgetConfig;",
+    "  };",
+    "",
+    "  // Initialize widget",
+    "  var init = function() {",
+    "    var agentWidget = window.AgentWidget;",
+    "    if (!agentWidget) {",
+    "      console.error('AgentWidget not loaded');",
+    "      return;",
+    "    }",
+    "",
+    "    var widgetConfig = createWidgetConfig(agentWidget);",
+    "",
+    "    // Load saved state",
+    "    var savedState = localStorage.getItem(STORAGE_KEY);",
+    "    if (savedState) {",
+    "      try {",
+    "        var parsed = JSON.parse(savedState);",
+    "        widgetConfig.initialMessages = parsed.messages || [];",
+    "      } catch (e) {",
+    "        console.error('Failed to load saved state:', e);",
+    "      }",
+    "    }",
+    "",
+    "    // Initialize widget",
+    "    var handle = agentWidget.initAgentWidget({",
+    "      target: 'body',",
+    "      useShadowDom: false,",
+    "      config: widgetConfig",
+    "    });",
+    "",
+    "    // Save state on message events",
+    "    window.addEventListener('vanilla-agent:message', function() {",
+    "      var session = handle.getSession ? handle.getSession() : null;",
+    "      if (session) {",
+    "        localStorage.setItem(STORAGE_KEY, JSON.stringify({",
+    "          messages: session.messages,",
+    "          timestamp: new Date().toISOString()",
+    "        }));",
+    "      }",
+    "    });",
+    "",
+    "    // Clear state on clear chat",
+    "    window.addEventListener('vanilla-agent:clear-chat', function() {",
+    "      localStorage.removeItem(STORAGE_KEY);",
+    "      localStorage.removeItem(PROCESSED_ACTIONS_KEY);",
+    "    });",
+    "  };",
+    "",
+    "  // Boot sequence: load CSS, then JS, then initialize",
+    "  loadCSS();",
+    "  loadJS(function() {",
+    "    if (document.readyState === 'loading') {",
+    "      document.addEventListener('DOMContentLoaded', init);",
+    "    } else {",
+    "      init();",
+    "    }",
+    "  });",
+    "})();",
+    "</script>"
   ];
-
-  if (config.apiUrl) lines.push(`    apiUrl: "${config.apiUrl}",`);
-  if (config.flowId) lines.push(`    flowId: "${config.flowId}",`);
-
-  if (config.theme) {
-    lines.push("    theme: {");
-    Object.entries(config.theme).forEach(([key, value]) => {
-      lines.push(`      ${key}: "${value}",`);
-    });
-    lines.push("    },");
-  }
-
-  if (config.launcher) {
-    lines.push("    launcher: {");
-    Object.entries(config.launcher).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`      ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`      ${key}: ${value},`);
-      }
-    });
-    lines.push("    },");
-  }
-
-  if (config.copy) {
-    lines.push("    copy: {");
-    Object.entries(config.copy).forEach(([key, value]) => {
-      lines.push(`      ${key}: "${value}",`);
-    });
-    lines.push("    },");
-  }
-
-  if (config.sendButton) {
-    lines.push("    sendButton: {");
-    Object.entries(config.sendButton).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`      ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`      ${key}: ${value},`);
-      }
-    });
-    lines.push("    },");
-  }
-
-  if (config.voiceRecognition) {
-    lines.push("    voiceRecognition: {");
-    Object.entries(config.voiceRecognition).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`      ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`      ${key}: ${value},`);
-      } else if (typeof value === "number") {
-        lines.push(`      ${key}: ${value},`);
-      }
-    });
-    lines.push("    },");
-  }
-
-  if (config.statusIndicator) {
-    lines.push("    statusIndicator: {");
-    Object.entries(config.statusIndicator).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        lines.push(`      ${key}: "${value}",`);
-      } else if (typeof value === "boolean") {
-        lines.push(`      ${key}: ${value},`);
-      }
-    });
-    lines.push("    },");
-  }
-
-  if (config.features) {
-    lines.push("    features: {");
-    Object.entries(config.features).forEach(([key, value]) => {
-      lines.push(`      ${key}: ${value},`);
-    });
-    lines.push("    },");
-  }
-
-  if (config.suggestionChips && config.suggestionChips.length > 0) {
-    lines.push("    suggestionChips: [");
-    config.suggestionChips.forEach((chip: string) => {
-      lines.push(`      "${chip}",`);
-    });
-    lines.push("    ],");
-  }
-
-  if (config.suggestionChipsConfig) {
-    lines.push("    suggestionChipsConfig: {");
-    if (config.suggestionChipsConfig.fontFamily) {
-      lines.push(`      fontFamily: "${config.suggestionChipsConfig.fontFamily}",`);
-    }
-    if (config.suggestionChipsConfig.fontWeight) {
-      lines.push(`      fontWeight: "${config.suggestionChipsConfig.fontWeight}",`);
-    }
-    if (config.suggestionChipsConfig.paddingX) {
-      lines.push(`      paddingX: "${config.suggestionChipsConfig.paddingX}",`);
-    }
-    if (config.suggestionChipsConfig.paddingY) {
-      lines.push(`      paddingY: "${config.suggestionChipsConfig.paddingY}",`);
-    }
-    lines.push("    },");
-  }
-
-  // Add toolCall config
-  lines.push(...generateToolCallConfig(config, "    "));
-
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "    "));
-
-  // Add markdown config
-  lines.push(...generateMarkdownConfig(config, "    "));
-
-  // Add layout config
-  lines.push(...generateLayoutConfig(config, "    "));
-
-  lines.push("  };");
-  lines.push("</script>");
-  lines.push("");
-  lines.push("<!-- Load the widget library -->");
-  lines.push("<script src=\"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/index.global.js\"></script>");
-  lines.push("");
-  lines.push("<!-- Chat Widget Script with DOM Helper -->");
-  lines.push("<script>");
-  lines.push("  (function () {");
-  lines.push("    'use strict';");
-  lines.push("    ");
-  lines.push("    const STORAGE_KEY = 'chat-widget-state';");
-  lines.push("    const PROCESSED_ACTIONS_KEY = 'chat-widget-processed-actions';");
-  lines.push("");
-  lines.push("    // DOM context provider - extracts page elements for AI context");
-  lines.push("    const domContextProvider = () => {");
-  lines.push("      const selectors = {");
-  lines.push("        products: '[data-product-id], .product-card, .product-item, [role=\"article\"]',");
-  lines.push("        buttons: 'button, [role=\"button\"], .btn',");
-  lines.push("        links: 'a[href]',");
-  lines.push("        inputs: 'input, textarea, select'");
-  lines.push("      };");
-  lines.push("");
-  lines.push("      const elements = [];");
-  lines.push("      Object.entries(selectors).forEach(([type, selector]) => {");
-  lines.push("        document.querySelectorAll(selector).forEach((element) => {");
-  lines.push("          if (!(element instanceof HTMLElement)) return;");
-  lines.push("          ");
-  lines.push("          // Exclude elements within the widget");
-  lines.push("          const widgetHost = element.closest('.vanilla-agent-host');");
-  lines.push("          if (widgetHost) return;");
-  lines.push("          ");
-  lines.push("          const text = element.innerText?.trim();");
-  lines.push("          if (!text) return;");
-  lines.push("");
-  lines.push("          const selectorString =");
-  lines.push("            element.id ? `#${element.id}` :");
-  lines.push("            element.getAttribute('data-testid') ? `[data-testid=\"${element.getAttribute('data-testid')}\"]` :");
-  lines.push("            element.getAttribute('data-product-id') ? `[data-product-id=\"${element.getAttribute('data-product-id')}\"]` :");
-  lines.push("            element.tagName.toLowerCase();");
-  lines.push("");
-  lines.push("          const elementData = {");
-  lines.push("            type,");
-  lines.push("            tagName: element.tagName.toLowerCase(),");
-  lines.push("            selector: selectorString,");
-  lines.push("            innerText: text.substring(0, 200)");
-  lines.push("          };");
-  lines.push("");
-  lines.push("          if (type === 'links' && element instanceof HTMLAnchorElement && element.href) {");
-  lines.push("            elementData.href = element.href;");
-  lines.push("          }");
-  lines.push("");
-  lines.push("          elements.push(elementData);");
-  lines.push("        });");
-  lines.push("      });");
-  lines.push("");
-  lines.push("      const counts = elements.reduce((acc, el) => {");
-  lines.push("        acc[el.type] = (acc[el.type] || 0) + 1;");
-  lines.push("        return acc;");
-  lines.push("      }, {});");
-  lines.push("");
-  lines.push("      return {");
-  lines.push("        page_elements: elements.slice(0, 50),");
-  lines.push("        page_element_count: elements.length,");
-  lines.push("        element_types: counts,");
-  lines.push("        page_url: window.location.href,");
-  lines.push("        page_title: document.title,");
-  lines.push("        timestamp: new Date().toISOString()");
-  lines.push("      };");
-  lines.push("    };");
-  lines.push("");
-  lines.push("    const createWidgetConfig = (agentWidget) => ({");
-  lines.push("      ...window.ChatWidgetConfig,");
-  lines.push("      // Flexible JSON stream parser for handling structured actions");
-  lines.push("      streamParser: () => agentWidget.createFlexibleJsonStreamParser((parsed) => {");
-  lines.push("        if (!parsed || typeof parsed !== 'object') return null;");
-  lines.push("        ");
-  lines.push("        // Extract display text based on action type");
-  lines.push("        if (parsed.action === 'nav_then_click') {");
-  lines.push("          return 'Navigating...';");
-  lines.push("        } else if (parsed.action === 'message') {");
-  lines.push("          return parsed.text || '';");
-  lines.push("        } else if (parsed.action === 'message_and_click') {");
-  lines.push("          return parsed.text || 'Processing...';");
-  lines.push("        }");
-  lines.push("        ");
-  lines.push("        return parsed.text || null;");
-  lines.push("      }),");
-  lines.push("      // Action parsers to detect JSON actions in responses");
-  lines.push("      actionParsers: [");
-  lines.push("        agentWidget.defaultJsonActionParser,");
-  lines.push("        // Custom parser for markdown-wrapped JSON");
-  lines.push("        ({ text, message }) => {");
-  lines.push("          const jsonSource = message.rawContent || text || message.content;");
-  lines.push("          if (!jsonSource || typeof jsonSource !== 'string') return null;");
-  lines.push("          ");
-  lines.push("          // Strip markdown code fences");
-  lines.push("          let cleanJson = jsonSource");
-  lines.push("            .replace(/^```(?:json)?\\s*\\n?/, '')");
-  lines.push("            .replace(/\\n?```\\s*$/, '')");
-  lines.push("            .trim();");
-  lines.push("          ");
-  lines.push("          if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;");
-  lines.push("          ");
-  lines.push("          try {");
-  lines.push("            const parsed = JSON.parse(cleanJson);");
-  lines.push("            if (parsed.action) {");
-  lines.push("              return { type: parsed.action, payload: parsed };");
-  lines.push("            }");
-  lines.push("          } catch (e) {");
-  lines.push("            return null;");
-  lines.push("          }");
-  lines.push("          return null;");
-  lines.push("        }");
-  lines.push("      ],");
-  lines.push("      // Action handlers for navigation and other actions");
-  lines.push("      actionHandlers: [");
-  lines.push("        agentWidget.defaultActionHandlers.message,");
-  lines.push("        agentWidget.defaultActionHandlers.messageAndClick,");
-  lines.push("        // Handler for nav_then_click action");
-  lines.push("        (action, context) => {");
-  lines.push("          if (action.type !== 'nav_then_click') return;");
-  lines.push("          ");
-  lines.push("          const payload = action.payload || action.raw || {};");
-  lines.push("          const url = payload?.page;");
-  lines.push("          const text = payload?.on_load_text || 'Navigating...';");
-  lines.push("          ");
-  lines.push("          if (!url) return { handled: true, displayText: text };");
-  lines.push("          ");
-  lines.push("          // Check if already processed");
-  lines.push("          const messageId = context.message?.id;");
-  lines.push("          const processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');");
-  lines.push("          const actionKey = `nav_${messageId}_${url}`;");
-  lines.push("          ");
-  lines.push("          if (processedActions.includes(actionKey)) {");
-  lines.push("            return { handled: true, displayText: text };");
-  lines.push("          }");
-  lines.push("          ");
-  lines.push("          processedActions.push(actionKey);");
-  lines.push("          localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));");
-  lines.push("          ");
-  lines.push("          const targetUrl = url.startsWith('http')");
-  lines.push("            ? url");
-  lines.push("            : new URL(url, window.location.origin).toString();");
-  lines.push("          ");
-  lines.push("          window.location.href = targetUrl;");
-  lines.push("          ");
-  lines.push("          return { handled: true, displayText: text };");
-  lines.push("        }");
-  lines.push("      ],");
-  lines.push("      // Send DOM context with each request");
-  lines.push("      requestMiddleware: ({ payload }) => ({");
-  lines.push("        ...payload,");
-  lines.push("        metadata: domContextProvider()");
-  lines.push("      }),");
-  lines.push("      postprocessMessage: ({ text }) => agentWidget.markdownPostprocessor(text)");
-  lines.push("    });");
-  lines.push("");
-  lines.push("    // Initialize widget when DOM is loaded");
-  lines.push("    function init() {");
-  lines.push("      const agentWidget = window.AgentWidget;");
-  lines.push("      if (!agentWidget) {");
-  lines.push("        console.error('AgentWidget not loaded');");
-  lines.push("        return;");
-  lines.push("      }");
-  lines.push("");
-  lines.push("      const widgetConfig = createWidgetConfig(agentWidget);");
-  lines.push("");
-  lines.push("      // Load saved state");
-  lines.push("      const savedState = localStorage.getItem(STORAGE_KEY);");
-  lines.push("      if (savedState) {");
-  lines.push("        try {");
-  lines.push("          const { messages } = JSON.parse(savedState);");
-  lines.push("          widgetConfig.initialMessages = messages || [];");
-  lines.push("        } catch (e) {");
-  lines.push("          console.error('Failed to load saved state:', e);");
-  lines.push("        }");
-  lines.push("      }");
-  lines.push("");
-  lines.push("      // Initialize widget with DOM context");
-  lines.push("      const handle = agentWidget.initAgentWidget({");
-  lines.push("        target: 'body',");
-  lines.push("        useShadowDom: false,");
-  lines.push("        config: widgetConfig");
-  lines.push("      });");
-  lines.push("");
-  lines.push("      // Save state on message events");
-  lines.push("      window.addEventListener('vanilla-agent:message', (event) => {");
-  lines.push("        const session = handle.getSession?.();");
-  lines.push("        if (session) {");
-  lines.push("          localStorage.setItem(STORAGE_KEY, JSON.stringify({");
-  lines.push("            messages: session.messages,");
-  lines.push("            timestamp: new Date().toISOString()");
-  lines.push("          }));");
-  lines.push("        }");
-  lines.push("      });");
-  lines.push("");
-  lines.push("      // Clear state on clear chat");
-  lines.push("      window.addEventListener('vanilla-agent:clear-chat', () => {");
-  lines.push("        localStorage.removeItem(STORAGE_KEY);");
-  lines.push("        localStorage.removeItem(PROCESSED_ACTIONS_KEY);");
-  lines.push("      });");
-  lines.push("    }");
-  lines.push("");
-  lines.push("    // Initialize when DOM is ready");
-  lines.push("    if (document.readyState === 'loading') {");
-  lines.push("      document.addEventListener('DOMContentLoaded', init);");
-  lines.push("    } else {");
-  lines.push("      init();");
-  lines.push("    }");
-  lines.push("  })();");
-  lines.push("</script>");
 
   return lines.join("\n");
 }
