@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.25.0
+
+### Minor Changes
+
+- Support for dark mode theme
+
 ## 1.24.0
 
 ### Minor Changes
