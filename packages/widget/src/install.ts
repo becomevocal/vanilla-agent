@@ -16,6 +16,8 @@ interface SiteAgentInstallConfig {
   clientToken?: string;
   flowId?: string;
   apiUrl?: string;
+  // Shadow DOM option (defaults to false for better CSS compatibility)
+  useShadowDom?: boolean;
 }
 
 declare global {
@@ -129,6 +131,44 @@ declare global {
     return !!(window as any).AgentWidget;
   };
 
+  /**
+   * Wait for framework hydration to complete (Next.js, Nuxt, etc.)
+   * This prevents the framework from removing dynamically added CSS during reconciliation.
+   * Uses requestIdleCallback + double requestAnimationFrame for reliable detection.
+   */
+  const waitForHydration = (callback: () => void): void => {
+    let executed = false;
+    
+    const execute = () => {
+      if (executed) return;
+      executed = true;
+      callback();
+    };
+
+    const afterDom = () => {
+      // Strategy 1: Use requestIdleCallback if available (best for detecting idle after hydration)
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => {
+          // Double requestAnimationFrame ensures at least one full paint cycle completed
+          requestAnimationFrame(() => {
+            requestAnimationFrame(execute);
+          });
+        }, { timeout: 3000 }); // Max wait 3 seconds, then proceed anyway
+      } else {
+        // Strategy 2: Fallback for Safari (no requestIdleCallback)
+        // 300ms is typically enough for hydration on most pages
+        setTimeout(execute, 300);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', afterDom);
+    } else {
+      // DOM already ready, but still wait for potential hydration
+      afterDom();
+    }
+  };
+
   // Load CSS
   const loadCSS = (): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -141,6 +181,7 @@ declare global {
       link.rel = "stylesheet";
       link.href = cssUrl;
       link.setAttribute("data-vanilla-agent", "true");
+      
       link.onload = () => resolve();
       link.onerror = () => reject(new Error(`Failed to load CSS from ${cssUrl}`));
       document.head.appendChild(link);
@@ -205,14 +246,16 @@ declare global {
     try {
       window.AgentWidget.initAgentWidget({
         target,
-        config: widgetConfig
+        config: widgetConfig,
+        // Explicitly disable shadow DOM for better CSS compatibility with host page
+        useShadowDom: config.useShadowDom ?? false
       });
     } catch (error) {
       console.error("Failed to initialize AgentWidget:", error);
     }
   };
 
-  // Main installation flow
+  // Main installation flow (called after hydration completes)
   const install = async () => {
     try {
       await loadCSS();
@@ -234,11 +277,8 @@ declare global {
     }
   };
 
-  // Start installation
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", install);
-  } else {
-    install();
-  }
+  // Start installation after hydration completes
+  // This prevents Next.js/Nuxt/etc. from removing dynamically added CSS
+  waitForHydration(install);
 })();
 
