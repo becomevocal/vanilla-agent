@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.26.0
+
+### Minor Changes
+
+- Update advanced script export to support sites that hydrate dom
+
 ## 1.25.0
 
 ### Minor Changes
