@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.28.0
+
+### Minor Changes
+
+- Move load css to be inside hydration function
+
 ## 1.27.0
 
 ### Minor Changes
