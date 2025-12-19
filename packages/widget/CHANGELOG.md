@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.27.0
+
+### Minor Changes
+
+- Additional hydration support within advanced script export
+
 ## 1.26.0
 
 ### Minor Changes
