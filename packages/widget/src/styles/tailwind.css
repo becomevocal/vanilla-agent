@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* Widget CSS Variables - scoped to widget root to avoid polluting global namespace */
+  #vanilla-agent-root {
     --travrse-primary: #111827;
     --travrse-secondary: #4338ca;
     --travrse-surface: #ffffff;
