@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.29.0
+
+### Minor Changes
+
+- Replace CSS that may conflict with parent page styles
+
 ## 1.28.0
 
 ### Minor Changes
