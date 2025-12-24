@@ -21,6 +21,7 @@ import { morphMessages } from "./utils/morph";
 import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel, buildHeader, buildComposer, attachHeaderToContainer } from "./components/panel";
+import { buildHeaderWithLayout } from "./components/header-layouts";
 import { positionMap } from "./utils/positioning";
 import type { HeaderElements, ComposerElements } from "./components/panel";
 import { MessageTransform, MessageActionCallbacks } from "./components/message-bubble";
@@ -236,6 +237,7 @@ export const createAgentExperience = (
   let autoExpand = config.launcher?.autoExpand ?? false;
   let prevAutoExpand = autoExpand;
   let prevLauncherEnabled = launcherEnabled;
+  let prevHeaderLayout = config.layout?.header?.layout;
   let open = launcherEnabled ? autoExpand : true;
   let postprocess = buildPostprocessor(config, actionManager);
   let showReasoning = config.features?.showReasoning ?? true;
@@ -1913,6 +1915,66 @@ export const createAgentExperience = (
         headerSubtitle.textContent = config.launcher.subtitle;
       }
 
+      // Update header layout if it changed
+      const headerLayoutConfig = config.layout?.header;
+      const headerLayoutChanged = headerLayoutConfig?.layout !== prevHeaderLayout;
+
+      if (headerLayoutChanged && header) {
+        // Rebuild header with new layout
+        const newHeaderElements = headerLayoutConfig
+          ? buildHeaderWithLayout(config, headerLayoutConfig, {
+              showClose: launcherEnabled,
+              onClose: () => setOpenState(false, "user")
+            })
+          : buildHeader({
+              config,
+              showClose: launcherEnabled,
+              onClose: () => setOpenState(false, "user")
+            });
+
+        // Replace the old header with the new one
+        header.replaceWith(newHeaderElements.header);
+
+        // Update references
+        header = newHeaderElements.header;
+        iconHolder = newHeaderElements.iconHolder;
+        headerTitle = newHeaderElements.headerTitle;
+        headerSubtitle = newHeaderElements.headerSubtitle;
+        closeButton = newHeaderElements.closeButton;
+
+        prevHeaderLayout = headerLayoutConfig?.layout;
+      } else if (headerLayoutConfig) {
+        // Apply visibility settings without rebuilding
+        if (iconHolder) {
+          iconHolder.style.display = headerLayoutConfig.showIcon === false ? "none" : "";
+        }
+        if (headerTitle) {
+          headerTitle.style.display = headerLayoutConfig.showTitle === false ? "none" : "";
+        }
+        if (headerSubtitle) {
+          headerSubtitle.style.display = headerLayoutConfig.showSubtitle === false ? "none" : "";
+        }
+        if (closeButton) {
+          closeButton.style.display = headerLayoutConfig.showCloseButton === false ? "none" : "";
+        }
+        if (panelElements.clearChatButtonWrapper) {
+          // showClearChat explicitly controls visibility when set
+          const showClearChat = headerLayoutConfig.showClearChat;
+          if (showClearChat !== undefined) {
+            panelElements.clearChatButtonWrapper.style.display = showClearChat ? "" : "none";
+            // When clear chat is hidden, close button needs ml-auto to stay right-aligned
+            const { closeButtonWrapper } = panelElements;
+            if (closeButtonWrapper && !closeButtonWrapper.classList.contains("tvw-absolute")) {
+              if (showClearChat) {
+                closeButtonWrapper.classList.remove("tvw-ml-auto");
+              } else {
+                closeButtonWrapper.classList.add("tvw-ml-auto");
+              }
+            }
+          }
+        }
+      }
+
       // Only update open state if launcher enabled state changed or autoExpand value changed
       const launcherEnabledChanged = launcherEnabled !== prevLauncherEnabled;
       const autoExpandChanged = autoExpand !== prevAutoExpand;
@@ -1948,20 +2010,23 @@ export const createAgentExperience = (
       // Update panel icon sizes
       const launcher = config.launcher ?? {};
       const headerIconHidden = launcher.headerIconHidden ?? false;
+      const layoutShowIcon = config.layout?.header?.showIcon;
+      // Hide icon if either headerIconHidden is true OR layout.header.showIcon is false
+      const shouldHideIcon = headerIconHidden || layoutShowIcon === false;
       const headerIconName = launcher.headerIconName;
       const headerIconSize = launcher.headerIconSize ?? "48px";
-      
+
       if (iconHolder) {
-        const header = container.querySelector(".tvw-border-b-cw-divider");
-        const headerCopy = header?.querySelector(".tvw-flex-col");
-        
+        const headerEl = container.querySelector(".tvw-border-b-cw-divider");
+        const headerCopy = headerEl?.querySelector(".tvw-flex-col");
+
         // Handle hide/show
-        if (headerIconHidden) {
+        if (shouldHideIcon) {
           // Hide iconHolder
           iconHolder.style.display = "none";
           // Ensure headerCopy is still in header
-          if (header && headerCopy && !header.contains(headerCopy)) {
-            header.insertBefore(headerCopy, header.firstChild);
+          if (headerEl && headerCopy && !headerEl.contains(headerCopy)) {
+            headerEl.insertBefore(headerCopy, headerEl.firstChild);
           }
         } else {
           // Show iconHolder
@@ -1970,13 +2035,13 @@ export const createAgentExperience = (
           iconHolder.style.width = headerIconSize;
           
           // Ensure iconHolder is before headerCopy in header
-          if (header && headerCopy) {
-            if (!header.contains(iconHolder)) {
-              header.insertBefore(iconHolder, headerCopy);
+          if (headerEl && headerCopy) {
+            if (!headerEl.contains(iconHolder)) {
+              headerEl.insertBefore(iconHolder, headerCopy);
             } else if (iconHolder.nextSibling !== headerCopy) {
               // Reorder if needed
               iconHolder.remove();
-              header.insertBefore(iconHolder, headerCopy);
+              headerEl.insertBefore(iconHolder, headerCopy);
             }
           }
           
@@ -2026,7 +2091,26 @@ export const createAgentExperience = (
           }
         }
       }
+
+      // Handle title/subtitle visibility from layout config
+      const layoutShowTitle = config.layout?.header?.showTitle;
+      const layoutShowSubtitle = config.layout?.header?.showSubtitle;
+      if (headerTitle) {
+        headerTitle.style.display = layoutShowTitle === false ? "none" : "";
+      }
+      if (headerSubtitle) {
+        headerSubtitle.style.display = layoutShowSubtitle === false ? "none" : "";
+      }
+
       if (closeButton) {
+        // Handle close button visibility from layout config
+        const layoutShowCloseButton = config.layout?.header?.showCloseButton;
+        if (layoutShowCloseButton === false) {
+          closeButton.style.display = "none";
+        } else {
+          closeButton.style.display = "";
+        }
+
         const closeButtonSize = launcher.closeButtonSize ?? "32px";
         const closeButtonPlacement = launcher.closeButtonPlacement ?? "inline";
         closeButton.style.height = closeButtonSize;
@@ -2200,17 +2284,33 @@ export const createAgentExperience = (
       if (clearChatButton) {
         const clearChatConfig = launcher.clearChat ?? {};
         const clearChatEnabled = clearChatConfig.enabled ?? true;
+        const layoutShowClearChat = config.layout?.header?.showClearChat;
+        // layout.header.showClearChat takes precedence if explicitly set
+        // Otherwise fall back to launcher.clearChat.enabled
+        const shouldShowClearChat = layoutShowClearChat !== undefined
+          ? layoutShowClearChat
+          : clearChatEnabled;
         const clearChatPlacement = clearChatConfig.placement ?? "inline";
 
-        // Show/hide button based on enabled state
+        // Show/hide button based on layout config (primary) or launcher config (fallback)
         if (clearChatButtonWrapper) {
-          clearChatButtonWrapper.style.display = clearChatEnabled ? "" : "none";
+          clearChatButtonWrapper.style.display = shouldShowClearChat ? "" : "none";
+
+          // When clear chat is hidden, close button needs ml-auto to stay right-aligned
+          const { closeButtonWrapper } = panelElements;
+          if (closeButtonWrapper && !closeButtonWrapper.classList.contains("tvw-absolute")) {
+            if (shouldShowClearChat) {
+              closeButtonWrapper.classList.remove("tvw-ml-auto");
+            } else {
+              closeButtonWrapper.classList.add("tvw-ml-auto");
+            }
+          }
 
           // Update placement if changed
           const isTopRight = clearChatPlacement === "top-right";
           const currentlyTopRight = clearChatButtonWrapper.classList.contains("tvw-absolute");
 
-          if (isTopRight !== currentlyTopRight && clearChatEnabled) {
+          if (isTopRight !== currentlyTopRight && shouldShowClearChat) {
             clearChatButtonWrapper.remove();
 
             if (isTopRight) {
@@ -2250,7 +2350,7 @@ export const createAgentExperience = (
           }
         }
 
-        if (clearChatEnabled) {
+        if (shouldShowClearChat) {
           // Update size
           const clearChatSize = clearChatConfig.size ?? "32px";
           clearChatButton.style.height = clearChatSize;
