@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.30.0
+
+### Minor Changes
+
+- Use idiomorph for dom updates to prevent animation flicker
+
 ## 1.29.0
 
 ### Minor Changes
