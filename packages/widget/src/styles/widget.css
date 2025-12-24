@@ -1240,8 +1240,12 @@
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--cw-divider, #f1f5f9);
-  /* Fade in when first shown (for "always" visibility) */
-  animation: tvw-message-actions-fade-in 0.3s ease-out;
+}
+
+/* Fade in animation only for "always" visibility mode (not hover) */
+/* forwards ensures final state is kept, idiomorph preserves element so animation only plays once */
+.tvw-message-actions:not(.tvw-message-actions-hover) {
+  animation: tvw-message-actions-fade-in 0.3s ease-out forwards;
 }
 
 /* Action bar alignment */

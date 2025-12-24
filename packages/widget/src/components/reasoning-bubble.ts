@@ -26,6 +26,9 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
       "tvw-py-0"
     ].join(" ")
   );
+  // Set id for idiomorph matching
+  bubble.id = `bubble-${message.id}`;
+  bubble.setAttribute("data-message-id", message.id);
 
   if (!reasoning) {
     return bubble;

@@ -17,6 +17,7 @@ import {
 import { applyThemeVariables, createThemeObserver } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
+import { morphMessages } from "./utils/morph";
 import { statusCopy } from "./utils/constants";
 import { createLauncherButton } from "./components/launcher";
 import { createWrapper, buildPanel, buildHeader, buildComposer, attachHeaderToContainer } from "./components/panel";
@@ -904,8 +905,8 @@ export const createAgentExperience = (
     messages: AgentWidgetMessage[],
     transform: MessageTransform
   ) => {
-    container.innerHTML = "";
-    const fragment = document.createDocumentFragment();
+    // Build new content in a temporary container for morphing
+    const tempContainer = document.createElement("div");
 
     messages.forEach((message) => {
       let bubble: HTMLElement | null = null;
@@ -976,8 +977,8 @@ export const createAgentExperience = (
             });
             if (componentBubble) {
               // Wrap component in standard bubble styling
-              const wrapper = document.createElement("div");
-              wrapper.className = [
+              const componentWrapper = document.createElement("div");
+              componentWrapper.className = [
                 "vanilla-message-bubble",
                 "tvw-max-w-[85%]",
                 "tvw-rounded-2xl",
@@ -986,7 +987,9 @@ export const createAgentExperience = (
                 "tvw-border-cw-message-border",
                 "tvw-p-4"
               ].join(" ");
-              wrapper.setAttribute("data-message-id", message.id);
+              // Set id for idiomorph matching
+              componentWrapper.id = `bubble-${message.id}`;
+              componentWrapper.setAttribute("data-message-id", message.id);
 
               // Add text content above component if present (combined text+component response)
               if (message.content && message.content.trim()) {
@@ -998,11 +1001,11 @@ export const createAgentExperience = (
                   streaming: Boolean(message.streaming),
                   raw: message.rawContent
                 });
-                wrapper.appendChild(textDiv);
+                componentWrapper.appendChild(textDiv);
               }
 
-              wrapper.appendChild(componentBubble);
-              bubble = wrapper;
+              componentWrapper.appendChild(componentBubble);
+              bubble = componentWrapper;
             }
           }
         }
@@ -1048,11 +1051,14 @@ export const createAgentExperience = (
 
       const wrapper = document.createElement("div");
       wrapper.className = "tvw-flex";
+      // Set id for idiomorph matching
+      wrapper.id = `wrapper-${message.id}`;
+      wrapper.setAttribute("data-wrapper-id", message.id);
       if (message.role === "user") {
         wrapper.classList.add("tvw-justify-end");
       }
       wrapper.appendChild(bubble);
-      fragment.appendChild(wrapper);
+      tempContainer.appendChild(wrapper);
     });
 
     // Add standalone typing indicator only if streaming but no assistant message is streaming yet
@@ -1085,16 +1091,21 @@ export const createAgentExperience = (
         "tvw-px-5",
         "tvw-py-3"
       ].join(" ");
+      typingBubble.setAttribute("data-typing-indicator", "true");
 
       typingBubble.appendChild(typingIndicator);
 
       const typingWrapper = document.createElement("div");
       typingWrapper.className = "tvw-flex";
+      // Set id for idiomorph matching
+      typingWrapper.id = "wrapper-typing-indicator";
+      typingWrapper.setAttribute("data-wrapper-id", "typing-indicator");
       typingWrapper.appendChild(typingBubble);
-      fragment.appendChild(typingWrapper);
+      tempContainer.appendChild(typingWrapper);
     }
 
-    container.appendChild(fragment);
+    // Use idiomorph to morph the container contents
+    morphMessages(container, tempContainer);
     // Defer scroll to next frame for smoother animation and to prevent jolt
     // This allows the browser to update layout (e.g., typing indicator removal) before scrolling
     // Use double RAF to ensure layout has fully settled before starting scroll animation

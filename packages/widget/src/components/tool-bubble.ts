@@ -28,6 +28,9 @@ export const createToolBubble = (message: AgentWidgetMessage, config?: AgentWidg
       "tvw-py-0"
     ].join(" ")
   );
+  // Set id for idiomorph matching
+  bubble.id = `bubble-${message.id}`;
+  bubble.setAttribute("data-message-id", message.id);
 
   // Apply bubble-level styles
   if (toolCallConfig.backgroundColor) {

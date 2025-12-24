@@ -246,6 +246,9 @@ export const createMessageActions = (
       visibility === "hover" ? "tvw-message-actions-hover" : ""
     }`
   );
+  // Set id for idiomorph matching (prevents recreation on morph)
+  container.id = `actions-${message.id}`;
+  container.setAttribute("data-actions-for", message.id);
 
   // Track vote state for this message
   let currentVote: "upvote" | "downvote" | null = null;
@@ -414,6 +417,9 @@ export const createStandardBubble = (
   // Create the bubble element
   const classes = getBubbleClasses(message.role, layout);
   const bubble = createElement("div", classes.join(" "));
+  // Set id for idiomorph matching
+  bubble.id = `bubble-${message.id}`;
+  bubble.setAttribute("data-message-id", message.id);
 
   // Add message content
   const contentDiv = document.createElement("div");
