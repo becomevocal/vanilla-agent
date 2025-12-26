@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.31.0
+
+### Minor Changes
+
+- Update message event listeners and add config for header/footer visibility
+
 ## 1.30.0
 
 ### Minor Changes
