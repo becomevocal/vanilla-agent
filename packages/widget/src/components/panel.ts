@@ -94,6 +94,7 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
 
   // Build header using layout config if available, otherwise use standard builder
   const headerLayoutConfig = config?.layout?.header;
+  const showHeader = config?.layout?.showHeader !== false; // default to true
   const headerElements: HeaderElements = headerLayoutConfig
     ? buildHeaderWithLayout(config!, headerLayoutConfig, { showClose })
     : buildHeader({ config, showClose });
@@ -132,10 +133,26 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
 
   // Build composer/footer using extracted builder
   const composerElements: ComposerElements = buildComposer({ config });
+  const showFooter = config?.layout?.showFooter !== false; // default to true
 
   // Assemble container with header, body, and footer
-  attachHeaderToContainer(container, headerElements, config);
-  container.append(body, composerElements.footer);
+  if (showHeader) {
+    attachHeaderToContainer(container, headerElements, config);
+  } else {
+    // Hide header completely
+    headerElements.header.style.display = 'none';
+    attachHeaderToContainer(container, headerElements, config);
+  }
+  
+  container.append(body);
+  
+  if (showFooter) {
+    container.append(composerElements.footer);
+  } else {
+    // Hide footer completely
+    composerElements.footer.style.display = 'none';
+    container.append(composerElements.footer);
+  }
 
   return {
     container,

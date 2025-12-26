@@ -790,6 +790,19 @@ export type AgentWidgetLayoutConfig = {
   messages?: AgentWidgetMessageLayoutConfig;
   /** Slot renderers for custom content injection */
   slots?: Partial<Record<WidgetLayoutSlot, SlotRenderer>>;
+  /**
+   * Show/hide the header section entirely.
+   * When false, the header (including icon, title, buttons) is completely hidden.
+   * @default true
+   */
+  showHeader?: boolean;
+  /**
+   * Show/hide the footer/composer section entirely.
+   * When false, the footer (including input field, send button, suggestions) is completely hidden.
+   * Useful for read-only conversation previews.
+   * @default true
+   */
+  showFooter?: boolean;
 };
 
 // ============================================================================

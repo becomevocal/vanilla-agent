@@ -2029,6 +2029,18 @@ export const createAgentExperience = (
         }
       }
 
+      // Update header visibility based on layout.showHeader
+      const showHeader = config.layout?.showHeader !== false; // default to true
+      if (header) {
+        header.style.display = showHeader ? "" : "none";
+      }
+
+      // Update footer visibility based on layout.showFooter
+      const showFooter = config.layout?.showFooter !== false; // default to true
+      if (footer) {
+        footer.style.display = showFooter ? "" : "none";
+      }
+
       // Only update open state if launcher enabled state changed or autoExpand value changed
       const launcherEnabledChanged = launcherEnabled !== prevLauncherEnabled;
       const autoExpandChanged = autoExpand !== prevAutoExpand;
