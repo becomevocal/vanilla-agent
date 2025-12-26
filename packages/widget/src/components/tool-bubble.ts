@@ -4,7 +4,35 @@ import { formatUnknownValue, describeToolTitle } from "../utils/formatting";
 import { renderLucideIcon } from "../utils/icons";
 
 // Expansion state per widget instance
-const toolExpansionState = new Set<string>();
+export const toolExpansionState = new Set<string>();
+
+// Helper function to update tool bubble UI after expansion state changes
+export const updateToolBubbleUI = (messageId: string, bubble: HTMLElement, config?: AgentWidgetConfig): void => {
+  const expanded = toolExpansionState.has(messageId);
+  const toolCallConfig = config?.toolCall ?? {};
+  const header = bubble.querySelector('button[data-expand-header="true"]') as HTMLElement;
+  const content = bubble.querySelector('.tvw-border-t') as HTMLElement;
+  
+  if (!header || !content) return;
+  
+  header.setAttribute("aria-expanded", expanded ? "true" : "false");
+  
+  // Find toggle icon container - it's the direct child div of headerMeta (which has tvw-ml-auto)
+  const headerMeta = header.querySelector('.tvw-ml-auto') as HTMLElement;
+  const toggleIcon = headerMeta?.querySelector(':scope > .tvw-flex.tvw-items-center') as HTMLElement;
+  if (toggleIcon) {
+    toggleIcon.innerHTML = "";
+    const iconColor = toolCallConfig.toggleTextColor || toolCallConfig.headerTextColor || "currentColor";
+    const chevronIcon = renderLucideIcon(expanded ? "chevron-up" : "chevron-down", 16, iconColor, 2);
+    if (chevronIcon) {
+      toggleIcon.appendChild(chevronIcon);
+    } else {
+      toggleIcon.textContent = expanded ? "Hide" : "Show";
+    }
+  }
+  
+  content.style.display = expanded ? "" : "none";
+};
 
 export const createToolBubble = (message: AgentWidgetMessage, config?: AgentWidgetConfig): HTMLElement => {
   const tool = message.toolCall;
@@ -57,6 +85,8 @@ export const createToolBubble = (message: AgentWidgetMessage, config?: AgentWidg
   ) as HTMLButtonElement;
   header.type = "button";
   header.setAttribute("aria-expanded", expanded ? "true" : "false");
+  header.setAttribute("data-expand-header", "true");
+  header.setAttribute("data-bubble-type", "tool");
 
   // Apply header styles
   if (toolCallConfig.headerBackgroundColor) {
@@ -247,28 +277,6 @@ export const createToolBubble = (message: AgentWidgetMessage, config?: AgentWidg
     }
     content.style.display = expanded ? "" : "none";
   };
-
-  const toggleToolExpansion = () => {
-    expanded = !expanded;
-    if (expanded) {
-      toolExpansionState.add(message.id);
-    } else {
-      toolExpansionState.delete(message.id);
-    }
-    applyToolExpansion();
-  };
-
-  header.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    toggleToolExpansion();
-  });
-
-  header.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggleToolExpansion();
-    }
-  });
 
   applyToolExpansion();
 

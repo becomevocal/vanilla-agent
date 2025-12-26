@@ -26,8 +26,8 @@ import { positionMap } from "./utils/positioning";
 import type { HeaderElements, ComposerElements } from "./components/panel";
 import { MessageTransform, MessageActionCallbacks } from "./components/message-bubble";
 import { createStandardBubble, createTypingIndicator } from "./components/message-bubble";
-import { createReasoningBubble } from "./components/reasoning-bubble";
-import { createToolBubble } from "./components/tool-bubble";
+import { createReasoningBubble, reasoningExpansionState, updateReasoningBubbleUI } from "./components/reasoning-bubble";
+import { createToolBubble, toolExpansionState, updateToolBubbleUI } from "./components/tool-bubble";
 import { createSuggestions } from "./components/suggestions";
 import { enhanceWithForms } from "./components/forms";
 import { pluginRegistry } from "./plugins/registry";
@@ -452,6 +452,60 @@ export const createAgentExperience = (
 
   // Render custom slots
   renderSlots();
+
+  // Add event delegation for reasoning and tool bubble expansion
+  // This handles clicks even after idiomorph morphs the DOM
+  const handleBubbleExpansion = (event: Event) => {
+    const target = event.target as HTMLElement;
+    
+    // Check if the click/keypress is on an expand header button
+    const headerButton = target.closest('button[data-expand-header="true"]') as HTMLElement;
+    if (!headerButton) return;
+    
+    // Find the parent bubble element
+    const bubble = headerButton.closest('.vanilla-reasoning-bubble, .vanilla-tool-bubble') as HTMLElement;
+    if (!bubble) return;
+    
+    // Get message ID from bubble
+    const messageId = bubble.getAttribute('data-message-id');
+    if (!messageId) return;
+    
+    const bubbleType = headerButton.getAttribute('data-bubble-type');
+    
+    // Toggle expansion state
+    if (bubbleType === 'reasoning') {
+      if (reasoningExpansionState.has(messageId)) {
+        reasoningExpansionState.delete(messageId);
+      } else {
+        reasoningExpansionState.add(messageId);
+      }
+      updateReasoningBubbleUI(messageId, bubble);
+    } else if (bubbleType === 'tool') {
+      if (toolExpansionState.has(messageId)) {
+        toolExpansionState.delete(messageId);
+      } else {
+        toolExpansionState.add(messageId);
+      }
+      updateToolBubbleUI(messageId, bubble, config);
+    }
+  };
+
+  // Attach event listeners to messagesWrapper for event delegation
+  messagesWrapper.addEventListener('pointerdown', (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button[data-expand-header="true"]')) {
+      event.preventDefault();
+      handleBubbleExpansion(event);
+    }
+  });
+
+  messagesWrapper.addEventListener('keydown', (event) => {
+    const target = event.target as HTMLElement;
+    if ((event.key === 'Enter' || event.key === ' ') && target.closest('button[data-expand-header="true"]')) {
+      event.preventDefault();
+      handleBubbleExpansion(event);
+    }
+  });
 
   panel.appendChild(container);
   mount.appendChild(wrapper);

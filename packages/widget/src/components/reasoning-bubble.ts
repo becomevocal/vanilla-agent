@@ -4,7 +4,34 @@ import { describeReasonStatus } from "../utils/formatting";
 import { renderLucideIcon } from "../utils/icons";
 
 // Expansion state per widget instance
-const reasoningExpansionState = new Set<string>();
+export const reasoningExpansionState = new Set<string>();
+
+// Helper function to update reasoning bubble UI after expansion state changes
+export const updateReasoningBubbleUI = (messageId: string, bubble: HTMLElement): void => {
+  const expanded = reasoningExpansionState.has(messageId);
+  const header = bubble.querySelector('button[data-expand-header="true"]') as HTMLElement;
+  const content = bubble.querySelector('.tvw-border-t') as HTMLElement;
+  
+  if (!header || !content) return;
+  
+  header.setAttribute("aria-expanded", expanded ? "true" : "false");
+  
+  // Find toggle icon container - it's the direct child div of headerMeta (which has tvw-ml-auto)
+  const headerMeta = header.querySelector('.tvw-ml-auto') as HTMLElement;
+  const toggleIcon = headerMeta?.querySelector(':scope > .tvw-flex.tvw-items-center') as HTMLElement;
+  if (toggleIcon) {
+    toggleIcon.innerHTML = "";
+    const iconColor = "currentColor";
+    const chevronIcon = renderLucideIcon(expanded ? "chevron-up" : "chevron-down", 16, iconColor, 2);
+    if (chevronIcon) {
+      toggleIcon.appendChild(chevronIcon);
+    } else {
+      toggleIcon.textContent = expanded ? "Hide" : "Show";
+    }
+  }
+  
+  content.style.display = expanded ? "" : "none";
+};
 
 export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement => {
   const reasoning = message.reasoning;
@@ -41,6 +68,8 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
   ) as HTMLButtonElement;
   header.type = "button";
   header.setAttribute("aria-expanded", expanded ? "true" : "false");
+  header.setAttribute("data-expand-header", "true");
+  header.setAttribute("data-bubble-type", "reasoning");
 
   const headerContent = createElement("div", "tvw-flex tvw-flex-col tvw-text-left");
   const title = createElement("span", "tvw-text-xs tvw-text-cw-primary");
@@ -104,28 +133,6 @@ export const createReasoningBubble = (message: AgentWidgetMessage): HTMLElement 
     }
     content.style.display = expanded ? "" : "none";
   };
-
-  const toggleExpansion = () => {
-    expanded = !expanded;
-    if (expanded) {
-      reasoningExpansionState.add(message.id);
-    } else {
-      reasoningExpansionState.delete(message.id);
-    }
-    applyExpansionState();
-  };
-
-  header.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    toggleExpansion();
-  });
-
-  header.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggleExpansion();
-    }
-  });
 
   applyExpansionState();
 
