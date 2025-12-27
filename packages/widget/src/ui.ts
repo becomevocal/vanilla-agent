@@ -1282,6 +1282,24 @@ export const createAgentExperience = (
     textarea.style.fontWeight = fontWeight;
   };
 
+  // Add session ID persistence callbacks for client token mode
+  // These allow the widget to resume conversations by passing session_id to /client/init
+  if (config.clientToken) {
+    config = {
+      ...config,
+      getStoredSessionId: () => {
+        const storedId = persistentMetadata['chaty_session_id'];
+        return typeof storedId === 'string' ? storedId : null;
+      },
+      setStoredSessionId: (sessionId: string) => {
+        updateMetadata((prev) => ({
+          ...prev,
+          chaty_session_id: sessionId,
+        }));
+      },
+    };
+  }
+
   session = new AgentWidgetSession(config, {
     onMessagesChanged(messages) {
       renderMessagesWithPlugins(messagesWrapper, messages, postprocess);

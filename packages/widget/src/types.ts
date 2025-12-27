@@ -1115,6 +1115,37 @@ export type AgentWidgetConfig = {
    */
   onSessionExpired?: () => void;
   /**
+   * Get stored session ID for session resumption (client token mode only).
+   * Called when initializing a new session to check if there's a previous session_id
+   * that should be passed to /client/init to resume the same conversation record.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   getStoredSessionId: () => {
+   *     const stored = localStorage.getItem('chaty_session_id');
+   *     return stored || null;
+   *   }
+   * }
+   * ```
+   */
+  getStoredSessionId?: () => string | null;
+  /**
+   * Store session ID for session resumption (client token mode only).
+   * Called when a new session is initialized to persist the session_id
+   * so it can be used to resume the conversation later.
+   * 
+   * @example
+   * ```typescript
+   * config: {
+   *   setStoredSessionId: (sessionId) => {
+   *     localStorage.setItem('chaty_session_id', sessionId);
+   *   }
+   * }
+   * ```
+   */
+  setStoredSessionId?: (sessionId: string) => void;
+  /**
    * Static headers to include with each request.
    * For dynamic headers (e.g., auth tokens), use `getHeaders` instead.
    */

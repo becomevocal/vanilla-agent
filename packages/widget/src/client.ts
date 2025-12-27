@@ -139,15 +139,21 @@ export class AgentWidgetClient {
   }
 
   private async _doInitSession(): Promise<ClientSession> {
+    // Get stored session_id if available (for session resumption)
+    const storedSessionId = this.config.getStoredSessionId?.() || null;
+    
+    const requestBody: Record<string, unknown> = {
+      token: this.config.clientToken,
+      ...(this.config.flowId && { flow_id: this.config.flowId }),
+      ...(storedSessionId && { session_id: storedSessionId }),
+    };
+
     const response = await fetch(this.getClientApiUrl('init'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        token: this.config.clientToken,
-        flow_id: this.config.flowId,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -162,6 +168,12 @@ export class AgentWidgetClient {
     }
 
     const data: ClientInitResponse = await response.json();
+    
+    // Store the new session_id for future resumption
+    if (this.config.setStoredSessionId) {
+      this.config.setStoredSessionId(data.session_id);
+    }
+    
     return {
       sessionId: data.session_id,
       expiresAt: new Date(data.expires_at),
@@ -381,6 +393,13 @@ export class AgentWidgetClient {
       const basePayload = await this.buildPayload(options.messages);
 
       // Build the chat request payload with message IDs for feedback tracking
+      // Filter out chaty_session_id from metadata if present (it's only for local storage)
+      const sanitizedMetadata = basePayload.metadata 
+        ? Object.fromEntries(
+            Object.entries(basePayload.metadata).filter(([key]) => key !== 'chaty_session_id')
+          )
+        : undefined;
+      
       const chatRequest: ClientChatRequest = {
         session_id: session.sessionId,
         messages: options.messages.map(m => ({
@@ -390,8 +409,8 @@ export class AgentWidgetClient {
         })),
         // Include pre-generated assistant message ID if provided
         ...(options.assistantMessageId && { assistant_message_id: options.assistantMessageId }),
-        // Include metadata/context from middleware if present
-        ...(basePayload.metadata && { metadata: basePayload.metadata }),
+        // Include metadata/context from middleware if present (excluding chaty_session_id)
+        ...(sanitizedMetadata && Object.keys(sanitizedMetadata).length > 0 && { metadata: sanitizedMetadata }),
         ...(basePayload.context && { context: basePayload.context }),
       };
 
