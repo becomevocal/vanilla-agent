@@ -1288,13 +1288,13 @@ export const createAgentExperience = (
     config = {
       ...config,
       getStoredSessionId: () => {
-        const storedId = persistentMetadata['chaty_session_id'];
+        const storedId = persistentMetadata['session_id'];
         return typeof storedId === 'string' ? storedId : null;
       },
       setStoredSessionId: (sessionId: string) => {
         updateSessionMetadata((prev) => ({
           ...prev,
-          chaty_session_id: sessionId,
+          session_id: sessionId,
         }));
       },
     };

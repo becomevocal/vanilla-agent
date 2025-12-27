@@ -393,10 +393,10 @@ export class AgentWidgetClient {
       const basePayload = await this.buildPayload(options.messages);
 
       // Build the chat request payload with message IDs for feedback tracking
-      // Filter out chaty_session_id from metadata if present (it's only for local storage)
+      // Filter out session_id from metadata if present (it's only for local storage)
       const sanitizedMetadata = basePayload.metadata 
         ? Object.fromEntries(
-            Object.entries(basePayload.metadata).filter(([key]) => key !== 'chaty_session_id')
+            Object.entries(basePayload.metadata).filter(([key]) => key !== 'session_id')
           )
         : undefined;
       
@@ -409,7 +409,7 @@ export class AgentWidgetClient {
         })),
         // Include pre-generated assistant message ID if provided
         ...(options.assistantMessageId && { assistant_message_id: options.assistantMessageId }),
-        // Include metadata/context from middleware if present (excluding chaty_session_id)
+        // Include metadata/context from middleware if present (excluding session_id)
         ...(sanitizedMetadata && Object.keys(sanitizedMetadata).length > 0 && { metadata: sanitizedMetadata }),
         ...(basePayload.context && { context: basePayload.context }),
       };

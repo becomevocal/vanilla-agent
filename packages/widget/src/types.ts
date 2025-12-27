@@ -1123,7 +1123,7 @@ export type AgentWidgetConfig = {
    * ```typescript
    * config: {
    *   getStoredSessionId: () => {
-   *     const stored = localStorage.getItem('chaty_session_id');
+   *     const stored = localStorage.getItem('session_id');
    *     return stored || null;
    *   }
    * }
@@ -1139,7 +1139,7 @@ export type AgentWidgetConfig = {
    * ```typescript
    * config: {
    *   setStoredSessionId: (sessionId) => {
-   *     localStorage.setItem('chaty_session_id', sessionId);
+   *     localStorage.setItem('session_id', sessionId);
    *   }
    * }
    * ```
