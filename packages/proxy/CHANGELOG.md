@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.32.0
+
+### Minor Changes
+
+- Add ability to persist session id
+
 ## 1.31.0
 
 ### Minor Changes
