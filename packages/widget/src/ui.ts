@@ -204,8 +204,8 @@ export const createAgentExperience = (
     }
   }
 
-  const getMetadata = () => persistentMetadata;
-  const updateMetadata = (
+  const getSessionMetadata = () => persistentMetadata;
+  const updateSessionMetadata = (
     updater: (prev: Record<string, unknown>) => Record<string, unknown>
   ) => {
     const next = updater({ ...persistentMetadata }) ?? {};
@@ -226,8 +226,8 @@ export const createAgentExperience = (
   let actionManager = createActionManager({
     parsers: resolvedActionParsers,
     handlers: resolvedActionHandlers,
-    getMetadata,
-    updateMetadata,
+    getSessionMetadata,
+    updateSessionMetadata,
     emit: eventBus.emit,
     documentRef: typeof document !== "undefined" ? document : null
   });
@@ -758,7 +758,7 @@ export const createAgentExperience = (
     });
   };
   const persistVoiceMetadata = () => {
-    updateMetadata((prev) => ({
+    updateSessionMetadata((prev) => ({
       ...prev,
       voiceState: {
         active: voiceState.active,
@@ -1292,7 +1292,7 @@ export const createAgentExperience = (
         return typeof storedId === 'string' ? storedId : null;
       },
       setStoredSessionId: (sessionId: string) => {
-        updateMetadata((prev) => ({
+        updateSessionMetadata((prev) => ({
           ...prev,
           chaty_session_id: sessionId,
         }));
@@ -2588,8 +2588,8 @@ export const createAgentExperience = (
       actionManager = createActionManager({
         parsers: nextParsers,
         handlers: nextHandlers,
-        getMetadata,
-        updateMetadata,
+        getSessionMetadata,
+        updateSessionMetadata,
         emit: eventBus.emit,
         documentRef: typeof document !== "undefined" ? document : null
       });
@@ -3033,7 +3033,7 @@ export const createAgentExperience = (
     updatePersistentMetadata(
       updater: (prev: Record<string, unknown>) => Record<string, unknown>
     ) {
-      updateMetadata(updater);
+      updateSessionMetadata(updater);
     },
     on(event, handler) {
       return eventBus.on(event, handler);

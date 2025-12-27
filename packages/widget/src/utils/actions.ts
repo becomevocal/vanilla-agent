@@ -19,8 +19,8 @@ type ActionManagerProcessContext = {
 type ActionManagerOptions = {
   parsers: AgentWidgetActionParser[];
   handlers: AgentWidgetActionHandler[];
-  getMetadata: () => Record<string, unknown>;
-  updateMetadata: (
+  getSessionMetadata: () => Record<string, unknown>;
+  updateSessionMetadata: (
     updater: (prev: Record<string, unknown>) => Record<string, unknown>
   ) => void;
   emit: <K extends keyof AgentWidgetControllerEventMap>(
@@ -123,18 +123,18 @@ const ensureArrayOfStrings = (value: unknown): string[] => {
 
 export const createActionManager = (options: ActionManagerOptions) => {
   let processedIds = new Set(
-    ensureArrayOfStrings(options.getMetadata().processedActionMessageIds)
+    ensureArrayOfStrings(options.getSessionMetadata().processedActionMessageIds)
   );
 
   const syncFromMetadata = () => {
     processedIds = new Set(
-      ensureArrayOfStrings(options.getMetadata().processedActionMessageIds)
+      ensureArrayOfStrings(options.getSessionMetadata().processedActionMessageIds)
     );
   };
 
   const persistProcessedIds = () => {
     const latestIds = Array.from(processedIds);
-    options.updateMetadata((prev) => ({
+    options.updateSessionMetadata((prev) => ({
       ...prev,
       processedActionMessageIds: latestIds
     }));
@@ -195,8 +195,8 @@ export const createActionManager = (options: ActionManagerOptions) => {
       try {
         const handlerResult = handler(action, {
           message: context.message,
-          metadata: options.getMetadata(),
-          updateMetadata: options.updateMetadata,
+          metadata: options.getSessionMetadata(),
+          updateMetadata: options.updateSessionMetadata,
           document: options.documentRef
         } as AgentWidgetActionContext) as AgentWidgetActionHandlerResult | void;
 
