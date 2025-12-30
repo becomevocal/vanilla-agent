@@ -3,6 +3,287 @@ import type { AgentWidgetConfig } from "../types";
 type ParserType = "plain" | "json" | "regex-json" | "xml";
 export type CodeFormat = "esm" | "script-installer" | "script-manual" | "script-advanced" | "react-component" | "react-advanced";
 
+/**
+ * Hook code templates for code generation.
+ * Each hook can be provided as a string (code template) OR as an actual function.
+ * Functions are automatically serialized via `.toString()`.
+ *
+ * IMPORTANT: When providing functions:
+ * - Functions must be self-contained (no external variables/closures)
+ * - External variables will be undefined when the generated code runs
+ * - Use arrow functions or regular function expressions
+ *
+ * @example
+ * ```typescript
+ * // Both of these work:
+ *
+ * // As string:
+ * { getHeaders: "async () => ({ 'Authorization': 'Bearer token' })" }
+ *
+ * // As function (recommended - better IDE support):
+ * { getHeaders: async () => ({ 'Authorization': 'Bearer token' }) }
+ * ```
+ */
+export type CodeGeneratorHooks = {
+  /**
+   * Custom getHeaders function.
+   * Should return an object with header key-value pairs.
+   *
+   * @example
+   * ```typescript
+   * async () => ({ 'Authorization': `Bearer ${await getAuthToken()}` })
+   * ```
+   */
+  getHeaders?: string | (() => Record<string, string> | Promise<Record<string, string>>);
+
+  /**
+   * Custom onFeedback callback for message actions.
+   * Receives a feedback object with type, messageId, and message.
+   *
+   * @example
+   * ```typescript
+   * (feedback) => { console.log('Feedback:', feedback.type); }
+   * ```
+   */
+  onFeedback?: string | ((feedback: { type: string; messageId: string; message: unknown }) => void);
+
+  /**
+   * Custom onCopy callback for message actions.
+   * Receives the message that was copied.
+   *
+   * @example
+   * ```typescript
+   * (message) => { analytics.track('message_copied', { id: message.id }); }
+   * ```
+   */
+  onCopy?: string | ((message: unknown) => void);
+
+  /**
+   * Custom requestMiddleware function.
+   * Receives { payload, config } context.
+   *
+   * @example
+   * ```typescript
+   * ({ payload }) => ({ ...payload, metadata: { pageUrl: window.location.href } })
+   * ```
+   */
+  requestMiddleware?: string | ((context: { payload: unknown; config: unknown }) => unknown);
+
+  /**
+   * Custom action handlers array.
+   * Array of handler functions.
+   *
+   * @example
+   * ```typescript
+   * [
+   *   (action, context) => {
+   *     if (action.type === 'custom') {
+   *       return { handled: true };
+   *     }
+   *   }
+   * ]
+   * ```
+   */
+  actionHandlers?: string | Array<(action: unknown, context: unknown) => unknown>;
+
+  /**
+   * Custom action parsers array.
+   * Array of parser functions.
+   */
+  actionParsers?: string | Array<(context: unknown) => unknown>;
+
+  /**
+   * Custom postprocessMessage function.
+   * Receives { text, message, streaming, raw } context.
+   * Will override the default markdownPostprocessor.
+   *
+   * @example
+   * ```typescript
+   * ({ text }) => customMarkdownProcessor(text)
+   * ```
+   */
+  postprocessMessage?: string | ((context: { text: string; message?: unknown; streaming?: boolean; raw?: string }) => string);
+
+  /**
+   * Custom context providers array.
+   * Array of provider functions.
+   */
+  contextProviders?: string | Array<() => unknown>;
+
+  /**
+   * Custom stream parser factory.
+   * Should be a function that returns a StreamParser.
+   */
+  streamParser?: string | (() => unknown);
+};
+
+/**
+ * Options for code generation beyond format selection.
+ */
+export type CodeGeneratorOptions = {
+  /**
+   * Custom hook code to inject into the generated snippet.
+   * Hooks are JavaScript/TypeScript code strings that will be
+   * inserted at appropriate locations in the output.
+   */
+  hooks?: CodeGeneratorHooks;
+
+  /**
+   * Whether to include comments explaining each hook.
+   * @default true
+   */
+  includeHookComments?: boolean;
+};
+
+// Internal type for normalized hooks (always strings)
+type NormalizedHooks = {
+  [K in keyof CodeGeneratorHooks]: string | undefined;
+};
+
+/**
+ * Serialize a hook value (string, function, or array of functions) to a string.
+ */
+function serializeHook(hook: string | Function | Function[] | undefined): string | undefined {
+  if (hook === undefined) return undefined;
+  if (typeof hook === 'string') return hook;
+  if (Array.isArray(hook)) {
+    return `[${hook.map(fn => fn.toString()).join(', ')}]`;
+  }
+  return hook.toString();
+}
+
+/**
+ * Normalize hooks by converting any functions to their string representations.
+ */
+function normalizeHooks(hooks: CodeGeneratorHooks | undefined): NormalizedHooks | undefined {
+  if (!hooks) return undefined;
+
+  return {
+    getHeaders: serializeHook(hooks.getHeaders),
+    onFeedback: serializeHook(hooks.onFeedback),
+    onCopy: serializeHook(hooks.onCopy),
+    requestMiddleware: serializeHook(hooks.requestMiddleware),
+    actionHandlers: serializeHook(hooks.actionHandlers),
+    actionParsers: serializeHook(hooks.actionParsers),
+    postprocessMessage: serializeHook(hooks.postprocessMessage),
+    contextProviders: serializeHook(hooks.contextProviders),
+    streamParser: serializeHook(hooks.streamParser),
+  };
+}
+
+// =============================================================================
+// Template Literals for Code Generation
+// These are injected into generated code as-is.
+// =============================================================================
+
+/**
+ * Template: Parser for JSON wrapped in markdown code fences (TypeScript).
+ * @internal
+ */
+const TEMPLATE_MARKDOWN_JSON_PARSER_TS = `({ text, message }: any) => {
+  const jsonSource = (message as any).rawContent || text || message.content;
+  if (!jsonSource || typeof jsonSource !== 'string') return null;
+  let cleanJson = jsonSource
+    .replace(/^\`\`\`(?:json)?\\s*\\n?/, '')
+    .replace(/\\n?\`\`\`\\s*$/, '')
+    .trim();
+  if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;
+  try {
+    const parsed = JSON.parse(cleanJson);
+    if (parsed.action) return { type: parsed.action, payload: parsed };
+  } catch (e) { return null; }
+  return null;
+}`;
+
+/**
+ * Template: Parser for JSON wrapped in markdown code fences (ES5).
+ * @internal
+ */
+const TEMPLATE_MARKDOWN_JSON_PARSER_ES5 = `function(ctx) {
+  var jsonSource = ctx.message.rawContent || ctx.text || ctx.message.content;
+  if (!jsonSource || typeof jsonSource !== 'string') return null;
+  var cleanJson = jsonSource
+    .replace(/^\`\`\`(?:json)?\\s*\\n?/, '')
+    .replace(/\\n?\`\`\`\\s*$/, '')
+    .trim();
+  if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;
+  try {
+    var parsed = JSON.parse(cleanJson);
+    if (parsed.action) return { type: parsed.action, payload: parsed };
+  } catch (e) { return null; }
+  return null;
+}`;
+
+/**
+ * Template: Handler for nav_then_click actions (TypeScript).
+ * @internal
+ */
+const TEMPLATE_NAV_THEN_CLICK_HANDLER_TS = `(action: any, context: any) => {
+  if (action.type !== 'nav_then_click') return;
+  const payload = action.payload || action.raw || {};
+  const url = payload?.page;
+  const text = payload?.on_load_text || 'Navigating...';
+  if (!url) return { handled: true, displayText: text };
+  const messageId = context.message?.id;
+  const processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');
+  const actionKey = \`nav_\${messageId}_\${url}\`;
+  if (processedActions.includes(actionKey)) {
+    return { handled: true, displayText: text };
+  }
+  processedActions.push(actionKey);
+  localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));
+  const targetUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).toString();
+  window.location.href = targetUrl;
+  return { handled: true, displayText: text };
+}`;
+
+/**
+ * Template: Handler for nav_then_click actions (ES5).
+ * @internal
+ */
+const TEMPLATE_NAV_THEN_CLICK_HANDLER_ES5 = `function(action, context) {
+  if (action.type !== 'nav_then_click') return;
+  var payload = action.payload || action.raw || {};
+  var url = payload.page;
+  var text = payload.on_load_text || 'Navigating...';
+  if (!url) return { handled: true, displayText: text };
+  var messageId = context.message ? context.message.id : null;
+  var processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');
+  var actionKey = 'nav_' + messageId + '_' + url;
+  if (processedActions.includes(actionKey)) {
+    return { handled: true, displayText: text };
+  }
+  processedActions.push(actionKey);
+  localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));
+  var targetUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).toString();
+  window.location.href = targetUrl;
+  return { handled: true, displayText: text };
+}`;
+
+/**
+ * Template: Stream parser callback (TypeScript).
+ * @internal
+ */
+const TEMPLATE_STREAM_PARSER_CALLBACK_TS = `(parsed: any) => {
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (parsed.action === 'nav_then_click') return 'Navigating...';
+  if (parsed.action === 'message') return parsed.text || '';
+  if (parsed.action === 'message_and_click') return parsed.text || 'Processing...';
+  return parsed.text || null;
+}`;
+
+/**
+ * Template: Stream parser callback (ES5).
+ * @internal
+ */
+const TEMPLATE_STREAM_PARSER_CALLBACK_ES5 = `function(parsed) {
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (parsed.action === 'nav_then_click') return 'Navigating...';
+  if (parsed.action === 'message') return parsed.text || '';
+  if (parsed.action === 'message_and_click') return parsed.text || 'Processing...';
+  return parsed.text || null;
+}`;
+
 function detectParserTypeFromStreamParser(streamParser: any): ParserType | null {
   if (!streamParser) return null;
   const fnString = streamParser.toString();
@@ -37,17 +318,21 @@ function generateToolCallConfig(config: any, indent: string): string[] {
   return lines;
 }
 
-// Helper to generate messageActions config (excluding callbacks)
-function generateMessageActionsConfig(config: any, indent: string): string[] {
+// Helper to generate messageActions config (with optional hook callbacks)
+function generateMessageActionsConfig(config: any, indent: string, hooks?: CodeGeneratorHooks): string[] {
   const lines: string[] = [];
-  if (config.messageActions) {
-    const hasSerializableProps = Object.entries(config.messageActions).some(
-      ([key, value]) => key !== "onFeedback" && key !== "onCopy" && value !== undefined
-    );
-    if (hasSerializableProps) {
-      lines.push(`${indent}messageActions: {`);
+  const hasSerializableProps = config.messageActions && Object.entries(config.messageActions).some(
+    ([key, value]) => key !== "onFeedback" && key !== "onCopy" && value !== undefined
+  );
+  const hasHookCallbacks = hooks?.onFeedback || hooks?.onCopy;
+
+  if (hasSerializableProps || hasHookCallbacks) {
+    lines.push(`${indent}messageActions: {`);
+
+    // Add serializable properties from config
+    if (config.messageActions) {
       Object.entries(config.messageActions).forEach(([key, value]) => {
-        // Skip function callbacks
+        // Skip function callbacks - we'll add from hooks if provided
         if (key === "onFeedback" || key === "onCopy") return;
         if (typeof value === "string") {
           lines.push(`${indent}  ${key}: "${value}",`);
@@ -55,8 +340,17 @@ function generateMessageActionsConfig(config: any, indent: string): string[] {
           lines.push(`${indent}  ${key}: ${value},`);
         }
       });
-      lines.push(`${indent}},`);
     }
+
+    // Add hook callbacks
+    if (hooks?.onFeedback) {
+      lines.push(`${indent}  onFeedback: ${hooks.onFeedback},`);
+    }
+    if (hooks?.onCopy) {
+      lines.push(`${indent}  onCopy: ${hooks.onCopy},`);
+    }
+
+    lines.push(`${indent}},`);
   }
   return lines;
 }
@@ -170,31 +464,73 @@ function generateLayoutConfig(config: any, indent: string): string[] {
   return lines;
 }
 
-export function generateCodeSnippet(config: any, format: CodeFormat = "esm"): string {
+// Helper to generate hook-related config lines
+function generateHooksConfig(hooks: CodeGeneratorHooks | undefined, indent: string): string[] {
+  const lines: string[] = [];
+  if (!hooks) return lines;
+
+  if (hooks.getHeaders) {
+    lines.push(`${indent}getHeaders: ${hooks.getHeaders},`);
+  }
+
+  if (hooks.requestMiddleware) {
+    lines.push(`${indent}requestMiddleware: ${hooks.requestMiddleware},`);
+  }
+
+  if (hooks.actionParsers) {
+    lines.push(`${indent}actionParsers: ${hooks.actionParsers},`);
+  }
+
+  if (hooks.actionHandlers) {
+    lines.push(`${indent}actionHandlers: ${hooks.actionHandlers},`);
+  }
+
+  if (hooks.contextProviders) {
+    lines.push(`${indent}contextProviders: ${hooks.contextProviders},`);
+  }
+
+  if (hooks.streamParser) {
+    lines.push(`${indent}streamParser: ${hooks.streamParser},`);
+  }
+
+  return lines;
+}
+
+export function generateCodeSnippet(
+  config: any,
+  format: CodeFormat = "esm",
+  options?: CodeGeneratorOptions
+): string {
   // Remove non-serializable properties
   const cleanConfig = { ...config };
   delete cleanConfig.postprocessMessage;
   delete cleanConfig.initialMessages;
 
+  // Normalize hooks - convert functions to strings via .toString()
+  const normalizedOptions: CodeGeneratorOptions | undefined = options
+    ? { ...options, hooks: normalizeHooks(options.hooks) as CodeGeneratorHooks }
+    : undefined;
+
   if (format === "esm") {
-    return generateESMCode(cleanConfig);
+    return generateESMCode(cleanConfig, normalizedOptions);
   } else if (format === "script-installer") {
     return generateScriptInstallerCode(cleanConfig);
   } else if (format === "script-advanced") {
-    return generateScriptAdvancedCode(cleanConfig);
+    return generateScriptAdvancedCode(cleanConfig, normalizedOptions);
   } else if (format === "react-component") {
-    return generateReactComponentCode(cleanConfig);
+    return generateReactComponentCode(cleanConfig, normalizedOptions);
   } else if (format === "react-advanced") {
-    return generateReactAdvancedCode(cleanConfig);
+    return generateReactAdvancedCode(cleanConfig, normalizedOptions);
   } else {
-    return generateScriptManualCode(cleanConfig);
+    return generateScriptManualCode(cleanConfig, normalizedOptions);
   }
 }
 
-function generateESMCode(config: any): string {
+function generateESMCode(config: any, options?: CodeGeneratorOptions): string {
+  const hooks = options?.hooks;
   const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
   const shouldEmitParserType = parserType !== "plain";
-  
+
   const lines: string[] = [
     "import 'vanilla-agent/widget.css';",
     "import { initAgentWidget, markdownPostprocessor } from 'vanilla-agent';",
@@ -310,8 +646,8 @@ function generateESMCode(config: any): string {
   // Add toolCall config
   lines.push(...generateToolCallConfig(config, "    "));
 
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "    "));
+  // Add messageActions config (with hook callbacks if provided)
+  lines.push(...generateMessageActionsConfig(config, "    ", hooks));
 
   // Add markdown config
   lines.push(...generateMarkdownConfig(config, "    "));
@@ -319,21 +655,30 @@ function generateESMCode(config: any): string {
   // Add layout config
   lines.push(...generateLayoutConfig(config, "    "));
 
+  // Add hook-based config (getHeaders, requestMiddleware, actionParsers, actionHandlers, etc.)
+  lines.push(...generateHooksConfig(hooks, "    "));
+
   if (config.debug) {
     lines.push(`    debug: ${config.debug},`);
   }
 
-  lines.push("    postprocessMessage: ({ text }) => markdownPostprocessor(text)");
+  // Use custom postprocessMessage if provided, otherwise default
+  if (hooks?.postprocessMessage) {
+    lines.push(`    postprocessMessage: ${hooks.postprocessMessage}`);
+  } else {
+    lines.push("    postprocessMessage: ({ text }) => markdownPostprocessor(text)");
+  }
   lines.push("  }");
   lines.push("});");
 
   return lines.join("\n");
 }
 
-function generateReactComponentCode(config: any): string {
+function generateReactComponentCode(config: any, options?: CodeGeneratorOptions): string {
+  const hooks = options?.hooks;
   const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
   const shouldEmitParserType = parserType !== "plain";
-  
+
   const lines: string[] = [
     "// ChatWidget.tsx",
     "'use client'; // Required for Next.js - remove for Vite/CRA",
@@ -458,8 +803,8 @@ function generateReactComponentCode(config: any): string {
   // Add toolCall config
   lines.push(...generateToolCallConfig(config, "        "));
 
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "        "));
+  // Add messageActions config (with hook callbacks if provided)
+  lines.push(...generateMessageActionsConfig(config, "        ", hooks));
 
   // Add markdown config
   lines.push(...generateMarkdownConfig(config, "        "));
@@ -467,11 +812,19 @@ function generateReactComponentCode(config: any): string {
   // Add layout config
   lines.push(...generateLayoutConfig(config, "        "));
 
+  // Add hook-based config (getHeaders, requestMiddleware, actionParsers, actionHandlers, etc.)
+  lines.push(...generateHooksConfig(hooks, "        "));
+
   if (config.debug) {
     lines.push(`        debug: ${config.debug},`);
   }
 
-  lines.push("        postprocessMessage: ({ text }) => markdownPostprocessor(text)");
+  // Use custom postprocessMessage if provided, otherwise default
+  if (hooks?.postprocessMessage) {
+    lines.push(`        postprocessMessage: ${hooks.postprocessMessage}`);
+  } else {
+    lines.push("        postprocessMessage: ({ text }) => markdownPostprocessor(text)");
+  }
   lines.push("      }");
   lines.push("    });");
   lines.push("");
@@ -501,7 +854,8 @@ function generateReactComponentCode(config: any): string {
   return lines.join("\n");
 }
 
-function generateReactAdvancedCode(config: any): string {
+function generateReactAdvancedCode(config: any, options?: CodeGeneratorOptions): string {
+  const hooks = options?.hooks;
   const lines: string[] = [
     "// ChatWidgetAdvanced.tsx",
     "'use client'; // Required for Next.js - remove for Vite/CRA",
@@ -723,8 +1077,8 @@ function generateReactAdvancedCode(config: any): string {
   // Add toolCall config
   lines.push(...generateToolCallConfig(config, "        "));
 
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "        "));
+  // Add messageActions config (with hook callbacks if provided)
+  lines.push(...generateMessageActionsConfig(config, "        ", hooks));
 
   // Add markdown config
   lines.push(...generateMarkdownConfig(config, "        "));
@@ -732,72 +1086,91 @@ function generateReactAdvancedCode(config: any): string {
   // Add layout config
   lines.push(...generateLayoutConfig(config, "        "));
 
+  // Add getHeaders if provided
+  if (hooks?.getHeaders) {
+    lines.push(`        getHeaders: ${hooks.getHeaders},`);
+  }
+
+  // Add contextProviders if provided
+  if (hooks?.contextProviders) {
+    lines.push(`        contextProviders: ${hooks.contextProviders},`);
+  }
+
   if (config.debug) {
     lines.push(`        debug: ${config.debug},`);
   }
 
   lines.push("        initialMessages: loadSavedMessages(),");
-  lines.push("        // Flexible JSON stream parser for handling structured actions");
-  lines.push("        streamParser: () => createFlexibleJsonStreamParser((parsed: any) => {");
-  lines.push("          if (!parsed || typeof parsed !== 'object') return null;");
-  lines.push("          // Extract display text based on action type");
-  lines.push("          if (parsed.action === 'nav_then_click') return 'Navigating...';");
-  lines.push("          if (parsed.action === 'message') return parsed.text || '';");
-  lines.push("          if (parsed.action === 'message_and_click') return parsed.text || 'Processing...';");
-  lines.push("          return parsed.text || null;");
-  lines.push("        }),");
-  lines.push("        // Action parsers to detect JSON actions in responses");
-  lines.push("        actionParsers: [");
-  lines.push("          defaultJsonActionParser,");
-  lines.push("          // Custom parser for markdown-wrapped JSON");
-  lines.push("          ({ text, message }: any) => {");
-  lines.push("            const jsonSource = (message as any).rawContent || text || message.content;");
-  lines.push("            if (!jsonSource || typeof jsonSource !== 'string') return null;");
-  lines.push("            // Strip markdown code fences");
-  lines.push("            let cleanJson = jsonSource");
-  lines.push("              .replace(/^```(?:json)?\\s*\\n?/, '')");
-  lines.push("              .replace(/\\n?```\\s*$/, '')");
-  lines.push("              .trim();");
-  lines.push("            if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;");
-  lines.push("            try {");
-  lines.push("              const parsed = JSON.parse(cleanJson);");
-  lines.push("              if (parsed.action) return { type: parsed.action, payload: parsed };");
-  lines.push("            } catch (e) { return null; }");
-  lines.push("            return null;");
-  lines.push("          }");
-  lines.push("        ],");
-  lines.push("        // Action handlers for navigation and other actions");
-  lines.push("        actionHandlers: [");
-  lines.push("          defaultActionHandlers.message,");
-  lines.push("          defaultActionHandlers.messageAndClick,");
-  lines.push("          // Handler for nav_then_click action");
-  lines.push("          (action: any, context: any) => {");
-  lines.push("            if (action.type !== 'nav_then_click') return;");
-  lines.push("            const payload = action.payload || action.raw || {};");
-  lines.push("            const url = payload?.page;");
-  lines.push("            const text = payload?.on_load_text || 'Navigating...';");
-  lines.push("            if (!url) return { handled: true, displayText: text };");
-  lines.push("            // Check if already processed");
-  lines.push("            const messageId = context.message?.id;");
-  lines.push("            const processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');");
-  lines.push("            const actionKey = `nav_${messageId}_${url}`;");
-  lines.push("            if (processedActions.includes(actionKey)) {");
-  lines.push("              return { handled: true, displayText: text };");
-  lines.push("            }");
-  lines.push("            processedActions.push(actionKey);");
-  lines.push("            localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));");
-  lines.push("            const targetUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).toString();");
-  lines.push("            window.location.href = targetUrl;");
-  lines.push("            return { handled: true, displayText: text };");
-  lines.push("          }");
-  lines.push("        ],");
-  lines.push("        postprocessMessage: ({ text }) => markdownPostprocessor(text),");
-  lines.push("        requestMiddleware: ({ payload }) => {");
-  lines.push("          return {");
-  lines.push("            ...payload,");
-  lines.push("            metadata: collectDOMContext()");
-  lines.push("          };");
-  lines.push("        }");
+
+  // Stream parser - use custom if provided, otherwise default
+  if (hooks?.streamParser) {
+    lines.push(`        streamParser: ${hooks.streamParser},`);
+  } else {
+    lines.push("        // Flexible JSON stream parser for handling structured actions");
+    lines.push(`        streamParser: () => createFlexibleJsonStreamParser(${TEMPLATE_STREAM_PARSER_CALLBACK_TS}),`);
+  }
+
+  // Action parsers - merge custom with defaults if provided
+  if (hooks?.actionParsers) {
+    lines.push("        // Action parsers (custom merged with defaults)");
+    lines.push(`        actionParsers: [...(${hooks.actionParsers}), defaultJsonActionParser,`);
+    lines.push(`          // Built-in parser for markdown-wrapped JSON`);
+    lines.push(`          ${TEMPLATE_MARKDOWN_JSON_PARSER_TS}`);
+    lines.push("        ],");
+  } else {
+    lines.push("        // Action parsers to detect JSON actions in responses");
+    lines.push("        actionParsers: [");
+    lines.push("          defaultJsonActionParser,");
+    lines.push(`          // Parser for markdown-wrapped JSON`);
+    lines.push(`          ${TEMPLATE_MARKDOWN_JSON_PARSER_TS}`);
+    lines.push("        ],");
+  }
+
+  // Action handlers - merge custom with defaults if provided
+  if (hooks?.actionHandlers) {
+    lines.push("        // Action handlers (custom merged with defaults)");
+    lines.push(`        actionHandlers: [...(${hooks.actionHandlers}),`);
+    lines.push("          defaultActionHandlers.message,");
+    lines.push("          defaultActionHandlers.messageAndClick,");
+    lines.push(`          // Built-in handler for nav_then_click action`);
+    lines.push(`          ${TEMPLATE_NAV_THEN_CLICK_HANDLER_TS}`);
+    lines.push("        ],");
+  } else {
+    lines.push("        // Action handlers for navigation and other actions");
+    lines.push("        actionHandlers: [");
+    lines.push("          defaultActionHandlers.message,");
+    lines.push("          defaultActionHandlers.messageAndClick,");
+    lines.push(`          // Handler for nav_then_click action`);
+    lines.push(`          ${TEMPLATE_NAV_THEN_CLICK_HANDLER_TS}`);
+    lines.push("        ],");
+  }
+
+  // postprocessMessage - use custom if provided, otherwise default
+  if (hooks?.postprocessMessage) {
+    lines.push(`        postprocessMessage: ${hooks.postprocessMessage},`);
+  } else {
+    lines.push("        postprocessMessage: ({ text }) => markdownPostprocessor(text),");
+  }
+
+  // requestMiddleware - merge custom with DOM context if provided
+  if (hooks?.requestMiddleware) {
+    lines.push("        // Request middleware (custom merged with DOM context)");
+    lines.push("        requestMiddleware: ({ payload, config }) => {");
+    lines.push(`          const customResult = (${hooks.requestMiddleware})({ payload, config });`);
+    lines.push("          const merged = customResult || payload;");
+    lines.push("          return {");
+    lines.push("            ...merged,");
+    lines.push("            metadata: { ...merged.metadata, ...collectDOMContext() }");
+    lines.push("          };");
+    lines.push("        }");
+  } else {
+    lines.push("        requestMiddleware: ({ payload }) => {");
+    lines.push("          return {");
+    lines.push("            ...payload,");
+    lines.push("            metadata: collectDOMContext()");
+    lines.push("          };");
+    lines.push("        }");
+  }
   lines.push("      }");
   lines.push("    });");
   lines.push("");
@@ -977,7 +1350,8 @@ function generateScriptInstallerCode(config: any): string {
   return `<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js" data-config='${configJson}'></script>`;
 }
 
-function generateScriptManualCode(config: any): string {
+function generateScriptManualCode(config: any, options?: CodeGeneratorOptions): string {
+  const hooks = options?.hooks;
   const parserType = getParserTypeFromConfig(config as AgentWidgetConfig);
   const shouldEmitParserType = parserType !== "plain";
 
@@ -1101,8 +1475,8 @@ function generateScriptManualCode(config: any): string {
   // Add toolCall config
   lines.push(...generateToolCallConfig(config, "      "));
 
-  // Add messageActions config
-  lines.push(...generateMessageActionsConfig(config, "      "));
+  // Add messageActions config (with hook callbacks if provided)
+  lines.push(...generateMessageActionsConfig(config, "      ", hooks));
 
   // Add markdown config
   lines.push(...generateMarkdownConfig(config, "      "));
@@ -1110,11 +1484,19 @@ function generateScriptManualCode(config: any): string {
   // Add layout config
   lines.push(...generateLayoutConfig(config, "      "));
 
+  // Add hook-based config (getHeaders, requestMiddleware, actionParsers, actionHandlers, etc.)
+  lines.push(...generateHooksConfig(hooks, "      "));
+
   if (config.debug) {
     lines.push(`      debug: ${config.debug},`);
   }
 
-  lines.push("      postprocessMessage: ({ text }) => window.AgentWidget.markdownPostprocessor(text)");
+  // Use custom postprocessMessage if provided, otherwise default
+  if (hooks?.postprocessMessage) {
+    lines.push(`      postprocessMessage: ${hooks.postprocessMessage}`);
+  } else {
+    lines.push("      postprocessMessage: ({ text }) => window.AgentWidget.markdownPostprocessor(text)");
+  }
   lines.push("    }");
   lines.push("  });");
   lines.push("</script>");
@@ -1122,10 +1504,11 @@ function generateScriptManualCode(config: any): string {
   return lines.join("\n");
 }
 
-function generateScriptAdvancedCode(config: any): string {
+function generateScriptAdvancedCode(config: any, options?: CodeGeneratorOptions): string {
+  const hooks = options?.hooks;
   const serializableConfig = buildSerializableConfig(config);
   const configJson = JSON.stringify(serializableConfig, null, 2);
-  
+
   const lines: string[] = [
     "<script>",
     "(function() {",
@@ -1215,71 +1598,109 @@ function generateScriptAdvancedCode(config: any): string {
     "  // Create widget config with advanced features",
     "  var createWidgetConfig = function(agentWidget) {",
     "    var widgetConfig = Object.assign({}, CONFIG);",
-    "",
-    "    // Flexible JSON stream parser for handling structured actions",
-    "    widgetConfig.streamParser = function() {",
-    "      return agentWidget.createFlexibleJsonStreamParser(function(parsed) {",
-    "        if (!parsed || typeof parsed !== 'object') return null;",
-    "        if (parsed.action === 'nav_then_click') return 'Navigating...';",
-    "        if (parsed.action === 'message') return parsed.text || '';",
-    "        if (parsed.action === 'message_and_click') return parsed.text || 'Processing...';",
-    "        return parsed.text || null;",
-    "      });",
-    "    };",
-    "",
-    "    // Action parsers to detect JSON actions in responses",
-    "    widgetConfig.actionParsers = [",
-    "      agentWidget.defaultJsonActionParser,",
-    "      function(ctx) {",
-    "        var jsonSource = ctx.message.rawContent || ctx.text || ctx.message.content;",
-    "        if (!jsonSource || typeof jsonSource !== 'string') return null;",
-    "        var cleanJson = jsonSource",
-    "          .replace(/^```(?:json)?\\s*\\n?/, '')",
-    "          .replace(/\\n?```\\s*$/, '')",
-    "          .trim();",
-    "        if (!cleanJson.startsWith('{') || !cleanJson.endsWith('}')) return null;",
-    "        try {",
-    "          var parsed = JSON.parse(cleanJson);",
-    "          if (parsed.action) return { type: parsed.action, payload: parsed };",
-    "        } catch (e) { return null; }",
-    "        return null;",
-    "      }",
-    "    ];",
-    "",
-    "    // Action handlers for navigation and other actions",
-    "    widgetConfig.actionHandlers = [",
-    "      agentWidget.defaultActionHandlers.message,",
-    "      agentWidget.defaultActionHandlers.messageAndClick,",
-    "      function(action, context) {",
-    "        if (action.type !== 'nav_then_click') return;",
-    "        var payload = action.payload || action.raw || {};",
-    "        var url = payload.page;",
-    "        var text = payload.on_load_text || 'Navigating...';",
-    "        if (!url) return { handled: true, displayText: text };",
-    "        var messageId = context.message ? context.message.id : null;",
-    "        var processedActions = JSON.parse(localStorage.getItem(PROCESSED_ACTIONS_KEY) || '[]');",
-    "        var actionKey = 'nav_' + messageId + '_' + url;",
-    "        if (processedActions.includes(actionKey)) {",
-    "          return { handled: true, displayText: text };",
-    "        }",
-    "        processedActions.push(actionKey);",
-    "        localStorage.setItem(PROCESSED_ACTIONS_KEY, JSON.stringify(processedActions));",
-    "        var targetUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).toString();",
-    "        window.location.href = targetUrl;",
-    "        return { handled: true, displayText: text };",
-    "      }",
-    "    ];",
-    "",
-    "    // Send DOM context with each request",
-    "    widgetConfig.requestMiddleware = function(ctx) {",
-    "      return Object.assign({}, ctx.payload, { metadata: domContextProvider() });",
-    "    };",
-    "",
-    "    // Markdown postprocessor",
-    "    widgetConfig.postprocessMessage = function(ctx) {",
-    "      return agentWidget.markdownPostprocessor(ctx.text);",
-    "    };",
-    "",
+    ""
+  ];
+
+  // Add getHeaders if provided
+  if (hooks?.getHeaders) {
+    lines.push(`    widgetConfig.getHeaders = ${hooks.getHeaders};`);
+    lines.push("");
+  }
+
+  // Add contextProviders if provided
+  if (hooks?.contextProviders) {
+    lines.push(`    widgetConfig.contextProviders = ${hooks.contextProviders};`);
+    lines.push("");
+  }
+
+  // Stream parser - use custom if provided, otherwise default
+  if (hooks?.streamParser) {
+    lines.push(`    widgetConfig.streamParser = ${hooks.streamParser};`);
+  } else {
+    lines.push("    // Flexible JSON stream parser for handling structured actions");
+    lines.push("    widgetConfig.streamParser = function() {");
+    lines.push(`      return agentWidget.createFlexibleJsonStreamParser(${TEMPLATE_STREAM_PARSER_CALLBACK_ES5});`);
+    lines.push("    };");
+  }
+  lines.push("");
+
+  // Action parsers - merge custom with defaults if provided
+  if (hooks?.actionParsers) {
+    lines.push("    // Action parsers (custom merged with defaults)");
+    lines.push(`    var customParsers = ${hooks.actionParsers};`);
+    lines.push("    widgetConfig.actionParsers = customParsers.concat([");
+    lines.push("      agentWidget.defaultJsonActionParser,");
+    lines.push(`      ${TEMPLATE_MARKDOWN_JSON_PARSER_ES5}`);
+    lines.push("    ]);");
+  } else {
+    lines.push("    // Action parsers to detect JSON actions in responses");
+    lines.push("    widgetConfig.actionParsers = [");
+    lines.push("      agentWidget.defaultJsonActionParser,");
+    lines.push(`      ${TEMPLATE_MARKDOWN_JSON_PARSER_ES5}`);
+    lines.push("    ];");
+  }
+  lines.push("");
+
+  // Action handlers - merge custom with defaults if provided
+  if (hooks?.actionHandlers) {
+    lines.push("    // Action handlers (custom merged with defaults)");
+    lines.push(`    var customHandlers = ${hooks.actionHandlers};`);
+    lines.push("    widgetConfig.actionHandlers = customHandlers.concat([");
+    lines.push("      agentWidget.defaultActionHandlers.message,");
+    lines.push("      agentWidget.defaultActionHandlers.messageAndClick,");
+    lines.push(`      ${TEMPLATE_NAV_THEN_CLICK_HANDLER_ES5}`);
+    lines.push("    ]);");
+  } else {
+    lines.push("    // Action handlers for navigation and other actions");
+    lines.push("    widgetConfig.actionHandlers = [");
+    lines.push("      agentWidget.defaultActionHandlers.message,");
+    lines.push("      agentWidget.defaultActionHandlers.messageAndClick,");
+    lines.push(`      ${TEMPLATE_NAV_THEN_CLICK_HANDLER_ES5}`);
+    lines.push("    ];");
+  }
+  lines.push("");
+
+  // requestMiddleware - merge custom with DOM context if provided
+  if (hooks?.requestMiddleware) {
+    lines.push("    // Request middleware (custom merged with DOM context)");
+    lines.push("    widgetConfig.requestMiddleware = function(ctx) {");
+    lines.push(`      var customResult = (${hooks.requestMiddleware})(ctx);`);
+    lines.push("      var merged = customResult || ctx.payload;");
+    lines.push("      return Object.assign({}, merged, { metadata: Object.assign({}, merged.metadata, domContextProvider()) });");
+    lines.push("    };");
+  } else {
+    lines.push("    // Send DOM context with each request");
+    lines.push("    widgetConfig.requestMiddleware = function(ctx) {");
+    lines.push("      return Object.assign({}, ctx.payload, { metadata: domContextProvider() });");
+    lines.push("    };");
+  }
+  lines.push("");
+
+  // postprocessMessage - use custom if provided, otherwise default
+  if (hooks?.postprocessMessage) {
+    lines.push(`    widgetConfig.postprocessMessage = ${hooks.postprocessMessage};`);
+  } else {
+    lines.push("    // Markdown postprocessor");
+    lines.push("    widgetConfig.postprocessMessage = function(ctx) {");
+    lines.push("      return agentWidget.markdownPostprocessor(ctx.text);");
+    lines.push("    };");
+  }
+  lines.push("");
+
+  // Add messageActions callbacks if provided
+  if (hooks?.onFeedback || hooks?.onCopy) {
+    lines.push("    // Message action callbacks");
+    lines.push("    widgetConfig.messageActions = widgetConfig.messageActions || {};");
+    if (hooks?.onFeedback) {
+      lines.push(`    widgetConfig.messageActions.onFeedback = ${hooks.onFeedback};`);
+    }
+    if (hooks?.onCopy) {
+      lines.push(`    widgetConfig.messageActions.onCopy = ${hooks.onCopy};`);
+    }
+    lines.push("");
+  }
+
+  lines.push(...[
     "    return widgetConfig;",
     "  };",
     "",
@@ -1374,7 +1795,7 @@ function generateScriptAdvancedCode(config: any): string {
     "  });",
     "})();",
     "</script>"
-  ];
+  ]);
 
   return lines.join("\n");
 }

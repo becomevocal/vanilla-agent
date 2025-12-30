@@ -82,7 +82,7 @@ export {
   generateAssistantMessageId
 } from "./utils/message-id";
 export { generateCodeSnippet } from "./utils/code-generators";
-export type { CodeFormat } from "./utils/code-generators";
+export type { CodeFormat, CodeGeneratorHooks, CodeGeneratorOptions } from "./utils/code-generators";
 export type { AgentWidgetInitHandle };
 
 // Plugin system exports
