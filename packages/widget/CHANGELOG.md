@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.33.0
+
+### Minor Changes
+
+- Add more control over script generation
+
 ## 1.32.0
 
 ### Minor Changes
