@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.35.0
+
+### Minor Changes
+
+- Enable tooltip colors to be configurable
+
 ## 1.34.0
 
 ### Minor Changes
