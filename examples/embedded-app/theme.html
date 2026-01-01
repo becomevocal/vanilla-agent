@@ -1124,6 +1124,78 @@
           </div>
         </section>
 
+        <!-- Attachments Section -->
+        <section class="config-section accordion" id="attachments-section">
+          <div class="accordion-header">
+            <div class="accordion-header-row">
+              <h2>Attachments</h2>
+              <button class="accordion-toggle" aria-label="Toggle section">▼</button>
+            </div>
+            <div class="accordion-presets"></div>
+          </div>
+          <div class="accordion-content">
+          <p class="color-description" style="margin-bottom: 16px;">
+            Allow users to attach files to their messages.
+          </p>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="attachments-enabled" />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Enable File Attachments</span>
+            </label>
+            <p class="color-description">Show attachment button in the composer</p>
+          </div>
+          <div class="form-group">
+            <label>Allowed File Types</label>
+            <div class="file-type-checkboxes" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="attachments-type-images" checked />
+                <span>Images (PNG, JPEG, GIF, WebP)</span>
+              </label>
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="attachments-type-pdf" />
+                <span>PDF Documents</span>
+              </label>
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="attachments-type-text" />
+                <span>Text Files (TXT, Markdown, CSV, JSON)</span>
+              </label>
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="attachments-type-office" />
+                <span>Office Documents (DOC, DOCX, XLS, XLSX)</span>
+              </label>
+            </div>
+            <p class="color-description">Select which file types users can upload</p>
+          </div>
+          <div class="form-group">
+            <label for="attachments-max-files">Maximum Files</label>
+            <select id="attachments-max-files">
+              <option value="1">1 file</option>
+              <option value="2">2 files</option>
+              <option value="4" selected>4 files</option>
+              <option value="6">6 files</option>
+              <option value="10">10 files</option>
+            </select>
+            <p class="color-description">Maximum number of files per message</p>
+          </div>
+          <div class="form-group">
+            <label for="attachments-max-size">Maximum File Size</label>
+            <select id="attachments-max-size">
+              <option value="2">2 MB</option>
+              <option value="5">5 MB</option>
+              <option value="10" selected>10 MB</option>
+              <option value="20">20 MB</option>
+            </select>
+            <p class="color-description">Maximum size per file</p>
+          </div>
+          <div class="form-group">
+            <p id="attachments-supported-formats" class="color-description" style="background: var(--accordion-bg); padding: 12px; border-radius: 8px;">
+              Supported formats: PNG, JPEG, GIF, WebP
+            </p>
+          </div>
+          </div>
+        </section>
+
         <!-- Markdown Options Section -->
         <section class="config-section accordion">
           <div class="accordion-header">

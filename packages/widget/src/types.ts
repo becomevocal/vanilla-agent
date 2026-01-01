@@ -1,5 +1,53 @@
 import type { AgentWidgetPlugin } from "./plugins/types";
 
+// ============================================================================
+// Multi-Modal Content Types
+// ============================================================================
+
+/**
+ * Text content part for multi-modal messages
+ */
+export type TextContentPart = {
+  type: 'text';
+  text: string;
+};
+
+/**
+ * Image content part for multi-modal messages
+ * Supports base64 data URIs or URLs
+ */
+export type ImageContentPart = {
+  type: 'image';
+  image: string; // base64 data URI or URL
+  mimeType?: string;
+  alt?: string; // optional alt text for accessibility
+};
+
+/**
+ * File content part for multi-modal messages
+ * Supports PDF, TXT, DOCX, and other document types
+ */
+export type FileContentPart = {
+  type: 'file';
+  data: string; // base64 data URI
+  mimeType: string;
+  filename: string;
+};
+
+/**
+ * Union type for all content part types
+ */
+export type ContentPart = TextContentPart | ImageContentPart | FileContentPart;
+
+/**
+ * Message content can be a simple string or an array of content parts
+ */
+export type MessageContent = string | ContentPart[];
+
+// ============================================================================
+// Context and Middleware Types
+// ============================================================================
+
 export type AgentWidgetContextProviderContext = {
   messages: AgentWidgetMessage[];
   config: AgentWidgetConfig;
@@ -14,7 +62,7 @@ export type AgentWidgetContextProvider = (
 
 export type AgentWidgetRequestPayloadMessage = {
   role: AgentWidgetMessageRole;
-  content: string;
+  content: MessageContent;
   createdAt: string;
 };
 
@@ -597,7 +645,7 @@ export type ClientChatRequest = {
   messages: Array<{
     id?: string;
     role: 'user' | 'assistant' | 'system';
-    content: string;
+    content: MessageContent;
   }>;
   /** ID for the expected assistant response message */
   assistant_message_id?: string;
@@ -1070,6 +1118,59 @@ export type AgentWidgetMarkdownConfig = {
   disableDefaultStyles?: boolean;
 };
 
+/**
+ * Configuration for file attachments in the composer.
+ * Enables users to attach images to their messages.
+ *
+ * @example
+ * ```typescript
+ * config: {
+ *   attachments: {
+ *     enabled: true,
+ *     allowedTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+ *     maxFileSize: 5 * 1024 * 1024, // 5MB
+ *     maxFiles: 4
+ *   }
+ * }
+ * ```
+ */
+export type AgentWidgetAttachmentsConfig = {
+  /**
+   * Enable/disable file attachments.
+   * @default false
+   */
+  enabled?: boolean;
+  /**
+   * Allowed MIME types for attachments.
+   * @default ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+   */
+  allowedTypes?: string[];
+  /**
+   * Maximum file size in bytes.
+   * @default 10485760 (10MB)
+   */
+  maxFileSize?: number;
+  /**
+   * Maximum number of files per message.
+   * @default 4
+   */
+  maxFiles?: number;
+  /**
+   * Button icon name (from Lucide icons).
+   * @default 'image-plus'
+   */
+  buttonIconName?: string;
+  /**
+   * Tooltip text for the attachment button.
+   * @default 'Attach image'
+   */
+  buttonTooltipText?: string;
+  /**
+   * Callback when a file is rejected (wrong type or too large).
+   */
+  onFileRejected?: (file: File, reason: 'type' | 'size' | 'count') => void;
+};
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -1409,7 +1510,7 @@ export type AgentWidgetConfig = {
   /**
    * Configuration for message action buttons (copy, upvote, downvote).
    * Shows action buttons on assistant messages for user feedback.
-   * 
+   *
    * @example
    * ```typescript
    * config: {
@@ -1430,6 +1531,23 @@ export type AgentWidgetConfig = {
    * ```
    */
   messageActions?: AgentWidgetMessageActionsConfig;
+
+  /**
+   * Configuration for file attachments in the composer.
+   * When enabled, users can attach images to their messages.
+   *
+   * @example
+   * ```typescript
+   * config: {
+   *   attachments: {
+   *     enabled: true,
+   *     maxFileSize: 5 * 1024 * 1024, // 5MB
+   *     maxFiles: 4
+   *   }
+   * }
+   * ```
+   */
+  attachments?: AgentWidgetAttachmentsConfig;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";
@@ -1460,10 +1578,11 @@ export type AgentWidgetMessageVariant = "assistant" | "reasoning" | "tool";
 
 /**
  * Represents a message in the chat conversation.
- * 
+ *
  * @property id - Unique message identifier
  * @property role - Message role: "user", "assistant", or "system"
- * @property content - Message text content
+ * @property content - Message text content (for display)
+ * @property contentParts - Original multi-modal content parts (for API requests)
  * @property createdAt - ISO timestamp when message was created
  * @property streaming - Whether message is still streaming (for assistant messages)
  * @property variant - Message variant for assistant messages: "assistant", "reasoning", or "tool"
@@ -1479,6 +1598,12 @@ export type AgentWidgetMessage = {
   role: AgentWidgetMessageRole;
   content: string;
   createdAt: string;
+  /**
+   * Original multi-modal content parts for this message.
+   * When present, this is sent to the API instead of `content`.
+   * The `content` field contains the text-only representation for display.
+   */
+  contentParts?: ContentPart[];
   streaming?: boolean;
   variant?: AgentWidgetMessageVariant;
   sequence?: number;

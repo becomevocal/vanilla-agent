@@ -82,6 +82,15 @@ export interface PanelElements {
   // Exposed for potential header replacement
   header: HTMLElement;
   footer: HTMLElement;
+  // Attachment elements
+  attachmentButton: HTMLButtonElement | null;
+  attachmentButtonWrapper: HTMLElement | null;
+  attachmentInput: HTMLInputElement | null;
+  attachmentPreviewsContainer: HTMLElement | null;
+  // Actions row layout elements
+  actionsRow: HTMLElement;
+  leftActions: HTMLElement;
+  rightActions: HTMLElement;
 }
 
 export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelElements => {
@@ -176,7 +185,16 @@ export const buildPanel = (config?: AgentWidgetConfig, showClose = true): PanelE
     headerTitle: headerElements.headerTitle,
     headerSubtitle: headerElements.headerSubtitle,
     header: headerElements.header,
-    footer: composerElements.footer
+    footer: composerElements.footer,
+    // Attachment elements
+    attachmentButton: composerElements.attachmentButton,
+    attachmentButtonWrapper: composerElements.attachmentButtonWrapper,
+    attachmentInput: composerElements.attachmentInput,
+    attachmentPreviewsContainer: composerElements.attachmentPreviewsContainer,
+    // Actions row layout elements
+    actionsRow: composerElements.actionsRow,
+    leftActions: composerElements.leftActions,
+    rightActions: composerElements.rightActions
   };
 };
 

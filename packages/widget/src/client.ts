@@ -405,7 +405,8 @@ export class AgentWidgetClient {
         messages: options.messages.map(m => ({
           id: m.id, // Include message ID for tracking
           role: m.role,
-          content: m.rawContent || m.content,
+          // Use contentParts for multi-modal messages, otherwise fall back to string content
+          content: m.contentParts ?? m.rawContent ?? m.content,
         })),
         // Include pre-generated assistant message ID if provided
         ...(options.assistantMessageId && { assistant_message_id: options.assistantMessageId }),
@@ -563,7 +564,8 @@ export class AgentWidgetClient {
       })
       .map((message) => ({
         role: message.role,
-        content: message.rawContent || message.content,
+        // Use contentParts for multi-modal messages, otherwise fall back to string content
+        content: message.contentParts ?? message.rawContent ?? message.content,
         createdAt: message.createdAt
       }));
 

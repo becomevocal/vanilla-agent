@@ -12,8 +12,11 @@ import {
   AgentWidgetStateSnapshot,
   WidgetLayoutSlot,
   SlotRenderer,
-  AgentWidgetMessageFeedback
+  AgentWidgetMessageFeedback,
+  ContentPart
 } from "./types";
+import { AttachmentManager } from "./utils/attachment-manager";
+import { createTextPart, ALL_SUPPORTED_MIME_TYPES } from "./utils/content";
 import { applyThemeVariables, createThemeObserver } from "./utils/theme";
 import { renderLucideIcon } from "./utils/icons";
 import { createElement } from "./utils/dom";
@@ -304,12 +307,36 @@ export const createAgentExperience = (
     headerTitle,
     headerSubtitle,
     header,
-    footer
+    footer,
+    actionsRow,
+    leftActions,
+    rightActions
   } = panelElements;
-  
+
   // Use mutable references for mic button so we can update them dynamically
   let micButton: HTMLButtonElement | null = panelElements.micButton;
   let micButtonWrapper: HTMLElement | null = panelElements.micButtonWrapper;
+
+  // Use mutable references for attachment elements so we can create them dynamically
+  let attachmentButton: HTMLButtonElement | null = panelElements.attachmentButton;
+  let attachmentButtonWrapper: HTMLElement | null = panelElements.attachmentButtonWrapper;
+  let attachmentInput: HTMLInputElement | null = panelElements.attachmentInput;
+  let attachmentPreviewsContainer: HTMLElement | null = panelElements.attachmentPreviewsContainer;
+
+  // Initialize attachment manager if attachments are enabled
+  let attachmentManager: AttachmentManager | null = null;
+  if (config.attachments?.enabled && attachmentInput && attachmentPreviewsContainer) {
+    attachmentManager = AttachmentManager.fromConfig(config.attachments);
+    attachmentManager.setPreviewsContainer(attachmentPreviewsContainer);
+
+    // Wire up file input change event
+    attachmentInput.addEventListener("change", (e) => {
+      const target = e.target as HTMLInputElement;
+      attachmentManager?.handleFileSelect(target.files);
+      // Reset input so same file can be selected again
+      target.value = "";
+    });
+  }
 
   // Plugin hook: renderHeader - allow plugins to provide custom header
   const headerPlugin = plugins.find(p => p.renderHeader);
@@ -1371,9 +1398,33 @@ export const createAgentExperience = (
   const handleSubmit = (event: Event) => {
     event.preventDefault();
     const value = textarea.value.trim();
-    if (!value) return;
+    const hasAttachments = attachmentManager?.hasAttachments() ?? false;
+
+    // Must have text or attachments to send
+    if (!value && !hasAttachments) return;
+
+    // Build content parts if there are attachments
+    let contentParts: ContentPart[] | undefined;
+    if (hasAttachments) {
+      contentParts = [];
+      // Add image parts first
+      contentParts.push(...attachmentManager!.getContentParts());
+      // Add text part if there's text
+      if (value) {
+        contentParts.push(createTextPart(value));
+      }
+    }
+
     textarea.value = "";
-    session.sendMessage(value);
+    textarea.style.height = "auto"; // Reset height after clearing
+
+    // Send message with optional content parts
+    session.sendMessage(value, { contentParts });
+
+    // Clear attachments after sending
+    if (hasAttachments) {
+      attachmentManager!.clearAttachments();
+    }
   };
 
   const handleInputEnter = (event: KeyboardEvent) => {
@@ -1451,6 +1502,7 @@ export const createAgentExperience = (
           if (finalValue && speechRecognition && isRecording) {
             stopVoiceRecognition();
             textarea.value = "";
+            textarea.style.height = "auto"; // Reset height after clearing
             session.sendMessage(finalValue, { viaVoice: true });
           }
         }, pauseDuration);
@@ -1470,6 +1522,7 @@ export const createAgentExperience = (
         const finalValue = textarea.value.trim();
         if (finalValue && finalValue !== initialText.trim()) {
           textarea.value = "";
+          textarea.style.height = "auto"; // Reset height after clearing
           session.sendMessage(finalValue, { viaVoice: true });
         }
         stopVoiceRecognition();
@@ -1671,6 +1724,7 @@ export const createAgentExperience = (
       stopVoiceRecognition("user");
       if (finalValue) {
         textarea.value = "";
+        textarea.style.height = "auto"; // Reset height after clearing
         session.sendMessage(finalValue);
       }
     } else {
@@ -2607,16 +2661,11 @@ export const createAgentExperience = (
       
       // Update voice recognition mic button visibility
       const voiceRecognitionEnabled = config.voiceRecognition?.enabled === true;
-      const hasSpeechRecognition = 
-        typeof window !== 'undefined' && 
-        (typeof (window as any).webkitSpeechRecognition !== 'undefined' || 
+      const hasSpeechRecognition =
+        typeof window !== 'undefined' &&
+        (typeof (window as any).webkitSpeechRecognition !== 'undefined' ||
          typeof (window as any).SpeechRecognition !== 'undefined');
-      
-      // Update composer form gap based on voice recognition
-      const shouldUseSmallGap = voiceRecognitionEnabled && hasSpeechRecognition;
-      composerForm.classList.remove("tvw-gap-1", "tvw-gap-3");
-      composerForm.classList.add(shouldUseSmallGap ? "tvw-gap-1" : "tvw-gap-3");
-      
+
       if (voiceRecognitionEnabled && hasSpeechRecognition) {
         // Create or update mic button
         if (!micButton || !micButtonWrapper) {
@@ -2627,8 +2676,8 @@ export const createAgentExperience = (
             micButton = micButtonResult.micButton;
             micButtonWrapper = micButtonResult.micButtonWrapper;
             
-            // Insert before send button wrapper
-            composerForm.insertBefore(micButtonWrapper, sendButtonWrapper);
+            // Insert into right actions before send button wrapper
+            rightActions.insertBefore(micButtonWrapper, sendButtonWrapper);
             
             // Wire up click handler
             micButton.addEventListener("click", handleMicButtonClick);
@@ -2744,7 +2793,139 @@ export const createAgentExperience = (
           }
         }
       }
-      
+
+      // Update attachment button visibility based on attachments config
+      const attachmentsEnabled = config.attachments?.enabled === true;
+      if (attachmentsEnabled) {
+        // Create or show attachment button
+        if (!attachmentButtonWrapper || !attachmentButton) {
+          // Need to create the attachment elements dynamically
+          const attachmentsConfig = config.attachments ?? {};
+          const sendButtonConfig = config.sendButton ?? {};
+          const buttonSize = sendButtonConfig.size ?? "40px";
+
+          // Create previews container if not exists
+          if (!attachmentPreviewsContainer) {
+            attachmentPreviewsContainer = createElement("div", "tvw-attachment-previews tvw-flex tvw-flex-wrap tvw-gap-2 tvw-mb-2");
+            attachmentPreviewsContainer.style.display = "none";
+            composerForm.insertBefore(attachmentPreviewsContainer, textarea);
+          }
+
+          // Create file input if not exists
+          if (!attachmentInput) {
+            attachmentInput = document.createElement("input");
+            attachmentInput.type = "file";
+            attachmentInput.accept = (attachmentsConfig.allowedTypes ?? ALL_SUPPORTED_MIME_TYPES).join(",");
+            attachmentInput.multiple = (attachmentsConfig.maxFiles ?? 4) > 1;
+            attachmentInput.style.display = "none";
+            attachmentInput.setAttribute("aria-label", "Attach files");
+            composerForm.insertBefore(attachmentInput, textarea);
+          }
+
+          // Create attachment button wrapper
+          attachmentButtonWrapper = createElement("div", "tvw-send-button-wrapper");
+
+          // Create attachment button
+          attachmentButton = createElement(
+            "button",
+            "tvw-rounded-button tvw-flex tvw-items-center tvw-justify-center disabled:tvw-opacity-50 tvw-cursor-pointer tvw-attachment-button"
+          ) as HTMLButtonElement;
+          attachmentButton.type = "button";
+          attachmentButton.setAttribute("aria-label", attachmentsConfig.buttonTooltipText ?? "Attach file");
+
+          // Default to paperclip icon
+          const attachIconName = attachmentsConfig.buttonIconName ?? "paperclip";
+          const attachIconSize = buttonSize;
+          const buttonSizeNum = parseFloat(attachIconSize) || 40;
+          // Icon should be ~60% of button size to match other icons visually
+          const attachIconSizeNum = Math.round(buttonSizeNum * 0.6);
+
+          attachmentButton.style.width = attachIconSize;
+          attachmentButton.style.height = attachIconSize;
+          attachmentButton.style.minWidth = attachIconSize;
+          attachmentButton.style.minHeight = attachIconSize;
+          attachmentButton.style.fontSize = "18px";
+          attachmentButton.style.lineHeight = "1";
+          attachmentButton.style.backgroundColor = "transparent";
+          attachmentButton.style.color = "var(--cw-primary, #111827)";
+          attachmentButton.style.border = "none";
+          attachmentButton.style.borderRadius = "6px";
+          attachmentButton.style.transition = "background-color 0.15s ease";
+
+          // Add hover effect via mouseenter/mouseleave
+          attachmentButton.addEventListener("mouseenter", () => {
+            attachmentButton!.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+          });
+          attachmentButton.addEventListener("mouseleave", () => {
+            attachmentButton!.style.backgroundColor = "transparent";
+          });
+
+          const attachIconSvg = renderLucideIcon(attachIconName, attachIconSizeNum, "currentColor", 1.5);
+          if (attachIconSvg) {
+            attachmentButton.appendChild(attachIconSvg);
+          } else {
+            attachmentButton.textContent = "📎";
+          }
+
+          attachmentButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            attachmentInput?.click();
+          });
+
+          attachmentButtonWrapper.appendChild(attachmentButton);
+
+          // Add tooltip
+          const attachTooltipText = attachmentsConfig.buttonTooltipText ?? "Attach file";
+          const tooltip = createElement("div", "tvw-send-button-tooltip");
+          tooltip.textContent = attachTooltipText;
+          attachmentButtonWrapper.appendChild(tooltip);
+
+          // Insert into left actions container
+          leftActions.append(attachmentButtonWrapper);
+
+          // Initialize attachment manager
+          if (!attachmentManager && attachmentInput && attachmentPreviewsContainer) {
+            attachmentManager = AttachmentManager.fromConfig(attachmentsConfig);
+            attachmentManager.setPreviewsContainer(attachmentPreviewsContainer);
+
+            attachmentInput.addEventListener("change", async () => {
+              if (attachmentManager && attachmentInput?.files) {
+                await attachmentManager.handleFileSelect(attachmentInput.files);
+                attachmentInput.value = "";
+              }
+            });
+          }
+        } else {
+          // Show existing attachment button and update config
+          attachmentButtonWrapper.style.display = "";
+
+          // Update file input accept attribute when config changes
+          const attachmentsConfig = config.attachments ?? {};
+          if (attachmentInput) {
+            attachmentInput.accept = (attachmentsConfig.allowedTypes ?? ALL_SUPPORTED_MIME_TYPES).join(",");
+            attachmentInput.multiple = (attachmentsConfig.maxFiles ?? 4) > 1;
+          }
+
+          // Update attachment manager config
+          if (attachmentManager) {
+            attachmentManager.updateConfig({
+              allowedTypes: attachmentsConfig.allowedTypes,
+              maxFileSize: attachmentsConfig.maxFileSize,
+              maxFiles: attachmentsConfig.maxFiles
+            });
+          }
+        }
+      } else {
+        // Hide attachment button if disabled
+        if (attachmentButtonWrapper) {
+          attachmentButtonWrapper.style.display = "none";
+        }
+        // Clear any pending attachments
+        if (attachmentManager) {
+          attachmentManager.clearAttachments();
+        }
+      }
+
       // Update send button styling
       const sendButtonConfig = config.sendButton ?? {};
       const useIcon = sendButtonConfig.useIcon ?? false;
@@ -2987,6 +3168,7 @@ export const createAgentExperience = (
       }
       
       textarea.value = "";
+      textarea.style.height = "auto"; // Reset height after clearing
       session.sendMessage(valueToSubmit);
       return true;
     },

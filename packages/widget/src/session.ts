@@ -3,7 +3,8 @@ import {
   AgentWidgetConfig,
   AgentWidgetEvent,
   AgentWidgetMessage,
-  ClientSession
+  ClientSession,
+  ContentPart
 } from "./types";
 import {
   generateUserMessageId,
@@ -187,9 +188,17 @@ export class AgentWidgetSession {
     this.handleEvent(event);
   }
 
-  public async sendMessage(rawInput: string, options?: { viaVoice?: boolean }) {
+  public async sendMessage(
+    rawInput: string,
+    options?: {
+      viaVoice?: boolean;
+      /** Multi-modal content parts (e.g., images) to include with the message */
+      contentParts?: ContentPart[];
+    }
+  ) {
     const input = rawInput.trim();
-    if (!input) return;
+    // Allow sending if there's text OR attachments
+    if (!input && (!options?.contentParts || options.contentParts.length === 0)) return;
 
     this.abortController?.abort();
 
@@ -200,10 +209,14 @@ export class AgentWidgetSession {
     const userMessage: AgentWidgetMessage = {
       id: userMessageId,
       role: "user",
-      content: input,
+      content: input || "[Image]", // Display text (fallback if only images)
       createdAt: new Date().toISOString(),
       sequence: this.nextSequence(),
-      viaVoice: options?.viaVoice || false
+      viaVoice: options?.viaVoice || false,
+      // Include contentParts if provided (for multi-modal messages)
+      ...(options?.contentParts && options.contentParts.length > 0 && {
+        contentParts: options.contentParts
+      })
     };
 
     this.appendMessage(userMessage);

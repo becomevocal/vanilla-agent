@@ -3360,6 +3360,118 @@ function setupMessageActionsControls() {
   });
 }
 
+// File type MIME type mappings
+const FILE_TYPE_CATEGORIES = {
+  images: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+  pdf: ['application/pdf'],
+  text: ['text/plain', 'text/markdown', 'text/csv', 'application/json'],
+  office: [
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ]
+};
+
+const FILE_TYPE_DISPLAY_NAMES: Record<string, string[]> = {
+  images: ['PNG', 'JPEG', 'GIF', 'WebP'],
+  pdf: ['PDF'],
+  text: ['TXT', 'Markdown', 'CSV', 'JSON'],
+  office: ['DOC', 'DOCX', 'XLS', 'XLSX']
+};
+
+// Attachments controls
+function setupAttachmentsControls() {
+  const enabledInput = getInput<HTMLInputElement>("attachments-enabled");
+  const maxFilesSelect = getInput<HTMLSelectElement>("attachments-max-files");
+  const maxSizeSelect = getInput<HTMLSelectElement>("attachments-max-size");
+  const typeImagesInput = getInput<HTMLInputElement>("attachments-type-images");
+  const typePdfInput = getInput<HTMLInputElement>("attachments-type-pdf");
+  const typeTextInput = getInput<HTMLInputElement>("attachments-type-text");
+  const typeOfficeInput = getInput<HTMLInputElement>("attachments-type-office");
+  const supportedFormatsEl = document.getElementById("attachments-supported-formats");
+
+  // Helper to get allowed types from checkboxes
+  const getAllowedTypes = (): string[] => {
+    const types: string[] = [];
+    if (typeImagesInput.checked) types.push(...FILE_TYPE_CATEGORIES.images);
+    if (typePdfInput.checked) types.push(...FILE_TYPE_CATEGORIES.pdf);
+    if (typeTextInput.checked) types.push(...FILE_TYPE_CATEGORIES.text);
+    if (typeOfficeInput.checked) types.push(...FILE_TYPE_CATEGORIES.office);
+    return types;
+  };
+
+  // Helper to update the supported formats display
+  const updateSupportedFormatsDisplay = () => {
+    const formats: string[] = [];
+    if (typeImagesInput.checked) formats.push(...FILE_TYPE_DISPLAY_NAMES.images);
+    if (typePdfInput.checked) formats.push(...FILE_TYPE_DISPLAY_NAMES.pdf);
+    if (typeTextInput.checked) formats.push(...FILE_TYPE_DISPLAY_NAMES.text);
+    if (typeOfficeInput.checked) formats.push(...FILE_TYPE_DISPLAY_NAMES.office);
+
+    if (supportedFormatsEl) {
+      supportedFormatsEl.textContent = formats.length > 0
+        ? `Supported formats: ${formats.join(', ')}`
+        : 'No file types selected';
+    }
+  };
+
+  // Helper to set checkbox states from allowedTypes array
+  const setCheckboxesFromAllowedTypes = (allowedTypes: string[] | undefined) => {
+    if (!allowedTypes || allowedTypes.length === 0) {
+      // Default to images only
+      typeImagesInput.checked = true;
+      typePdfInput.checked = false;
+      typeTextInput.checked = false;
+      typeOfficeInput.checked = false;
+    } else {
+      typeImagesInput.checked = FILE_TYPE_CATEGORIES.images.some(t => allowedTypes.includes(t));
+      typePdfInput.checked = FILE_TYPE_CATEGORIES.pdf.some(t => allowedTypes.includes(t));
+      typeTextInput.checked = FILE_TYPE_CATEGORIES.text.some(t => allowedTypes.includes(t));
+      typeOfficeInput.checked = FILE_TYPE_CATEGORIES.office.some(t => allowedTypes.includes(t));
+    }
+  };
+
+  // Set initial values
+  enabledInput.checked = currentConfig.attachments?.enabled ?? false;
+  maxFilesSelect.value = String(currentConfig.attachments?.maxFiles ?? 4);
+  maxSizeSelect.value = String((currentConfig.attachments?.maxFileSize ?? 10485760) / (1024 * 1024));
+  setCheckboxesFromAllowedTypes(currentConfig.attachments?.allowedTypes);
+  updateSupportedFormatsDisplay();
+
+  const updateAttachments = () => {
+    const maxSizeMB = parseInt(maxSizeSelect.value, 10);
+    const allowedTypes = getAllowedTypes();
+
+    // Ensure at least one type is selected
+    if (allowedTypes.length === 0) {
+      typeImagesInput.checked = true;
+      allowedTypes.push(...FILE_TYPE_CATEGORIES.images);
+    }
+
+    updateSupportedFormatsDisplay();
+
+    const newConfig = {
+      ...currentConfig,
+      attachments: enabledInput.checked ? {
+        enabled: true,
+        maxFiles: parseInt(maxFilesSelect.value, 10),
+        maxFileSize: maxSizeMB * 1024 * 1024,
+        allowedTypes
+      } : undefined
+    };
+    debouncedUpdate(newConfig);
+  };
+
+  enabledInput.addEventListener("change", updateAttachments);
+  maxFilesSelect.addEventListener("change", updateAttachments);
+  maxSizeSelect.addEventListener("change", updateAttachments);
+  typeImagesInput.addEventListener("change", updateAttachments);
+  typePdfInput.addEventListener("change", updateAttachments);
+  typeTextInput.addEventListener("change", updateAttachments);
+  typeOfficeInput.addEventListener("change", updateAttachments);
+}
+
 // Markdown Options controls
 function setupMarkdownControls() {
   const gfmInput = getInput<HTMLInputElement>("markdown-gfm");
@@ -3757,6 +3869,7 @@ function init() {
   setupFeatureControls();
   setupToolCallControls();
   setupMessageActionsControls();
+  setupAttachmentsControls();
   setupMarkdownControls();
   setupLayoutControls();
   setupFormStyleControls();
@@ -4174,6 +4287,41 @@ function buildSearchableFieldsIndex() {
         getValue: () => element.checked,
         setValue: (value: string | boolean) => {
           element.checked = Boolean(value);
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+  });
+
+  // Attachments
+  const attachmentsFields = [
+    { id: 'attachments-enabled', label: 'Enable File Attachments', type: 'checkbox' },
+    { id: 'attachments-max-files', label: 'Maximum Files', type: 'select' },
+    { id: 'attachments-max-size', label: 'Maximum File Size', type: 'select' },
+    { id: 'attachments-type-images', label: 'Allow Images', type: 'checkbox' },
+    { id: 'attachments-type-pdf', label: 'Allow PDF Documents', type: 'checkbox' },
+    { id: 'attachments-type-text', label: 'Allow Text Files', type: 'checkbox' },
+    { id: 'attachments-type-office', label: 'Allow Office Documents', type: 'checkbox' }
+  ];
+
+  attachmentsFields.forEach(field => {
+    const element = document.getElementById(field.id) as HTMLInputElement | HTMLSelectElement;
+    if (element) {
+      searchableFields.push({
+        id: field.id,
+        label: field.label,
+        key: field.id,
+        type: field.type as 'checkbox' | 'select',
+        accordionName: 'Attachments',
+        accordionId: 'attachments',
+        element: element.parentElement as HTMLElement,
+        getValue: () => field.type === 'checkbox' ? (element as HTMLInputElement).checked : (element as HTMLSelectElement).value,
+        setValue: (value: string | boolean) => {
+          if (field.type === 'checkbox') {
+            (element as HTMLInputElement).checked = Boolean(value);
+          } else {
+            (element as HTMLSelectElement).value = String(value);
+          }
           element.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });

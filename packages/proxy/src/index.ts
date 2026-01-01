@@ -71,7 +71,7 @@ const DEFAULT_FLOW: TravrseFlowConfig = {
       type: "prompt",
       enabled: true,
       config: {
-        model: "meta/llama3.1-8b-instruct-free",
+        model: "gemini-2.5-flash",
         // model: "gpt-4o",
         response_format: "markdown",
         output_variable: "prompt_result",

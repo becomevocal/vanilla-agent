@@ -1,6 +1,7 @@
 import { createElement } from "../utils/dom";
 import { renderLucideIcon } from "../utils/icons";
-import { AgentWidgetConfig } from "../types";
+import { AgentWidgetConfig, ContentPart } from "../types";
+import { ALL_SUPPORTED_MIME_TYPES } from "../utils/content";
 
 export interface ComposerElements {
   footer: HTMLElement;
@@ -12,6 +13,25 @@ export interface ComposerElements {
   micButton: HTMLButtonElement | null;
   micButtonWrapper: HTMLElement | null;
   statusText: HTMLElement;
+  // Attachment elements
+  attachmentButton: HTMLButtonElement | null;
+  attachmentButtonWrapper: HTMLElement | null;
+  attachmentInput: HTMLInputElement | null;
+  attachmentPreviewsContainer: HTMLElement | null;
+  // Actions row layout elements
+  actionsRow: HTMLElement;
+  leftActions: HTMLElement;
+  rightActions: HTMLElement;
+}
+
+/**
+ * Pending attachment before it's added to the message
+ */
+export interface PendingAttachment {
+  id: string;
+  file: File;
+  previewUrl: string;
+  contentPart: ContentPart;
 }
 
 export interface ComposerBuildContext {
@@ -54,20 +74,10 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
     "tvw-mb-3 tvw-flex tvw-flex-wrap tvw-gap-2"
   );
 
-  // Determine gap based on voice recognition
-  const voiceRecognitionEnabledForGap =
-    config?.voiceRecognition?.enabled === true;
-  const hasSpeechRecognitionForGap =
-    typeof window !== "undefined" &&
-    (typeof (window as any).webkitSpeechRecognition !== "undefined" ||
-      typeof (window as any).SpeechRecognition !== "undefined");
-  const shouldUseSmallGap =
-    voiceRecognitionEnabledForGap && hasSpeechRecognitionForGap;
-  const gapClass = shouldUseSmallGap ? "tvw-gap-1" : "tvw-gap-3";
-
+  // Composer form uses column layout: textarea on top, actions row below
   const composerForm = createElement(
     "form",
-    `tvw-widget-composer tvw-flex tvw-items-end ${gapClass} tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3`
+    `tvw-widget-composer tvw-flex tvw-flex-col tvw-gap-2 tvw-rounded-2xl tvw-border tvw-border-gray-200 tvw-bg-cw-input-background tvw-px-4 tvw-py-3`
   ) as HTMLFormElement;
   // Prevent form from getting focus styles
   composerForm.style.outline = "none";
@@ -75,7 +85,7 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
   const textarea = createElement("textarea") as HTMLTextAreaElement;
   textarea.placeholder = config?.copy?.inputPlaceholder ?? "Type your message…";
   textarea.className =
-    "tvw-min-h-[48px] tvw-flex-1 tvw-resize-none tvw-border-none tvw-bg-transparent tvw-text-sm tvw-text-cw-primary focus:tvw-outline-none focus:tvw-border-none";
+    "tvw-w-full tvw-min-h-[24px] tvw-resize-none tvw-border-none tvw-bg-transparent tvw-text-sm tvw-text-cw-primary focus:tvw-outline-none focus:tvw-border-none";
   textarea.rows = 1;
 
   // Apply font family and weight from config
@@ -84,6 +94,26 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
 
   textarea.style.fontFamily = getFontFamilyValue(fontFamily);
   textarea.style.fontWeight = fontWeight;
+
+  // Set up auto-resize: expand up to 3 lines, then scroll
+  // Line height is ~20px for text-sm (14px * 1.25 line-height), so 3 lines ≈ 60px
+  const maxLines = 3;
+  const lineHeight = 20; // Approximate line height for text-sm
+  const maxHeight = maxLines * lineHeight;
+  textarea.style.maxHeight = `${maxHeight}px`;
+  textarea.style.overflowY = "auto";
+
+  // Auto-resize function
+  const autoResize = () => {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = "auto";
+    // Set height to scrollHeight (capped by maxHeight via CSS)
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  };
+
+  // Listen for input to auto-resize
+  textarea.addEventListener("input", autoResize);
 
   // Explicitly remove border and outline on focus to prevent browser defaults
   textarea.style.border = "none";
@@ -318,25 +348,149 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
     }
   }
 
+  // Attachment button and file input
+  const attachmentsConfig = config?.attachments ?? {};
+  const attachmentsEnabled = attachmentsConfig.enabled === true;
+  let attachmentButton: HTMLButtonElement | null = null;
+  let attachmentButtonWrapper: HTMLElement | null = null;
+  let attachmentInput: HTMLInputElement | null = null;
+  let attachmentPreviewsContainer: HTMLElement | null = null;
+
+  if (attachmentsEnabled) {
+    // Create previews container (shown above textarea when attachments are added)
+    attachmentPreviewsContainer = createElement(
+      "div",
+      "tvw-attachment-previews tvw-flex tvw-flex-wrap tvw-gap-2 tvw-mb-2"
+    );
+    attachmentPreviewsContainer.style.display = "none"; // Hidden until attachments added
+
+    // Create hidden file input
+    attachmentInput = createElement("input") as HTMLInputElement;
+    attachmentInput.type = "file";
+    attachmentInput.accept = (attachmentsConfig.allowedTypes ?? ALL_SUPPORTED_MIME_TYPES).join(",");
+    attachmentInput.multiple = (attachmentsConfig.maxFiles ?? 4) > 1;
+    attachmentInput.style.display = "none";
+    attachmentInput.setAttribute("aria-label", "Attach files");
+
+    // Create attachment button wrapper for tooltip
+    attachmentButtonWrapper = createElement("div", "tvw-send-button-wrapper");
+
+    // Create attachment button
+    attachmentButton = createElement(
+      "button",
+      "tvw-rounded-button tvw-flex tvw-items-center tvw-justify-center disabled:tvw-opacity-50 tvw-cursor-pointer tvw-attachment-button"
+    ) as HTMLButtonElement;
+    attachmentButton.type = "button";
+    attachmentButton.setAttribute("aria-label", attachmentsConfig.buttonTooltipText ?? "Attach file");
+
+    // Default to paperclip icon
+    const attachIconName = attachmentsConfig.buttonIconName ?? "paperclip";
+    const attachIconSize = buttonSize;
+    const buttonSizeNum = parseFloat(attachIconSize) || 40;
+    // Icon should be ~60% of button size to match other icons visually
+    const attachIconSizeNum = Math.round(buttonSizeNum * 0.6);
+
+    attachmentButton.style.width = attachIconSize;
+    attachmentButton.style.height = attachIconSize;
+    attachmentButton.style.minWidth = attachIconSize;
+    attachmentButton.style.minHeight = attachIconSize;
+    attachmentButton.style.fontSize = "18px";
+    attachmentButton.style.lineHeight = "1";
+    attachmentButton.style.backgroundColor = "transparent";
+    attachmentButton.style.color = "var(--cw-primary, #111827)";
+    attachmentButton.style.border = "none";
+    attachmentButton.style.borderRadius = "6px";
+    attachmentButton.style.transition = "background-color 0.15s ease";
+
+    // Add hover effect via mouseenter/mouseleave
+    attachmentButton.addEventListener("mouseenter", () => {
+      attachmentButton!.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+    });
+    attachmentButton.addEventListener("mouseleave", () => {
+      attachmentButton!.style.backgroundColor = "transparent";
+    });
+
+    // Render the icon
+    const attachIconSvg = renderLucideIcon(
+      attachIconName,
+      attachIconSizeNum,
+      "currentColor",
+      1.5
+    );
+    if (attachIconSvg) {
+      attachmentButton.appendChild(attachIconSvg);
+    } else {
+      attachmentButton.textContent = "📎";
+    }
+
+    // Click handler to open file picker
+    attachmentButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      attachmentInput?.click();
+    });
+
+    attachmentButtonWrapper.appendChild(attachmentButton);
+
+    // Add tooltip if configured
+    const attachTooltipText = attachmentsConfig.buttonTooltipText ?? "Attach file";
+    const tooltip = createElement("div", "tvw-send-button-tooltip");
+    tooltip.textContent = attachTooltipText;
+    attachmentButtonWrapper.appendChild(tooltip);
+  }
+
   // Focus textarea when composer form container is clicked
   composerForm.addEventListener("click", (e) => {
-    // Don't focus if clicking on the send button, mic button, or their wrappers
+    // Don't focus if clicking on the send button, mic button, attachment button, or their wrappers
     if (
       e.target !== sendButton &&
       e.target !== sendButtonWrapper &&
       e.target !== micButton &&
-      e.target !== micButtonWrapper
+      e.target !== micButtonWrapper &&
+      e.target !== attachmentButton &&
+      e.target !== attachmentButtonWrapper
     ) {
       textarea.focus();
     }
   });
 
-  // Append elements: textarea, mic button (if exists), send button
-  composerForm.append(textarea);
-  if (micButtonWrapper) {
-    composerForm.append(micButtonWrapper);
+  // Layout structure:
+  // - Row 1: Image previews (smaller, above textarea)
+  // - Row 2: Textarea (full width)
+  // - Row 3: Actions row (attachment left, mic/send right)
+
+  // Add image previews first (above textarea)
+  if (attachmentPreviewsContainer) {
+    // Make previews smaller
+    attachmentPreviewsContainer.style.gap = "8px";
+    composerForm.append(attachmentPreviewsContainer);
   }
-  composerForm.append(sendButtonWrapper);
+
+  // Hidden file input
+  if (attachmentInput) {
+    composerForm.append(attachmentInput);
+  }
+
+  // Textarea row (full width)
+  composerForm.append(textarea);
+
+  // Actions row: attachment on left, mic/send on right
+  const actionsRow = createElement("div", "tvw-flex tvw-items-center tvw-justify-between tvw-w-full");
+
+  // Left side: attachment button
+  const leftActions = createElement("div", "tvw-flex tvw-items-center tvw-gap-2");
+  if (attachmentButtonWrapper) {
+    leftActions.append(attachmentButtonWrapper);
+  }
+
+  // Right side: mic and send buttons
+  const rightActions = createElement("div", "tvw-flex tvw-items-center tvw-gap-1");
+  if (micButtonWrapper) {
+    rightActions.append(micButtonWrapper);
+  }
+  rightActions.append(sendButtonWrapper);
+
+  actionsRow.append(leftActions, rightActions);
+  composerForm.append(actionsRow);
 
   const statusText = createElement(
     "div",
@@ -360,7 +514,16 @@ export const buildComposer = (context: ComposerBuildContext): ComposerElements =
     sendButtonWrapper,
     micButton,
     micButtonWrapper,
-    statusText
+    statusText,
+    // Attachment elements
+    attachmentButton,
+    attachmentButtonWrapper,
+    attachmentInput,
+    attachmentPreviewsContainer,
+    // Actions row layout elements
+    actionsRow,
+    leftActions,
+    rightActions
   };
 };
 

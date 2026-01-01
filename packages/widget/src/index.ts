@@ -18,6 +18,13 @@ export type {
   AgentWidgetSSEEventParser,
   AgentWidgetSSEEventResult,
   AgentWidgetHeadersFunction,
+  // Multi-modal content types
+  TextContentPart,
+  ImageContentPart,
+  ContentPart,
+  MessageContent,
+  // Attachment config type
+  AgentWidgetAttachmentsConfig,
   // Layout types
   AgentWidgetLayoutConfig,
   AgentWidgetHeaderLayoutConfig,
@@ -76,6 +83,22 @@ export {
   createRegexJsonParser,
   createXmlParser
 } from "./utils/formatting";
+export {
+  // Multi-modal content utilities
+  normalizeContent,
+  getDisplayText,
+  hasImages,
+  getImageParts,
+  createTextPart,
+  createImagePart,
+  fileToImagePart,
+  validateImageFile
+} from "./utils/content";
+export {
+  AttachmentManager,
+  type PendingAttachment,
+  type AttachmentManagerConfig
+} from "./utils/attachment-manager";
 export {
   generateMessageId,
   generateUserMessageId,
