@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.34.0
+
+### Minor Changes
+
+- Add attachment functionality
+
 ## 1.33.0
 
 ### Minor Changes
