@@ -748,8 +748,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--cw-primary, #111827);
-  color: var(--cw-surface, #ffffff);
+  background-color: var(--cw-tooltip-background, #111827);
+  color: var(--cw-tooltip-foreground, #ffffff);
   padding: 6px 12px;
   border-radius: var(--cw-radius-sm, 0.75rem);
   font-size: 12px;
@@ -767,7 +767,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 4px solid transparent;
-  border-top-color: var(--cw-primary, #111827);
+  border-top-color: var(--cw-tooltip-background, #111827);
 }
 
 .tvw-send-button-wrapper:hover .tvw-send-button-tooltip,
@@ -784,8 +784,8 @@
 }
 
 .tvw-clear-chat-tooltip {
-  background-color: #111827;
-  color: #ffffff;
+  background-color: var(--cw-tooltip-background, #111827);
+  color: var(--cw-tooltip-foreground, #ffffff);
   padding: 6px 12px;
   border-radius: 0.5rem;
   font-size: 12px;
@@ -801,7 +801,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 4px solid transparent;
-  border-top-color: #111827;
+  border-top-color: var(--cw-tooltip-background, #111827);
 }
 
 /* Typing indicator animation */

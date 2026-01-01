@@ -281,6 +281,8 @@ export type AgentWidgetTheme = {
   clearChatIconColor?: string;
   clearChatBackgroundColor?: string;
   clearChatBorderColor?: string;
+  tooltipBackground?: string;
+  tooltipForeground?: string;
   micIconColor?: string;
   micBackgroundColor?: string;
   micBorderColor?: string;
