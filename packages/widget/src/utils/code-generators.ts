@@ -541,6 +541,7 @@ function generateESMCode(config: any, options?: CodeGeneratorOptions): string {
   ];
 
   if (config.apiUrl) lines.push(`    apiUrl: "${config.apiUrl}",`);
+  if (config.clientToken) lines.push(`    clientToken: "${config.clientToken}",`);
   if (config.flowId) lines.push(`    flowId: "${config.flowId}",`);
   if (shouldEmitParserType) lines.push(`    parserType: "${parserType}",`);
 
@@ -698,6 +699,7 @@ function generateReactComponentCode(config: any, options?: CodeGeneratorOptions)
   ];
 
   if (config.apiUrl) lines.push(`        apiUrl: "${config.apiUrl}",`);
+  if (config.clientToken) lines.push(`        clientToken: "${config.clientToken}",`);
   if (config.flowId) lines.push(`        flowId: "${config.flowId}",`);
   if (shouldEmitParserType) lines.push(`        parserType: "${parserType}",`);
 
@@ -973,6 +975,7 @@ function generateReactAdvancedCode(config: any, options?: CodeGeneratorOptions):
   ];
 
   if (config.apiUrl) lines.push(`        apiUrl: "${config.apiUrl}",`);
+  if (config.clientToken) lines.push(`        clientToken: "${config.clientToken}",`);
   if (config.flowId) lines.push(`        flowId: "${config.flowId}",`);
   
   if (config.theme) {
@@ -1239,6 +1242,7 @@ function buildSerializableConfig(config: any): Record<string, any> {
   const serializableConfig: Record<string, any> = {};
   
   if (config.apiUrl) serializableConfig.apiUrl = config.apiUrl;
+  if (config.clientToken) serializableConfig.clientToken = config.clientToken;
   if (config.flowId) serializableConfig.flowId = config.flowId;
   if (shouldEmitParserType) serializableConfig.parserType = parserType;
   if (config.theme) serializableConfig.theme = config.theme;
@@ -1370,6 +1374,7 @@ function generateScriptManualCode(config: any, options?: CodeGeneratorOptions): 
   ];
 
   if (config.apiUrl) lines.push(`      apiUrl: "${config.apiUrl}",`);
+  if (config.clientToken) lines.push(`      clientToken: "${config.clientToken}",`);
   if (config.flowId) lines.push(`      flowId: "${config.flowId}",`);
   if (shouldEmitParserType) lines.push(`      parserType: "${parserType}",`);
 

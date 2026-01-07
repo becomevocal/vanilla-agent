@@ -307,6 +307,47 @@ describe("Script Installer Format", () => {
 });
 
 // =============================================================================
+// Client Token Emission Tests
+// =============================================================================
+
+describe("Client Token Config", () => {
+  const clientTokenConfig = {
+    ...minimalConfig,
+    clientToken: "ct_test_123",
+  };
+
+  it("should include clientToken in ESM format", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "esm");
+    expect(code).toContain('clientToken: "ct_test_123"');
+  });
+
+  it("should include clientToken in React component format", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "react-component");
+    expect(code).toContain('clientToken: "ct_test_123"');
+  });
+
+  it("should include clientToken in React advanced format", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "react-advanced");
+    expect(code).toContain('clientToken: "ct_test_123"');
+  });
+
+  it("should include clientToken in script-manual format", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "script-manual");
+    expect(code).toContain('clientToken: "ct_test_123"');
+  });
+
+  it("should include clientToken in script-advanced format (CONFIG JSON)", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "script-advanced");
+    expect(code).toContain('"clientToken": "ct_test_123"');
+  });
+
+  it("should include clientToken in script-installer format (data-config JSON)", () => {
+    const code = generateCodeSnippet(clientTokenConfig, "script-installer");
+    expect(code).toContain('"clientToken":"ct_test_123"');
+  });
+});
+
+// =============================================================================
 // Edge Cases and Error Handling
 // =============================================================================
 
