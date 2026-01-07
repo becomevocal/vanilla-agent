@@ -1,5 +1,11 @@
 # vanilla-agent
 
+## 1.36.0
+
+### Minor Changes
+
+- Improve code gen with client token
+
 ## 1.35.0
 
 ### Minor Changes
