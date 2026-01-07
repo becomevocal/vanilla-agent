@@ -1,7 +1,197 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AgentWidgetClient } from './client';
 import { AgentWidgetEvent, AgentWidgetMessage } from './types';
 import { createJsonStreamParser } from './utils/formatting';
+
+describe('AgentWidgetClient - Empty Message Filtering', () => {
+  let client: AgentWidgetClient;
+  let events: AgentWidgetEvent[] = [];
+  let capturedPayload: any = null;
+
+  beforeEach(() => {
+    events = [];
+    capturedPayload = null;
+    client = new AgentWidgetClient({
+      apiUrl: 'http://localhost:8000',
+    });
+  });
+
+  it('should filter out messages with empty content before sending', async () => {
+    // Create a mock fetch that captures the request payload
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
+      capturedPayload = JSON.parse(options.body);
+      // Return a minimal successful response
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"type":"flow_complete","success":true}\n\n'));
+          controller.close();
+        }
+      });
+      return { ok: true, body: stream };
+    });
+
+    // Messages array with an empty assistant message (simulating failed API response)
+    const messages: AgentWidgetMessage[] = [
+      {
+        id: 'usr_1',
+        role: 'user',
+        content: 'What can you help me with?',
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'ast_1',
+        role: 'assistant',
+        content: '', // Empty content from failed request - THIS SHOULD BE FILTERED OUT
+        createdAt: '2025-01-01T00:00:01.000Z',
+      },
+      {
+        id: 'usr_2',
+        role: 'user',
+        content: 'test',
+        createdAt: '2025-01-01T00:00:02.000Z',
+      },
+    ];
+
+    await client.dispatch(
+      { messages },
+      (event) => events.push(event)
+    );
+
+    // Verify the empty message was filtered out
+    expect(capturedPayload).toBeDefined();
+    expect(capturedPayload.messages).toHaveLength(2);
+    expect(capturedPayload.messages[0].content).toBe('What can you help me with?');
+    expect(capturedPayload.messages[1].content).toBe('test');
+
+    // Verify no message has empty content
+    const hasEmptyContent = capturedPayload.messages.some(
+      (m: any) => !m.content || (typeof m.content === 'string' && m.content.trim() === '')
+    );
+    expect(hasEmptyContent).toBe(false);
+  });
+
+  it('should filter out messages with whitespace-only content', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
+      capturedPayload = JSON.parse(options.body);
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"type":"flow_complete","success":true}\n\n'));
+          controller.close();
+        }
+      });
+      return { ok: true, body: stream };
+    });
+
+    const messages: AgentWidgetMessage[] = [
+      {
+        id: 'usr_1',
+        role: 'user',
+        content: 'Hello',
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'ast_1',
+        role: 'assistant',
+        content: '   ', // Whitespace-only content - SHOULD BE FILTERED OUT
+        createdAt: '2025-01-01T00:00:01.000Z',
+      },
+      {
+        id: 'ast_2',
+        role: 'assistant',
+        content: '\n\t', // Whitespace-only content - SHOULD BE FILTERED OUT
+        createdAt: '2025-01-01T00:00:02.000Z',
+      },
+      {
+        id: 'usr_2',
+        role: 'user',
+        content: 'World',
+        createdAt: '2025-01-01T00:00:03.000Z',
+      },
+    ];
+
+    await client.dispatch(
+      { messages },
+      (event) => events.push(event)
+    );
+
+    expect(capturedPayload.messages).toHaveLength(2);
+    expect(capturedPayload.messages[0].content).toBe('Hello');
+    expect(capturedPayload.messages[1].content).toBe('World');
+  });
+
+  it('should preserve messages with valid contentParts even if content is empty', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
+      capturedPayload = JSON.parse(options.body);
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"type":"flow_complete","success":true}\n\n'));
+          controller.close();
+        }
+      });
+      return { ok: true, body: stream };
+    });
+
+    const messages: AgentWidgetMessage[] = [
+      {
+        id: 'usr_1',
+        role: 'user',
+        content: '', // Empty content but has contentParts - SHOULD BE PRESERVED
+        contentParts: [{ type: 'image', data: 'base64data' }] as any,
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'ast_1',
+        role: 'assistant',
+        content: '', // Empty content, no contentParts - SHOULD BE FILTERED OUT
+        createdAt: '2025-01-01T00:00:01.000Z',
+      },
+    ];
+
+    await client.dispatch(
+      { messages },
+      (event) => events.push(event)
+    );
+
+    expect(capturedPayload.messages).toHaveLength(1);
+    // The message with contentParts should be preserved
+    expect(capturedPayload.messages[0].content).toEqual([{ type: 'image', data: 'base64data' }]);
+  });
+
+  it('should preserve messages with valid rawContent even if content is empty', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any) => {
+      capturedPayload = JSON.parse(options.body);
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"type":"flow_complete","success":true}\n\n'));
+          controller.close();
+        }
+      });
+      return { ok: true, body: stream };
+    });
+
+    const messages: AgentWidgetMessage[] = [
+      {
+        id: 'ast_1',
+        role: 'assistant',
+        content: '', // Empty content but has rawContent - SHOULD BE PRESERVED
+        rawContent: '{"action": "message", "text": "Hello"}',
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+    ];
+
+    await client.dispatch(
+      { messages },
+      (event) => events.push(event)
+    );
+
+    expect(capturedPayload.messages).toHaveLength(1);
+    expect(capturedPayload.messages[0].content).toBe('{"action": "message", "text": "Hello"}');
+  });
+});
 
 describe('AgentWidgetClient - JSON Streaming', () => {
   let client: AgentWidgetClient;

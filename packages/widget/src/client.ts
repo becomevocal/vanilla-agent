@@ -37,6 +37,28 @@ const DEFAULT_ENDPOINT = "https://api.travrse.ai/v1/dispatch";
 const DEFAULT_CLIENT_API_BASE = "https://api.travrse.ai";
 
 /**
+ * Check if a message has valid (non-empty) content for sending to the API.
+ * Filters out messages with empty content that would cause validation errors.
+ *
+ * @see https://github.com/anthropics/claude-code/issues/XXX - Empty assistant messages from failed requests
+ */
+const hasValidContent = (message: AgentWidgetMessage): boolean => {
+  // Check contentParts (multi-modal content)
+  if (message.contentParts && message.contentParts.length > 0) {
+    return true;
+  }
+  // Check rawContent
+  if (message.rawContent && message.rawContent.trim().length > 0) {
+    return true;
+  }
+  // Check content
+  if (message.content && message.content.trim().length > 0) {
+    return true;
+  }
+  return false;
+};
+
+/**
  * Maps parserType string to the corresponding parser factory function
  */
 function getParserFromType(parserType?: "plain" | "json" | "regex-json" | "xml"): () => AgentWidgetStreamParser {
@@ -402,7 +424,8 @@ export class AgentWidgetClient {
       
       const chatRequest: ClientChatRequest = {
         session_id: session.sessionId,
-        messages: options.messages.map(m => ({
+        // Filter out messages with empty content to prevent validation errors
+        messages: options.messages.filter(hasValidContent).map(m => ({
           id: m.id, // Include message ID for tracking
           role: m.role,
           // Use contentParts for multi-modal messages, otherwise fall back to string content
@@ -555,8 +578,10 @@ export class AgentWidgetClient {
   private async buildPayload(
     messages: AgentWidgetMessage[]
   ): Promise<AgentWidgetRequestPayload> {
+    // Filter out messages with empty content to prevent validation errors
     const normalizedMessages = messages
       .slice()
+      .filter(hasValidContent)
       .sort((a, b) => {
         const timeA = new Date(a.createdAt).getTime();
         const timeB = new Date(b.createdAt).getTime();
