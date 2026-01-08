@@ -18,6 +18,18 @@ interface SiteAgentInstallConfig {
   apiUrl?: string;
   // Shadow DOM option (defaults to false for better CSS compatibility)
   useShadowDom?: boolean;
+  /**
+   * Preview mode: Only load the widget when a specific query parameter is present.
+   * Set to a string to specify the query param name (e.g., "preview-agent").
+   * The widget will only load if the URL contains ?preview-agent=true (or any truthy value).
+   * 
+   * @example
+   * ```html
+   * <script data-preview-param="preview-agent" src="..."></script>
+   * ```
+   * Then visit: /mypage?preview-agent=true
+   */
+  previewQueryParam?: string;
 }
 
 declare global {
@@ -82,6 +94,12 @@ declare global {
       scriptConfig.apiUrl = apiUrl;
     }
 
+    // Preview mode query param
+    const previewParam = script.getAttribute('data-preview-param');
+    if (previewParam) {
+      scriptConfig.previewQueryParam = previewParam;
+    }
+
     return scriptConfig;
   };
 
@@ -95,6 +113,33 @@ declare global {
   const version = config.version || "latest";
   const cdn = config.cdn || "jsdelivr";
   const autoInit = config.autoInit !== false; // Default to true
+  const previewQueryParam = config.previewQueryParam;
+
+  /**
+   * Check if preview mode should block widget loading.
+   * Returns true if the widget should NOT load (preview mode is enabled but param is missing/falsy).
+   */
+  const shouldBlockForPreviewMode = (): boolean => {
+    if (!previewQueryParam) return false; // No preview mode, don't block
+    
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramValue = urlParams.get(previewQueryParam);
+      // Block if param is missing, empty, or explicitly "false"
+      const isTruthy = paramValue !== null && paramValue !== '' && paramValue.toLowerCase() !== 'false' && paramValue !== '0';
+      return !isTruthy;
+    } catch {
+      return false; // If URL parsing fails, don't block
+    }
+  };
+
+  // Check preview mode early - exit without loading anything
+  if (shouldBlockForPreviewMode()) {
+    if (config.config?.debug) {
+      console.log(`[AgentWidget] Preview mode enabled. Widget not loaded. Add ?${previewQueryParam}=true to URL to load.`);
+    }
+    return;
+  }
 
   // Determine CDN base URL
   const getCdnBase = () => {

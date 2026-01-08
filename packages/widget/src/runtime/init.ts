@@ -86,9 +86,37 @@ const mountStyles = (root: ShadowRoot | HTMLElement) => {
 
 export type AgentWidgetInitHandle = AgentWidgetController & { host: HTMLElement };
 
+/**
+ * Check if preview mode should block widget initialization.
+ * Returns true if the widget should NOT load (preview mode is enabled but param is missing/falsy).
+ */
+const shouldBlockForPreviewMode = (previewQueryParam?: string): boolean => {
+  if (!previewQueryParam) return false; // No preview mode, don't block
+  
+  if (typeof window === 'undefined') return false; // SSR, don't block
+  
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramValue = urlParams.get(previewQueryParam);
+    // Block if param is missing, empty, or explicitly "false"
+    const isTruthy = paramValue !== null && paramValue !== '' && paramValue.toLowerCase() !== 'false' && paramValue !== '0';
+    return !isTruthy;
+  } catch {
+    return false; // If URL parsing fails, don't block
+  }
+};
+
 export const initAgentWidget = (
   options: AgentWidgetInitOptions
-): AgentWidgetInitHandle => {
+): AgentWidgetInitHandle | null => {
+  // Check preview mode early - return null without initializing anything
+  if (shouldBlockForPreviewMode(options.previewQueryParam)) {
+    if (options.config?.debug) {
+      console.log(`[AgentWidget] Preview mode enabled. Widget not initialized. Add ?${options.previewQueryParam}=true to URL to initialize.`);
+    }
+    return null;
+  }
+
   const target = ensureTarget(options.target);
   const host = document.createElement("div");
   host.className = "vanilla-agent-host";

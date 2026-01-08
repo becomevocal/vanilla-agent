@@ -1877,8 +1877,7 @@ export const createAgentExperience = (
     if (launcherEnabled) {
       closeButton.style.display = "";
       closeHandler = () => {
-        open = false;
-        updateOpenState();
+        setOpenState(false, "user");
       };
       closeButton.addEventListener("click", closeHandler);
     } else {

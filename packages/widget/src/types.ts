@@ -1632,4 +1632,26 @@ export type AgentWidgetInitOptions = {
   onReady?: () => void;
   windowKey?: string; // If provided, stores the controller on window[windowKey] for global access
   debugTools?: boolean;
+  /**
+   * Preview mode: Only initialize the widget when a specific query parameter is present.
+   * Set to a string to specify the query param name (e.g., "preview-agent").
+   * The widget will only initialize if the URL contains ?preview-agent=true (or any truthy value).
+   * 
+   * When the param is missing or falsy, `initAgentWidget` returns `null` instead of a handle.
+   * 
+   * @example
+   * ```typescript
+   * const widget = initAgentWidget({
+   *   target: 'body',
+   *   previewQueryParam: 'preview-agent',
+   *   config: { ... }
+   * });
+   * 
+   * if (widget) {
+   *   // Widget was initialized
+   * }
+   * ```
+   * Then visit: /mypage?preview-agent=true
+   */
+  previewQueryParam?: string;
 };

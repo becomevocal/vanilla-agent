@@ -30,6 +30,7 @@ export default defineConfig({
         'feedback-integration-demo': path.resolve(__dirname, 'feedback-integration-demo.html'),
         'client-token-demo': path.resolve(__dirname, 'client-token-demo.html'),
         'client-token-feedback-demo': path.resolve(__dirname, 'client-token-feedback-demo.html'),
+        'preview-mode-demo': path.resolve(__dirname, 'preview-mode-demo.html'),
       }
     }
   },

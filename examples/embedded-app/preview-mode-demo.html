@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preview Mode Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .back-link {
+      display: inline-block;
+      background: rgba(255,255,255,0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    .back-link:hover {
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+    .status-banner {
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .status-banner.active {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2));
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .status-banner.inactive {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    .status-icon {
+      font-size: 2rem;
+    }
+    .status-text h3 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.1rem;
+    }
+    .status-text p {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .card h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #f1f5f9;
+    }
+    .card p {
+      margin: 0 0 1rem 0;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+    .card code {
+      background: rgba(0,0,0,0.3);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85em;
+      color: #a78bfa;
+    }
+    .button-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.15);
+    }
+    .url-display {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      color: #60a5fa;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    .url-display .param {
+      color: #4ade80;
+      font-weight: 600;
+    }
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .use-case {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .use-case h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      color: #f1f5f9;
+    }
+    .use-case p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .code-block {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      line-height: 1.6;
+    }
+    .code-block .comment { color: #6b7280; }
+    .code-block .key { color: #a78bfa; }
+    .code-block .string { color: #4ade80; }
+    .code-block .keyword { color: #f472b6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to examples</a>
+    
+    <h1>Preview Mode Demo</h1>
+    <p class="subtitle">Test your chat widget in production without showing it to all visitors.</p>
+
+    <!-- Status banner - changes based on whether preview param is present -->
+    <div class="status-banner" id="status-banner">
+      <span class="status-icon" id="status-icon"></span>
+      <div class="status-text">
+        <h3 id="status-title"></h3>
+        <p id="status-description"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔗 Current URL</h2>
+      <div class="url-display" id="current-url"></div>
+      <div class="button-row">
+        <a href="?preview=true" class="btn btn-primary" id="enable-btn">
+          ✨ Enable Preview Mode
+        </a>
+        <a href="?" class="btn btn-secondary" id="disable-btn">
+          🚫 Disable Preview Mode
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💡 How It Works</h2>
+      <p>
+        The <code>previewQueryParam</code> option lets you deploy your widget script to production
+        but only show it when a specific URL parameter is present. This is perfect for:
+      </p>
+      <div class="use-cases">
+        <div class="use-case">
+          <h4>🧪 Testing in Production</h4>
+          <p>Test the widget on your live site without affecting real users.</p>
+        </div>
+        <div class="use-case">
+          <h4>👀 Merchant Preview</h4>
+          <p>Let store owners preview the widget before enabling it globally.</p>
+        </div>
+        <div class="use-case">
+          <h4>🎯 Staged Rollout</h4>
+          <p>Share preview links with select users before full launch.</p>
+        </div>
+        <div class="use-case">
+          <h4>🐛 Debug Mode</h4>
+          <p>Add the param to any page to debug widget issues.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📝 Implementation</h2>
+      <p>Add <code>previewQueryParam</code> to your widget initialization:</p>
+      <div class="code-block">
+<span class="keyword">const</span> widget = initAgentWidget({
+  target: <span class="string">'body'</span>,
+  <span class="key">previewQueryParam</span>: <span class="string">'preview'</span>,  <span class="comment">// ← Enable preview mode</span>
+  config: {
+    apiUrl: <span class="string">'/api/chat/dispatch'</span>,
+    launcher: { enabled: <span class="keyword">true</span> }
+  }
+});
+
+<span class="comment">// widget is null if preview param is missing</span>
+<span class="keyword">if</span> (widget) {
+  console.log(<span class="string">'Widget loaded in preview mode!'</span>);
+}
+      </div>
+      <p>
+        When the <code>?preview=true</code> parameter is missing, the widget simply doesn't load.
+        No DOM elements are created, no CSS is injected, and no API calls are made.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🔧 Script Tag Version</h2>
+      <p>For CDN/script tag installations, add the <code>data-preview-param</code> attribute:</p>
+      <div class="code-block">
+<span class="comment">&lt;!-- Widget will only load with ?my-preview=true --&gt;</span>
+&lt;script
+  src=<span class="string">"https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"</span>
+  <span class="key">data-preview-param</span>=<span class="string">"my-preview"</span>
+&gt;&lt;/script&gt;
+      </div>
+    </div>
+  </div>
+
+  <div id="launcher-root"></div>
+  <script type="module" src="/src/preview-mode-demo.ts"></script>
+</body>
+</html>
