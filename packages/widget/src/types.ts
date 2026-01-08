@@ -1173,6 +1173,54 @@ export type AgentWidgetAttachmentsConfig = {
   onFileRejected?: (file: File, reason: 'type' | 'size' | 'count') => void;
 };
 
+/**
+ * Configuration for persisting widget state across page navigations.
+ * When enabled, the widget automatically restores its open/closed state,
+ * voice recognition mode, and input focus after page navigation.
+ */
+export type AgentWidgetPersistStateConfig = {
+  /**
+   * Enable state persistence
+   * @default true (when object form is used)
+   */
+  enabled?: boolean;
+  /**
+   * Which aspects of state to persist
+   */
+  persist?: {
+    /**
+     * Persist open/closed state - widget reopens if it was open before navigation
+     * @default true
+     */
+    openState?: boolean;
+    /**
+     * Persist voice recognition state - voice resumes if it was active
+     * @default true
+     */
+    voiceState?: boolean;
+    /**
+     * Focus the text input after restoring open state (when voice was not active)
+     * @default true
+     */
+    focusInput?: boolean;
+  };
+  /**
+   * Storage mechanism to use
+   * @default 'localStorage'
+   */
+  storage?: 'localStorage' | 'sessionStorage';
+  /**
+   * Prefix for storage keys
+   * @default 'vanilla-agent-'
+   */
+  keyPrefix?: string;
+  /**
+   * Clear persisted state when chat is cleared
+   * @default true
+   */
+  clearOnChatClear?: boolean;
+};
+
 export type AgentWidgetConfig = {
   apiUrl?: string;
   flowId?: string;
@@ -1550,6 +1598,32 @@ export type AgentWidgetConfig = {
    * ```
    */
   attachments?: AgentWidgetAttachmentsConfig;
+
+  /**
+   * Persist widget state across page navigations.
+   * When enabled, the widget automatically re-opens if it was open before navigation,
+   * resumes voice recognition if it was active, and focuses the input.
+   * 
+   * Set to `true` for default behavior, or an object for fine-grained control.
+   * 
+   * @default false
+   * 
+   * @example
+   * ```typescript
+   * // Simple - enable with defaults
+   * config: { persistState: true }
+   * 
+   * // Advanced - customize behavior
+   * config: {
+   *   persistState: {
+   *     enabled: true,
+   *     persist: { openState: true, voiceState: false },
+   *     storage: 'sessionStorage'
+   *   }
+   * }
+   * ```
+   */
+  persistState?: boolean | AgentWidgetPersistStateConfig;
 };
 
 export type AgentWidgetMessageRole = "user" | "assistant" | "system";

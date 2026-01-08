@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigation Persistence Demo - Page 1</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .back-link {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: white;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    .back-link:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .card h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card p {
+      margin: 0 0 1rem 0;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .card ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      opacity: 0.9;
+    }
+    .card li {
+      margin-bottom: 0.5rem;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .page-indicator {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .status-panel {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .status-row:last-child {
+      border-bottom: none;
+    }
+    .status-value {
+      font-weight: 600;
+    }
+    .status-value.active {
+      color: #4ade80;
+    }
+    .status-value.inactive {
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to examples</a>
+    
+    <div class="page-indicator">📄 Page 1 of 2</div>
+    <h1>Navigation Persistence Demo</h1>
+    <p class="subtitle">The chat widget remembers its state when you navigate between pages.</p>
+
+    <div class="card">
+      <h2>🎯 Try It Out</h2>
+      <p>
+        <strong>Step 1:</strong> Open the chat widget (bottom-right corner)<br>
+        <strong>Step 2:</strong> Try enabling voice input (microphone button)<br>
+        <strong>Step 3:</strong> Navigate to Page 2 using the button below<br>
+        <strong>Step 4:</strong> Notice the widget stays open with the same input mode!
+      </p>
+      <div class="nav-buttons">
+        <a href="/navigation-persist-page2.html" class="nav-btn">
+          Go to Page 2 →
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💾 What Gets Persisted</h2>
+      <ul>
+        <li><strong>Open/Closed State:</strong> Widget stays open if it was open</li>
+        <li><strong>Voice Mode:</strong> Voice recognition resumes automatically</li>
+        <li><strong>Text Focus:</strong> Input is focused if voice wasn't active</li>
+        <li><strong>Chat History:</strong> Previous messages are preserved</li>
+      </ul>
+      <div class="status-panel">
+        <div class="status-row">
+          <span>Widget Open:</span>
+          <span class="status-value" id="status-open">-</span>
+        </div>
+        <div class="status-row">
+          <span>Voice Active:</span>
+          <span class="status-value" id="status-voice">-</span>
+        </div>
+        <div class="status-row">
+          <span>localStorage Keys:</span>
+          <span class="status-value" id="status-keys">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔧 Implementation</h2>
+      <p>
+        This demo uses <code>localStorage</code> to persist widget state across page navigations.
+        See <a href="https://github.com/becomevocal/chaty/blob/main/packages/widget/docs/AUTO-OPEN-NAVIGATION.md" style="color: #fbbf24;">AUTO-OPEN-NAVIGATION.md</a> for implementation details.
+      </p>
+    </div>
+  </div>
+
+  <div id="launcher-root"></div>
+  <script type="module" src="/src/navigation-persist-demo.ts"></script>
+</body>
+</html>

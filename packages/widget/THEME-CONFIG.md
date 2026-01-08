@@ -566,6 +566,48 @@ config: {
 | `showReasoning` | Show AI reasoning/thinking steps |
 | `showToolCalls` | Show tool call invocations |
 
+## State Persistence (`config.persistState`)
+
+Persist widget state (open/closed, voice mode) across page navigations.
+
+### Simple Usage
+
+```typescript
+config: {
+  persistState: true  // Enable with defaults
+}
+```
+
+### Advanced Options (`persistState.*`)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Enable state persistence |
+| `persist.openState` | `boolean` | `true` | Persist open/closed state |
+| `persist.voiceState` | `boolean` | `true` | Persist voice recognition state |
+| `persist.focusInput` | `boolean` | `true` | Focus input after restoring open state |
+| `storage` | `'localStorage' \| 'sessionStorage'` | `'localStorage'` | Storage mechanism |
+| `keyPrefix` | `string` | `'vanilla-agent-'` | Prefix for storage keys |
+| `clearOnChatClear` | `boolean` | `true` | Clear persisted state when chat is cleared |
+
+### Example
+
+```typescript
+config: {
+  persistState: {
+    enabled: true,
+    persist: {
+      openState: true,
+      voiceState: false,  // Don't auto-resume voice
+      focusInput: true
+    },
+    storage: 'sessionStorage',  // Clear on browser close
+    keyPrefix: 'my-chat-',
+    clearOnChatClear: true
+  }
+}
+```
+
 ## CSS Variables
 
 ```css

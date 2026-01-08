@@ -43,6 +43,8 @@ export type {
   // Message actions types
   AgentWidgetMessageActionsConfig,
   AgentWidgetMessageFeedback,
+  // State persistence types
+  AgentWidgetPersistStateConfig,
   // Client token types
   ClientSession,
   ClientInitResponse,

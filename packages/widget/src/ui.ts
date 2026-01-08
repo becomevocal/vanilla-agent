@@ -13,7 +13,8 @@ import {
   WidgetLayoutSlot,
   SlotRenderer,
   AgentWidgetMessageFeedback,
-  ContentPart
+  ContentPart,
+  AgentWidgetPersistStateConfig
 } from "./types";
 import { AttachmentManager } from "./utils/attachment-manager";
 import { createTextPart, ALL_SUPPORTED_MIME_TYPES } from "./utils/content";
@@ -71,6 +72,48 @@ const stripStreamingFromMessages = (messages: AgentWidgetMessage[]) =>
     ...message,
     streaming: false
   }));
+
+/**
+ * Normalize persistState config to full object form
+ */
+const normalizePersistStateConfig = (
+  config: boolean | AgentWidgetPersistStateConfig | undefined
+): AgentWidgetPersistStateConfig | null => {
+  if (!config) return null;
+  if (config === true) {
+    return {
+      enabled: true,
+      persist: { openState: true, voiceState: true, focusInput: true },
+      storage: 'localStorage',
+      keyPrefix: 'vanilla-agent-',
+      clearOnChatClear: true
+    };
+  }
+  if (config.enabled === false) return null;
+  return {
+    enabled: true,
+    persist: {
+      openState: config.persist?.openState ?? true,
+      voiceState: config.persist?.voiceState ?? true,
+      focusInput: config.persist?.focusInput ?? true
+    },
+    storage: config.storage ?? 'localStorage',
+    keyPrefix: config.keyPrefix ?? 'vanilla-agent-',
+    clearOnChatClear: config.clearOnChatClear ?? true
+  };
+};
+
+/**
+ * Get storage instance based on config
+ */
+const getPersistStorage = (type: 'localStorage' | 'sessionStorage'): Storage | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return type === 'sessionStorage' ? window.sessionStorage : window.localStorage;
+  } catch {
+    return null;
+  }
+};
 
 type Controller = {
   update: (config: AgentWidgetConfig) => void;
@@ -3332,6 +3375,76 @@ export const createAgentExperience = (
         (window as any).AgentWidgetBrowser = previousDebug;
       }
     });
+  }
+
+  // ============================================================================
+  // STATE PERSISTENCE ACROSS PAGE NAVIGATIONS
+  // ============================================================================
+  const persistConfig = normalizePersistStateConfig(config.persistState);
+  
+  if (persistConfig && launcherEnabled) {
+    const storage = getPersistStorage(persistConfig.storage!);
+    const openKey = `${persistConfig.keyPrefix}widget-open`;
+    const voiceKey = `${persistConfig.keyPrefix}widget-voice`;
+    
+    if (storage) {
+      // Restore state from previous page
+      const wasOpen = persistConfig.persist?.openState && storage.getItem(openKey) === 'true';
+      const wasVoiceActive = persistConfig.persist?.voiceState && storage.getItem(voiceKey) === 'true';
+      
+      if (wasOpen) {
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+          controller.open();
+          
+          // After opening, restore input mode
+          setTimeout(() => {
+            if (wasVoiceActive) {
+              controller.startVoiceRecognition();
+            } else if (persistConfig.persist?.focusInput) {
+              const textarea = mount.querySelector('textarea') as HTMLTextAreaElement | null;
+              if (textarea) {
+                textarea.focus();
+              }
+            }
+          }, 100);
+        }, 0);
+      }
+      
+      // Persist open/close state changes
+      if (persistConfig.persist?.openState) {
+        eventBus.on('widget:opened', () => {
+          storage.setItem(openKey, 'true');
+        });
+        eventBus.on('widget:closed', () => {
+          storage.setItem(openKey, 'false');
+        });
+      }
+      
+      // Persist voice state changes
+      if (persistConfig.persist?.voiceState) {
+        eventBus.on('voice:state', (event) => {
+          storage.setItem(voiceKey, event.active ? 'true' : 'false');
+        });
+      }
+      
+      // Clear persisted state on chat clear
+      if (persistConfig.clearOnChatClear) {
+        const clearPersistState = () => {
+          storage.removeItem(openKey);
+          storage.removeItem(voiceKey);
+        };
+        
+        // Listen for clear chat event
+        const handleClearChat = () => clearPersistState();
+        window.addEventListener('vanilla-agent:clear-chat', handleClearChat);
+        
+        // Clean up listener on destroy
+        destroyCallbacks.push(() => {
+          window.removeEventListener('vanilla-agent:clear-chat', handleClearChat);
+        });
+      }
+    }
   }
 
   return controller;

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigation Persistence Demo - Page 2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .back-link {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: white;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    .back-link:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .card h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card p {
+      margin: 0 0 1rem 0;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: white;
+      color: #f5576c;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .page-indicator {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .success-banner {
+      background: rgba(74, 222, 128, 0.2);
+      border: 1px solid rgba(74, 222, 128, 0.5);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .success-banner .icon {
+      font-size: 1.5rem;
+    }
+    .success-banner .text {
+      font-weight: 500;
+    }
+    .status-panel {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .status-row:last-child {
+      border-bottom: none;
+    }
+    .status-value {
+      font-weight: 600;
+    }
+    .status-value.active {
+      color: #4ade80;
+    }
+    .status-value.inactive {
+      color: #fbbf24;
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .product-emoji {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+    .product-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .product-price {
+      opacity: 0.8;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to examples</a>
+    
+    <div class="page-indicator">📄 Page 2 of 2</div>
+    <h1>You Navigated! 🎉</h1>
+    <p class="subtitle">Check it out - the chat widget is still in the same state!</p>
+
+    <div class="success-banner" id="success-banner" style="display: none;">
+      <span class="icon">✅</span>
+      <span class="text">Widget state was successfully restored after navigation!</span>
+    </div>
+
+    <div class="card">
+      <h2>📊 Current State</h2>
+      <p>
+        The widget's open state and input mode were restored from <code>localStorage</code>.
+      </p>
+      <div class="status-panel">
+        <div class="status-row">
+          <span>Widget Open:</span>
+          <span class="status-value" id="status-open">-</span>
+        </div>
+        <div class="status-row">
+          <span>Voice Active:</span>
+          <span class="status-value" id="status-voice">-</span>
+        </div>
+        <div class="status-row">
+          <span>localStorage Keys:</span>
+          <span class="status-value" id="status-keys">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛒 Sample Products</h2>
+      <p>This could be a product page in your store. Try asking the chat assistant about these products!</p>
+      <div class="product-grid">
+        <div class="product-card">
+          <div class="product-emoji">👕</div>
+          <div class="product-name">T-Shirt</div>
+          <div class="product-price">$29.99</div>
+        </div>
+        <div class="product-card">
+          <div class="product-emoji">👖</div>
+          <div class="product-name">Jeans</div>
+          <div class="product-price">$59.99</div>
+        </div>
+        <div class="product-card">
+          <div class="product-emoji">👟</div>
+          <div class="product-name">Sneakers</div>
+          <div class="product-price">$89.99</div>
+        </div>
+        <div class="product-card">
+          <div class="product-emoji">🧢</div>
+          <div class="product-name">Cap</div>
+          <div class="product-price">$19.99</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔄 Navigate Again</h2>
+      <p>
+        Try closing the widget, then navigating back. Or keep it open and navigate!
+      </p>
+      <div class="nav-buttons">
+        <a href="/navigation-persist-demo.html" class="nav-btn">
+          ← Back to Page 1
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="launcher-root"></div>
+  <script type="module" src="/src/navigation-persist-demo.ts"></script>
+</body>
+</html>

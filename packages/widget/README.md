@@ -77,6 +77,7 @@ document.querySelector('#dark-mode')?.addEventListener('click', () => {
 | `useShadowDom` | `boolean` | Use Shadow DOM for style isolation (default: `true`). |
 | `onReady` | `() => void` | Callback fired when widget is initialized. |
 | `windowKey` | `string` | If provided, stores the controller on `window[windowKey]` for global access. Automatically cleaned up on `destroy()`. |
+| `previewQueryParam` | `string` | Preview mode: only initialize the widget when this URL query parameter is present (e.g., `"preview-agent"` requires `?preview-agent=true` in URL). Returns `null` if param is missing. |
 
 > **Security note:** When you return HTML from `postprocessMessage`, make sure you sanitise it before injecting into the page. The provided postprocessors (`markdownPostprocessor`, `directivePostprocessor`) do not perform sanitisation.
 
@@ -792,6 +793,7 @@ This ensures all configuration values are set to sensible defaults while allowin
 | `clearChatHistoryStorageKey` | `string` | Additional localStorage key to clear when the clear chat button is clicked. The widget automatically clears `"vanilla-agent-chat-history"` by default. Use this option to clear additional keys (e.g., if you're using a custom storage key). |
 | `formEndpoint` | `string` | Endpoint used by built-in directives (defaults to `/form`). |
 | `launcherWidth` | `string` | CSS width applied to the floating launcher panel (e.g. `320px`, `90vw`). Defaults to `min(400px, calc(100vw - 24px))`. |
+| `persistState` | `boolean \| AgentWidgetPersistStateConfig` | Persist widget state (open/closed, voice mode) across page navigations. Set to `true` for defaults or pass an object for fine-grained control. See [State Persistence](#state-persistence) below. |
 | `debug` | `boolean` | Emits verbose logs to `console`. |
 
 All options are safe to mutate via `initAgentWidget(...).update(newConfig)`.
@@ -997,6 +999,97 @@ interface AgentWidgetStreamParser {
 ```
 
 The parser's `processChunk` method is called for each chunk. If the content matches your parser's format, return the extracted text and the raw payload. Built-in parsers already do this, so action handlers and middleware can read the original structured content without re-implementing a parser. Return `null` if the chunk isn't ready yet—the widget will keep waiting or fall back to plain text.
+
+### State Persistence
+
+The widget can automatically persist its state (open/closed, voice recognition mode) across page navigations using `localStorage` or `sessionStorage`. This is useful for multi-page websites where users navigate between pages.
+
+**Simple usage:**
+
+```typescript
+initAgentWidget({
+  target: 'body',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    persistState: true  // Enable with defaults
+  }
+});
+```
+
+When enabled, the widget automatically:
+- Re-opens if it was open before navigation
+- Resumes voice recognition if it was active
+- Focuses the text input if voice wasn't active
+- Clears persisted state when chat is cleared
+
+**Advanced configuration:**
+
+```typescript
+initAgentWidget({
+  target: 'body',
+  config: {
+    apiUrl: '/api/chat/dispatch',
+    persistState: {
+      enabled: true,
+      persist: {
+        openState: true,    // Persist open/closed state (default: true)
+        voiceState: true,   // Persist voice recognition state (default: true)
+        focusInput: true    // Focus input after restore (default: true)
+      },
+      storage: 'localStorage',    // or 'sessionStorage' (default: 'localStorage')
+      keyPrefix: 'vanilla-agent-', // Storage key prefix (default: 'vanilla-agent-')
+      clearOnChatClear: true      // Clear state on chat clear (default: true)
+    }
+  }
+});
+```
+
+**With script tag installer:**
+
+```html
+<script>
+  window.siteAgentConfig = {
+    config: {
+      apiUrl: '/api/chat/dispatch',
+      persistState: true
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"></script>
+```
+
+### Preview Mode
+
+The widget supports a preview mode that only loads when a specific URL query parameter is present. This is useful for testing, staging, or sharing preview links.
+
+**Programmatic usage:**
+
+```typescript
+const widget = initAgentWidget({
+  target: 'body',
+  previewQueryParam: 'preview-agent',  // Widget only loads with ?preview-agent=true
+  config: {
+    apiUrl: '/api/chat/dispatch'
+  }
+});
+
+// widget is null if preview param is missing
+if (widget) {
+  console.log('Widget initialized!');
+}
+```
+
+**With script tag installer:**
+
+```html
+<script 
+  src="https://cdn.jsdelivr.net/npm/vanilla-agent@latest/dist/install.global.js"
+  data-travrse-token="YOUR_TOKEN"
+  data-preview-param="preview-agent"
+></script>
+```
+
+Then visit your page with `?preview-agent=true` to load the widget.
 
 ### Optional proxy server
 
