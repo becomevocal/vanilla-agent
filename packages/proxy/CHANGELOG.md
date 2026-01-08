@@ -1,5 +1,11 @@
 # vanilla-agent-proxy
 
+## 1.37.0
+
+### Minor Changes
+
+- Add persist state config and preview mode
+
 ## 1.36.0
 
 ### Minor Changes
